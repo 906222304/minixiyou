@@ -1,0 +1,63 @@
+{
+  "$schema": "https://claude.ai/schema/settings.json",
+  "migration": {
+    "sourceDir": "xiyou/assets/data/config",
+    "targetDir": "minixiyou/constants/migrated",
+    "idPrefix": "xiyou",
+    "preserveOriginalData": true,
+    "generateMapping": true,
+    "validateTypes": true,
+    "scalingFactors": {
+      "attack": 0.1,
+      "defense": 0.1,
+      "hp": 0.01,
+      "price": 0.1
+    }
+  },
+  "dataMapping": {
+    "itemIdPrefix": "xiyou-item",
+    "equipmentIdPrefix": "xiyou-equip",
+    "petIdPrefix": "xiyou-pet",
+    "dungeonIdPrefix": "xiyou-dungeon",
+    "mapIdPrefix": "xiyou-map"
+  },
+  "typeConversion": {
+    "numericIdToString": true,
+    "inferRarity": true,
+    "mapElementToPhysical": true,
+    "preserveFactionAsSect": false
+  },
+  "rarityThresholds": {
+    "仙品": 50000,
+    "传说": 10000,
+    "稀有": 2000,
+    "普通": 0
+  },
+  "equipmentSlotMapping": {
+    "3": "武器",
+    "5": "头部",
+    "6": "鞋子",
+    "7": "饰品",
+    "8": "戒指"
+  },
+  "factionMapping": {
+    "1": "将军府",
+    "2": "龙宫",
+    "3": "方寸山",
+    "4": "普陀山",
+    "5": "月宫",
+    "6": "通用"
+  },
+  "difficultyMapping": {
+    "1": "普通",
+    "2": "困难",
+    "3": "梦魇",
+    "4": "地狱"
+  },
+  "notes": [
+    "元素属性 (冰/火/雷) 暂时不迁移",
+    "门派系统保留为注释，不转换为 sectId",
+    "数值平衡可能需要根据实际游戏体验调整",
+    "装备槽位映射是简化的，xiyou 的 6 槽位映射到 minixiyou 的 16 槽位系统"
+  ]
+}

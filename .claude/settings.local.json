@@ -1,0 +1,45 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(dir:*)",
+      "Bash(powershell:*)",
+      "Bash(node:*)",
+      "Bash(npx:*)",
+      "Bash(npm:*)",
+      "Bash(pnpm:*)",
+      "Bash(ls:*)",
+      "Bash(cd:*)",
+      "Bash(type:*)",
+      "Bash(cat:*)",
+      "Bash(mkdir:*)",
+      "Bash(echo:*)",
+      "Bash(git:*)",
+      "Bash(tsc:*)",
+      "Bash(vite:*)",
+      "Bash(timeout:*)"
+    ]
+  },
+  "project": {
+    "name": "MiniXiyouDream",
+    "description": "西游题材单机文字RPG游戏",
+    "techStack": [
+      "React 19",
+      "TypeScript 5.8",
+      "Vite 6",
+      "Tailwind CSS 4",
+      "Preact Signals",
+      "Dexie.js",
+      "PWA"
+    ],
+    "docsPath": "minixiyoudream/docs",
+    "specsPath": "minixiyoudream/specs",
+    "srcPath": "minixiyoudream/src"
+  },
+  "mcpServers": {
+    "web-reader": {
+      "type": "stdio",
+      "command": "npx",
+      "args": ["-y", "@anthropic-ai/web-reader-mcp"]
+    }
+  }
+}

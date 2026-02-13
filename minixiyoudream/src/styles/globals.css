@@ -1,0 +1,182 @@
+@import "tailwindcss";
+
+/* 自定义主题 */
+@theme {
+  /* 游戏主题色 */
+  --color-primary-50: #fef2f2;
+  --color-primary-100: #fee2e2;
+  --color-primary-200: #fecaca;
+  --color-primary-300: #fca5a5;
+  --color-primary-400: #f87171;
+  --color-primary-500: #ef4444;
+  --color-primary-600: #dc2626;
+  --color-primary-700: #b91c1c;
+  --color-primary-800: #991b1b;
+  --color-primary-900: #7f1d1d;
+
+  /* 品质颜色 */
+  --color-quality-common: #FFFFFF;
+  --color-quality-rare: #0070DD;
+  --color-quality-epic: #A335EE;
+  --color-quality-legendary: #FF8000;
+  --color-quality-mythic: #E6CC80;
+
+  /* 种族颜色 */
+  --color-race-human: #FFD700;
+  --color-race-celestial: #00BFFF;
+  --color-race-demon: #FF4500;
+
+  /* 动画 */
+  --animate-damage-pop: damagePop 0.5s ease-out;
+  --animate-shake: shake 0.3s ease-in-out;
+  --animate-fade-in: fadeIn 0.3s ease-in;
+}
+
+/* 全局样式 */
+* {
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Noto Sans SC', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background-color: #1a1a2e;
+  color: #ffffff;
+}
+
+/* 移动端适配 */
+html {
+  font-size: 16px;
+}
+
+@media (max-width: 375px) {
+  html {
+    font-size: 14px;
+  }
+}
+
+/* 自定义组件样式 */
+@layer components {
+  .btn-primary {
+    @apply px-4 py-2 bg-primary-600 hover:bg-primary-700 rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+
+  .btn-secondary {
+    @apply px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+
+  .btn-danger {
+    @apply px-4 py-2 bg-red-600 hover:bg-red-700 rounded-lg font-medium transition-colors;
+  }
+
+  .card {
+    @apply bg-gray-800 rounded-lg p-4 border border-gray-700;
+  }
+
+  .hp-bar {
+    @apply w-full h-4 bg-gray-700 rounded overflow-hidden;
+  }
+
+  .hp-bar-fill {
+    @apply h-full bg-red-500 transition-all duration-300;
+  }
+
+  .mp-bar {
+    @apply w-full h-2 bg-gray-700 rounded overflow-hidden;
+  }
+
+  .mp-bar-fill {
+    @apply h-full bg-blue-500 transition-all duration-300;
+  }
+
+  /* 触摸友好的按钮 */
+  .touch-btn {
+    @apply min-w-[44px] min-h-[44px] flex items-center justify-center;
+  }
+}
+
+/* 伤害数字动画 */
+.damage-number {
+  animation: damagePop 0.5s ease-out forwards;
+  pointer-events: none;
+}
+
+@keyframes damagePop {
+  0% {
+    transform: translateY(0) scale(1);
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(-30px) scale(1.2);
+    opacity: 0;
+  }
+}
+
+/* 暴击数字 */
+.damage-critical {
+  color: #ffd700;
+  font-weight: bold;
+  font-size: 1.5em;
+  text-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
+}
+
+/* 治疗数字 */
+.damage-heal {
+  color: #00ff00;
+}
+
+/* 震动动画 */
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-5px); }
+  75% { transform: translateX(5px); }
+}
+
+/* 淡入动画 */
+@keyframes fadeIn {
+  0% { opacity: 0; }
+  100% { opacity: 1; }
+}
+
+/* 品质边框 */
+.quality-common { border-color: #FFFFFF; }
+.quality-rare { border-color: #0070DD; }
+.quality-epic { border-color: #A335EE; }
+.quality-legendary { border-color: #FF8000; }
+.quality-mythic { border-color: #E6CC80; }
+
+/* 品质文字 */
+.quality-text-common { color: #FFFFFF; }
+.quality-text-rare { color: #0070DD; }
+.quality-text-epic { color: #A335EE; }
+.quality-text-legendary { color: #FF8000; }
+.quality-text-mythic { color: #E6CC80; }
+
+/* 滚动条样式 */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: #1a1a2e;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #4a4a6a;
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #5a5a7a;
+}
+
+/* 安全区域适配（刘海屏） */
+@supports (padding: max(0px)) {
+  body {
+    padding-left: max(0px, env(safe-area-inset-left));
+    padding-right: max(0px, env(safe-area-inset-right));
+    padding-bottom: max(0px, env(safe-area-inset-bottom));
+  }
+}
