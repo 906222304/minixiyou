@@ -620,3 +620,12 @@ export function getAllMaps(): GameMap[] {
 export function getMapsByRegion(region: string): GameMap[] {
   return Object.values(MAPS).filter(m => m.region === region);
 }
+
+/** 获取区域名称 */
+export function getRegionName(region: string): string {
+  const regionNames: Record<string, string> = {
+    newbie: '新手村',
+    datang: '东土大唐',
+  };
+  return regionNames[region] || region;
+}

@@ -1,6 +1,6 @@
 // 战斗界面主布局
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useSignals } from '@preact/signals-react/runtime';
 import {
   battleState,
@@ -10,6 +10,7 @@ import {
   executeAction,
   startBattle,
   clearBattle,
+  isSkillUsable,
 } from '@/signals';
 import { gamePhase } from '@/signals/gameSignals';
 import { player } from '@/signals/playerSignals';
@@ -98,51 +99,113 @@ export function BattleLayout() {
     }
   }, [state, currentPlayer]);
 
+  // 获取当前行动单位
+  const getCurrentActor = useCallback((): CombatUnit | null => {
+    if (!state) return null;
+    const allUnits = getAllUnits(state);
+    return allUnits[state.currentActorIndex] ?? null;
+  }, [state]);
+
   // 自动战斗逻辑
   useEffect(() => {
     if (!auto || !state || ended || state.result) return;
 
     const timer = setTimeout(() => {
       // 获取当前行动单位
-      const allUnits = getAllUnits(state);
-      const currentActor = allUnits[state.currentActorIndex];
+      const currentActor = getCurrentActor();
 
       if (!currentActor || currentActor.hp <= 0) return;
 
       // AI选择行动
       if (currentActor.isPlayerSide) {
-        // 玩家方自动：随机攻击敌人
-        const aliveEnemies = state.enemies.filter(e => e.hp > 0);
-        if (aliveEnemies.length > 0) {
-          const target = aliveEnemies[Math.floor(Math.random() * aliveEnemies.length)];
-          const action: BattleAction = {
-            actorId: currentActor.id,
-            type: 'attack',
-            targetId: target.id,
-          };
-          executeAction(action);
-        }
+        // 玩家方自动AI
+        executePlayerSideAI(currentActor, state);
       } else {
-        // 敌人自动：随机攻击玩家方
-        const aliveAllies = [
-          ...state.playerFormation.characters.filter(c => c && c.hp > 0),
-          ...state.playerFormation.pets.filter(p => p && p.hp > 0),
-        ] as CombatUnit[];
-
-        if (aliveAllies.length > 0) {
-          const target = aliveAllies[Math.floor(Math.random() * aliveAllies.length)];
-          const action: BattleAction = {
-            actorId: currentActor.id,
-            type: 'attack',
-            targetId: target.id,
-          };
-          executeAction(action);
-        }
+        // 敌人自动AI
+        executeEnemyAI(currentActor, state);
       }
     }, 1000 / speed);
 
     return () => clearTimeout(timer);
-  }, [auto, state, speed, ended]);
+  }, [auto, state, speed, ended, getCurrentActor]);
+
+  // 玩家方AI逻辑
+  const executePlayerSideAI = (actor: CombatUnit, currentState: typeof state) => {
+    if (!currentState) return;
+
+    const aliveEnemies = currentState.enemies.filter(e => e.hp > 0);
+    if (aliveEnemies.length === 0) return;
+
+    // 优先使用技能
+    const usableSkills = actor.skills.filter(skill => isSkillUsable(actor, skill.id));
+    if (usableSkills.length > 0 && Math.random() < 0.5) {
+      const skill = usableSkills[Math.floor(Math.random() * usableSkills.length)];
+      // 根据技能目标类型选择目标
+      const targetId = skill.targetType === 'single_enemy'
+        ? aliveEnemies[Math.floor(Math.random() * aliveEnemies.length)].id
+        : undefined;
+
+      const action: BattleAction = {
+        actorId: actor.id,
+        type: 'skill',
+        skillId: skill.id,
+        targetId,
+      };
+      executeAction(action);
+      return;
+    }
+
+    // 普通攻击
+    const target = aliveEnemies[Math.floor(Math.random() * aliveEnemies.length)];
+    const action: BattleAction = {
+      actorId: actor.id,
+      type: 'attack',
+      targetId: target.id,
+    };
+    executeAction(action);
+  };
+
+  // 敌人AI逻辑
+  const executeEnemyAI = (actor: CombatUnit, currentState: typeof state) => {
+    if (!currentState) return;
+
+    const aliveAllies = [
+      ...currentState.playerFormation.characters.filter(c => c && c.hp > 0),
+      ...currentState.playerFormation.pets.filter(p => p && p.hp > 0),
+    ] as CombatUnit[];
+
+    if (aliveAllies.length === 0) return;
+
+    // 优先使用技能
+    const usableSkills = actor.skills.filter(skill => isSkillUsable(actor, skill.id));
+    if (usableSkills.length > 0 && Math.random() < 0.3) {
+      const skill = usableSkills[Math.floor(Math.random() * usableSkills.length)];
+      const targetId = skill.targetType === 'single_enemy' || skill.targetType === 'single_ally'
+        ? aliveAllies[Math.floor(Math.random() * aliveAllies.length)].id
+        : undefined;
+
+      const action: BattleAction = {
+        actorId: actor.id,
+        type: 'skill',
+        skillId: skill.id,
+        targetId,
+      };
+      executeAction(action);
+      return;
+    }
+
+    // 普通攻击 - 优先攻击HP最低的目标
+    const target = aliveAllies.reduce((lowest, unit) =>
+      unit.hp < lowest.hp ? unit : lowest
+    , aliveAllies[0]);
+
+    const action: BattleAction = {
+      actorId: actor.id,
+      type: 'attack',
+      targetId: target.id,
+    };
+    executeAction(action);
+  };
 
   // 处理目标选择
   const handleSelectTarget = (targetId: string) => {
@@ -164,8 +227,7 @@ export function BattleLayout() {
   }
 
   // 获取当前行动单位
-  const allUnits = getAllUnits(state);
-  const currentActor = allUnits[state.currentActorIndex];
+  const currentActor = getCurrentActor();
   const isPlayerTurn = currentActor?.isPlayerSide && !auto;
 
   return (
@@ -194,6 +256,7 @@ export function BattleLayout() {
               isEnemy
               isActive={currentActor?.id === enemy.id}
               selectable={isPlayerTurn && enemy.hp > 0}
+              isSelected={selectedTargetId === enemy.id}
               onClick={() => isPlayerTurn && enemy.hp > 0 && handleSelectTarget(enemy.id)}
             />
           ))}
@@ -252,6 +315,7 @@ export function BattleLayout() {
       <div className="game-panel mx-4 mb-4 p-4">
         <BattleActions
           selectedTargetId={selectedTargetId ?? undefined}
+          onSelectTarget={handleSelectTarget}
         />
       </div>
     </div>

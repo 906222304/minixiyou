@@ -1,4 +1,4 @@
-// 传送面板组件
+// 传送面板组件 - 与地图系统风格一致
 
 import { useState } from 'react';
 import { useSignals } from '@preact/signals-react/runtime';
@@ -12,9 +12,9 @@ import {
   isTeleportUnlocked,
 } from '@/services/teleportService';
 import { getAllTeleportPoints } from '@/constants/teleports';
+import { getMap, getRegionName } from '@/constants/maps';
 import type { TeleportPoint } from '@/constants/teleports';
-// 修复: 添加 getMap 导入用于获取地图名称
-import { getMap } from '@/constants/maps';
+import type { GameMap } from '@/types';
 
 type TeleportFilter = 'all' | 'unlocked' | 'available';
 
@@ -44,41 +44,29 @@ export function TeleportPanel() {
   };
 
   // 按区域分组传送点
-  const groupedTeleports = (): Record<string, TeleportPoint[]> => {
+  const groupedTeleports = (): Record<string, Array<TeleportPoint & { mapData?: GameMap }>> => {
     const teleports = getTeleportList();
-    const groups: Record<string, TeleportPoint[]> = {
-      '新手村': [],
-      '东土大唐': [],
-    };
+    const groups: Record<string, Array<TeleportPoint & { mapData?: GameMap }>> = {};
 
     teleports.forEach(tp => {
-      if (tp.id.startsWith('teleport_village') || tp.id === 'teleport_changan') {
-        groups['新手村'].push(tp);
-      } else if (tp.id.startsWith('teleport_datang') || tp.id.startsWith('teleport_fox') ||
-                 tp.id.startsWith('teleport_spider') || tp.id.startsWith('teleport_bandit') ||
-                 tp.id.startsWith('teleport_ancient') || tp.id.startsWith('teleport_misty') ||
-                 tp.id.startsWith('teleport_dragon') || tp.id.startsWith('teleport_tiger') ||
-                 tp.id.startsWith('teleport_fairy') || tp.id.startsWith('teleport_ghost') ||
-                 tp.id.startsWith('teleport_dungeon_entrance')) {
-        groups['东土大唐'].push(tp);
+      const mapData = getMap(tp.mapId);
+      const region = mapData?.region || 'other';
+      const regionName = getRegionName(region);
+
+      if (!groups[regionName]) {
+        groups[regionName] = [];
       }
+      groups[regionName].push({ ...tp, mapData });
     });
 
-    // 过滤空组
-    return Object.fromEntries(
-      Object.entries(groups).filter(([, items]) => items.length > 0)
-    );
+    return groups;
   };
 
   const handleTeleport = (teleportId: string) => {
     const result = teleport(teleportId);
     setMessage({ type: result.success ? 'success' : 'error', text: result.message });
 
-    if (result.success) {
-      setTimeout(() => setMessage(null), 3000);
-    } else {
-      setTimeout(() => setMessage(null), 5000);
-    }
+    setTimeout(() => setMessage(null), 3000);
   };
 
   const handleUnlock = (teleportId: string) => {
@@ -97,14 +85,14 @@ export function TeleportPanel() {
   const getStatusStyle = (status: string): string => {
     switch (status) {
       case 'locked':
-        return 'opacity-50 bg-gray-800/50 border-gray-600';
+        return 'opacity-50 bg-gray-100 border-gray-300';
       case 'unavailable':
-        return 'opacity-70 bg-gray-800/50 border-gray-500';
+        return 'opacity-70 bg-gray-50 border-gray-200';
       case 'current':
-        return 'border-primary-500 bg-primary-900/30';
+        return 'border-[var(--game-gold)] bg-[var(--game-gold)]/10';
       case 'available':
       default:
-        return 'border-gray-700 hover:border-primary-500';
+        return 'bg-white/70 border-gray-200 hover:border-[var(--game-gold)]';
     }
   };
 
@@ -113,9 +101,13 @@ export function TeleportPanel() {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h2 className="text-lg font-medium">传送点</h2>
-        <div className="text-sm text-gray-400">
-          金币: <span className="text-yellow-400">{currentGold}</span>
+        <h3 className="text-sm font-medium text-[var(--game-text-muted)] flex items-center gap-2">
+          <span>✨</span>
+          <span>传送点</span>
+        </h3>
+        <div className="text-sm">
+          <span className="text-[var(--game-text-muted)]">金币：</span>
+          <span className="text-yellow-600 font-medium">{currentGold.toLocaleString()}</span>
         </div>
       </div>
 
@@ -124,8 +116,8 @@ export function TeleportPanel() {
         <div
           className={`p-3 rounded-lg text-sm ${
             message.type === 'success'
-              ? 'bg-green-900/50 text-green-300 border border-green-700'
-              : 'bg-red-900/50 text-red-300 border border-red-700'
+              ? 'bg-green-100 text-green-700 border border-green-300'
+              : 'bg-red-100 text-red-700 border border-red-300'
           }`}
         >
           {message.text}
@@ -138,10 +130,10 @@ export function TeleportPanel() {
           <button
             key={f}
             onClick={() => setFilter(f)}
-            className={`px-3 py-1.5 text-sm rounded-lg transition-colors ${
+            className={`px-3 py-1.5 text-sm rounded-lg transition-all ${
               filter === f
-                ? 'bg-primary-600 text-white'
-                : 'bg-gray-800 text-gray-400 hover:bg-gray-700'
+                ? 'bg-[var(--game-gold)]/20 text-[var(--game-gold-dark)] border border-[var(--game-gold)]/40'
+                : 'bg-white/50 text-[var(--game-text-muted)] hover:bg-white/70 border border-transparent'
             }`}
           >
             {f === 'available' ? '可用' : f === 'unlocked' ? '已解锁' : '全部'}
@@ -151,10 +143,9 @@ export function TeleportPanel() {
 
       {/* 当前位置 */}
       {currentPlayer && (
-        <div className="card bg-primary-900/30 border-primary-500">
-          <div className="text-sm text-gray-400 mb-1">当前位置</div>
-          {/* 修复: 显示地图名称而非 ID */}
-          <div className="font-medium">
+        <div className="game-panel p-3 bg-[var(--game-gold)]/10 border-[var(--game-gold)]/40">
+          <div className="text-xs text-[var(--game-text-muted)] mb-1">当前位置</div>
+          <div className="font-medium text-[var(--game-gold-dark)]">
             {getMap(currentPlayer.currentMapId)?.name ?? currentPlayer.currentMapId}
           </div>
         </div>
@@ -164,9 +155,9 @@ export function TeleportPanel() {
       <div className="space-y-4">
         {Object.entries(groups).map(([region, teleports]) => (
           <div key={region} className="space-y-2">
-            <h3 className="text-sm font-medium text-gray-400 border-b border-gray-700 pb-1">
+            <h4 className="text-xs font-medium text-[var(--game-text-muted)] border-b border-gray-200 pb-1">
               {region}
-            </h3>
+            </h4>
             <div className="grid gap-2">
               {teleports.map(tp => {
                 const status = getTeleportStatus(tp);
@@ -176,57 +167,70 @@ export function TeleportPanel() {
                 return (
                   <div
                     key={tp.id}
-                    className={`card transition-all ${getStatusStyle(status)}`}
+                    className={`game-panel p-3 transition-all ${getStatusStyle(status)}`}
                   >
                     <div className="flex items-center gap-3">
-                      <span className="text-2xl">{tp.icon || '📍'}</span>
+                      {/* 传送点图标 */}
+                      <div className="w-10 h-10 rounded-lg bg-white/70 flex items-center justify-center text-xl">
+                        {tp.icon || '📍'}
+                      </div>
+
+                      {/* 传送点信息 */}
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2">
-                          <span className="font-medium truncate">{tp.name}</span>
+                          <span className="font-medium text-[var(--game-text)] truncate">{tp.name}</span>
                           {status === 'current' && (
-                            <span className="text-xs bg-primary-600 px-2 py-0.5 rounded">当前位置</span>
+                            <span className="text-xs px-1.5 py-0.5 rounded bg-[var(--game-gold)]/20 text-[var(--game-gold-dark)]">
+                              当前
+                            </span>
                           )}
                           {status === 'locked' && (
-                            <span className="text-xs bg-gray-600 px-2 py-0.5 rounded">未解锁</span>
-                          )}
-                        </div>
-                        <div className="text-sm text-gray-400 truncate">{tp.description}</div>
-                        <div className="flex items-center gap-3 mt-1 text-xs text-gray-500">
-                          <span>Lv.{tp.requirements?.minLevel || 1}+</span>
-                          {tp.cost.gold > 0 && (
-                            <span className={canAfford ? 'text-yellow-400' : 'text-red-400'}>
-                              {tp.cost.gold} 金币
+                            <span className="text-xs px-1.5 py-0.5 rounded bg-gray-200 text-gray-500">
+                              未解锁
                             </span>
                           )}
                         </div>
+                        <div className="flex items-center gap-3 mt-1 text-xs text-[var(--game-text-muted)]">
+                          <span>Lv.{tp.requirements?.minLevel || 1}+</span>
+                          {tp.cost.gold > 0 && (
+                            <span className={canAfford ? 'text-yellow-600' : 'text-red-500'}>
+                              {tp.cost.gold} 金币
+                            </span>
+                          )}
+                          {tp.cost.gold === 0 && (
+                            <span className="text-green-600">免费</span>
+                          )}
+                        </div>
                       </div>
+
+                      {/* 操作按钮 */}
                       <div className="flex-shrink-0">
                         {status === 'locked' && meetsLevelReq && (
                           <button
                             onClick={() => handleUnlock(tp.id)}
-                            className="px-3 py-1.5 text-sm bg-blue-600 hover:bg-blue-500 rounded-lg transition-colors"
+                            className="px-3 py-1.5 text-xs bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition-colors"
                           >
                             解锁
                           </button>
                         )}
                         {status === 'locked' && !meetsLevelReq && (
-                          <span className="text-xs text-gray-500">等级不足</span>
+                          <span className="text-xs text-gray-400">等级不足</span>
                         )}
                         {status === 'available' && (
                           <button
                             onClick={() => handleTeleport(tp.id)}
                             disabled={!canAfford}
-                            className={`px-3 py-1.5 text-sm rounded-lg transition-colors ${
+                            className={`px-3 py-1.5 text-xs rounded-lg transition-colors ${
                               canAfford
-                                ? 'bg-primary-600 hover:bg-primary-500'
-                                : 'bg-gray-600 cursor-not-allowed opacity-50'
+                                ? 'bg-[var(--game-primary)] hover:bg-[var(--game-primary)]/80 text-white'
+                                : 'bg-gray-300 text-gray-500 cursor-not-allowed'
                             }`}
                           >
                             传送
                           </button>
                         )}
                         {status === 'unavailable' && (
-                          <span className="text-xs text-gray-500">条件不足</span>
+                          <span className="text-xs text-gray-400">条件不足</span>
                         )}
                       </div>
                     </div>
@@ -239,10 +243,21 @@ export function TeleportPanel() {
       </div>
 
       {Object.keys(groups).length === 0 && (
-        <div className="text-center text-gray-500 py-8">
+        <div className="text-center text-[var(--game-text-muted)] py-8">
           暂无符合条件的传送点
         </div>
       )}
+
+      {/* 使用说明 */}
+      <div className="game-panel p-3 text-xs text-[var(--game-text-muted)]">
+        <div className="flex items-start gap-2">
+          <span>💡</span>
+          <div>
+            <p className="font-medium text-[var(--game-text)] mb-1">传送提示</p>
+            <p>传送需要消耗金币。首次到达新地图时，会自动解锁该地图的传送点。</p>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

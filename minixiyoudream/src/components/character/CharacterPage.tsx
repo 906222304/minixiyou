@@ -11,14 +11,22 @@ import {
   playerLevel,
   playerGold,
   playerExp,
+  playerAttributePoints,
+  playerAllocatedPoints,
+  allocateAttributePoint,
+  deallocateAttributePoint,
+  resetAttributePoints,
+  calculateResetCost,
 } from '@/signals/playerSignals';
+import { showToast, showConfirm } from '@/signals';
 import { activePet } from '@/signals/petSignals';
 import { activeCompanions } from '@/signals/companionSignals';
 import { getRace } from '@/constants/races';
 import { getFaction } from '@/constants/factions';
 import { getTrait } from '@/constants/traits';
 import { getSkill } from '@/constants/skills';
-import type { EquipmentSlot, Player, LearnedSkill, Faction, Race, EquipmentSlots, Item } from '@/types';
+import type { EquipmentSlot, Player, LearnedSkill, Faction, Race, EquipmentSlots, Item, BaseStats } from '@/types';
+import { ATTRIBUTE_EFFECTS } from '@/types';
 import { EquipmentDetail } from '@/components/inventory/EquipmentDetail';
 import type { Equipment } from '@/types';
 
@@ -64,6 +72,31 @@ export function CharacterPage() {
   const exp = playerExp.value;
   const currentPet = activePet.value;
   const currentCompanions = activeCompanions.value;
+  const attributePoints = playerAttributePoints.value;
+  const allocatedPoints = playerAllocatedPoints.value;
+
+  // 重置属性点
+  const handleResetPoints = () => {
+    const cost = calculateResetCost();
+    const totalAllocated = Object.values(allocatedPoints).reduce((sum, v) => sum + v, 0);
+
+    if (totalAllocated === 0) {
+      showToast('没有可重置的属性点', 'info');
+      return;
+    }
+
+    showConfirm(
+      `重置属性点`,
+      `确定要重置所有 ${totalAllocated} 点属性吗？\n需要消耗 ${cost} 金币。`,
+      () => {
+        if (resetAttributePoints(cost)) {
+          showToast(`成功重置 ${totalAllocated} 点属性！`, 'success');
+        } else {
+          showToast('金币不足，无法重置', 'error');
+        }
+      }
+    );
+  };
 
   if (!currentPlayer) {
     return (
@@ -177,7 +210,15 @@ export function CharacterPage() {
 
       {/* 标签页内容 */}
       {activeTab === 'attributes' && (
-        <AttributesPanel player={currentPlayer} race={race} />
+        <AttributesPanel
+          player={currentPlayer}
+          race={race}
+          attributePoints={attributePoints}
+          allocatedPoints={allocatedPoints}
+          onAllocate={allocateAttributePoint}
+          onDeallocate={deallocateAttributePoint}
+          onReset={handleResetPoints}
+        />
       )}
 
       {activeTab === 'equipment' && (
@@ -286,20 +327,75 @@ export function CharacterPage() {
 }
 
 // 属性面板组件
-function AttributesPanel({ player, race }: { player: Player; race: Race | undefined }) {
+function AttributesPanel({
+  player,
+  race,
+  attributePoints,
+  allocatedPoints,
+  onAllocate,
+  onDeallocate,
+  onReset,
+}: {
+  player: Player;
+  race: Race | undefined;
+  attributePoints: number;
+  allocatedPoints: Record<keyof BaseStats, number>;
+  onAllocate: (stat: keyof BaseStats) => boolean;
+  onDeallocate: (stat: keyof BaseStats) => boolean;
+  onReset: () => void;
+}) {
   const stats = player.finalStats;
+  const hasPointsToAllocate = attributePoints > 0;
+  const hasAllocatedPoints = Object.values(allocatedPoints).some(v => v > 0);
 
   return (
     <div className="game-panel p-4 space-y-4">
-      {/* 基础属性 */}
+      {/* 未分配属性点提示 */}
+      {hasPointsToAllocate && (
+        <div className="bg-[var(--game-gold)]/10 border border-[var(--game-gold)]/30 rounded-lg p-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <span className="text-lg">✨</span>
+              <span className="text-sm font-medium text-[var(--game-gold-dark)]">
+                可分配属性点
+              </span>
+            </div>
+            <span className="text-xl font-bold text-[var(--game-gold)]">
+              {attributePoints}
+            </span>
+          </div>
+          <p className="text-xs text-[var(--game-text-muted)] mt-1">
+            升级获得属性点，可自由分配到各项属性
+          </p>
+        </div>
+      )}
+
+      {/* 基础属性 - 可分配 */}
       <div>
-        <h4 className="text-sm font-semibold text-[var(--game-text-muted)] mb-3">基础属性</h4>
-        <div className="grid grid-cols-2 gap-3">
-          <StatItem label="力量" value={stats.strength} icon="💪" />
-          <StatItem label="灵力" value={stats.intelligence} icon="🔮" />
-          <StatItem label="体质" value={stats.vitality} icon="❤️" />
-          <StatItem label="敏捷" value={stats.agility} icon="💨" />
-          <StatItem label="魔力" value={stats.willpower} icon="💙" />
+        <div className="flex items-center justify-between mb-3">
+          <h4 className="text-sm font-semibold text-[var(--game-text-muted)]">基础属性</h4>
+          {hasAllocatedPoints && (
+            <button
+              onClick={onReset}
+              className="text-xs text-[var(--game-text-muted)] hover:text-[var(--game-gold)] transition-colors"
+            >
+              重置属性点
+            </button>
+          )}
+        </div>
+        <div className="space-y-2">
+          {ATTRIBUTE_EFFECTS.map((attr) => (
+            <AttributeItem
+              key={attr.stat}
+              attr={attr}
+              value={stats[attr.stat]}
+              allocated={allocatedPoints[attr.stat]}
+              canAllocate={hasPointsToAllocate}
+              canDeallocate={allocatedPoints[attr.stat] > 0}
+              onAllocate={() => onAllocate(attr.stat)}
+              onDeallocate={() => onDeallocate(attr.stat)}
+            />
+          ))}
         </div>
       </div>
 
@@ -340,6 +436,103 @@ function AttributesPanel({ player, race }: { player: Player; race: Race | undefi
             </div>
           </div>
         </>
+      )}
+    </div>
+  );
+}
+
+// 可分配属性项组件
+function AttributeItem({
+  attr,
+  value,
+  allocated,
+  canAllocate,
+  canDeallocate,
+  onAllocate,
+  onDeallocate,
+}: {
+  attr: typeof ATTRIBUTE_EFFECTS[0];
+  value: number;
+  allocated: number;
+  canAllocate: boolean;
+  canDeallocate: boolean;
+  onAllocate: () => void;
+  onDeallocate: () => void;
+}) {
+  const [showDetails, setShowDetails] = useState(false);
+
+  return (
+    <div className="bg-[var(--game-bg-hover)]/30 rounded-lg p-3">
+      <div className="flex items-center justify-between">
+        {/* 属性信息 */}
+        <div
+          className="flex items-center gap-2 flex-1 cursor-pointer"
+          onClick={() => setShowDetails(!showDetails)}
+        >
+          <span className="text-lg">{attr.icon}</span>
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="text-sm font-medium text-[var(--game-text)]">{attr.name}</span>
+              {allocated > 0 && (
+                <span className="text-xs bg-[var(--game-gold)]/20 text-[var(--game-gold-dark)] px-1.5 py-0.5 rounded">
+                  +{allocated}
+                </span>
+              )}
+            </div>
+            <span className="text-xs text-[var(--game-text-dim)]">{attr.description}</span>
+          </div>
+        </div>
+
+        {/* 属性值和分配按钮 */}
+        <div className="flex items-center gap-2">
+          <button
+            onClick={onDeallocate}
+            disabled={!canDeallocate}
+            className={`
+              w-7 h-7 rounded-full flex items-center justify-center text-sm font-bold
+              transition-all duration-200
+              ${canDeallocate
+                ? 'bg-[var(--game-border)] text-[var(--game-text)] hover:bg-red-100 hover:text-red-600 active:scale-95'
+                : 'bg-[var(--game-border)]/30 text-[var(--game-text-dim)] cursor-not-allowed'
+              }
+            `}
+          >
+            -
+          </button>
+          <span className="w-10 text-center font-semibold text-[var(--game-text)]">
+            {value}
+          </span>
+          <button
+            onClick={onAllocate}
+            disabled={!canAllocate}
+            className={`
+              w-7 h-7 rounded-full flex items-center justify-center text-sm font-bold
+              transition-all duration-200
+              ${canAllocate
+                ? 'bg-[var(--game-gold)] text-white hover:bg-[var(--game-gold-dark)] active:scale-95 shadow-sm'
+                : 'bg-[var(--game-border)]/30 text-[var(--game-text-dim)] cursor-not-allowed'
+              }
+            `}
+          >
+            +
+          </button>
+        </div>
+      </div>
+
+      {/* 属性效果详情 */}
+      {showDetails && (
+        <div className="mt-2 pt-2 border-t border-[var(--game-border)]">
+          <div className="flex flex-wrap gap-1">
+            {attr.effects.map((effect, idx) => (
+              <span
+                key={idx}
+                className="text-xs bg-[var(--game-bg)] px-2 py-1 rounded text-[var(--game-text-muted)]"
+              >
+                {effect}
+              </span>
+            ))}
+          </div>
+        </div>
       )}
     </div>
   );

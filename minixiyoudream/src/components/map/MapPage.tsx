@@ -1,59 +1,81 @@
-// 地图页面组件
+// 地图页面组件 - 完整的地图导航系统
 
+import { useState } from 'react';
 import { useSignals } from '@preact/signals-react/runtime';
-import { player, updatePlayerPosition } from '@/signals';
-import { getAllMaps } from '@/constants/maps';
+import { CurrentMapInfo } from './CurrentMapInfo';
+import { AdjacentMaps } from './AdjacentMaps';
+import { RegionMapView } from './RegionMapView';
+import { TeleportPanel } from './TeleportPanel';
+
+type TabType = 'navigate' | 'teleport' | 'region';
 
 export function MapPage() {
   useSignals();
 
-  const currentPlayer = player.value;
-  const allMaps = getAllMaps();
+  const [activeTab, setActiveTab] = useState<TabType>('navigate');
 
-  const handleTeleport = (mapId: string) => {
-    if (currentPlayer) {
-      updatePlayerPosition(mapId, 0, 0);
-    }
-  };
+  const tabs: { id: TabType; label: string; icon: string }[] = [
+    { id: 'navigate', label: '移动', icon: '🚶' },
+    { id: 'teleport', label: '传送', icon: '✨' },
+    { id: 'region', label: '区域', icon: '🗺️' },
+  ];
 
   return (
     <div className="space-y-4">
-      <h2 className="text-lg font-medium">地图</h2>
+      <h2 className="text-lg font-bold text-[var(--game-gold-dark)] flex items-center gap-2">
+        <span>🗺️</span>
+        <span>地图导航</span>
+      </h2>
 
-      {/* 当前位置 */}
-      {currentPlayer && (
-        <div className="card bg-primary-900/30 border-primary-500">
-          <div className="text-sm text-gray-400 mb-1">当前位置</div>
-          <div className="font-medium">{currentPlayer.currentMapId}</div>
-        </div>
-      )}
+      {/* 当前位置信息 */}
+      <CurrentMapInfo />
 
-      {/* 可用地图列表 */}
-      <div className="space-y-2">
-        <h3 className="text-sm font-medium text-gray-400">传送点</h3>
-        {allMaps.map((map) => (
+      {/* Tab切换 */}
+      <div className="flex gap-2">
+        {tabs.map(tab => (
           <button
-            key={map.id}
-            onClick={() => handleTeleport(map.id)}
-            className={`w-full card text-left hover:border-primary-500 transition-colors ${
-              currentPlayer?.currentMapId === map.id ? 'border-primary-500' : ''
+            key={tab.id}
+            onClick={() => setActiveTab(tab.id)}
+            className={`flex-1 py-2.5 px-3 rounded-lg text-sm font-medium transition-all ${
+              activeTab === tab.id
+                ? 'bg-[var(--game-gold)]/20 text-[var(--game-gold-dark)] border border-[var(--game-gold)]/40'
+                : 'bg-white/50 text-[var(--game-text-muted)] hover:bg-white/70 border border-transparent'
             }`}
           >
-            <div className="flex items-center gap-3">
-              <span className="text-2xl">{map.icon}</span>
-              <div className="flex-1">
-                <div className="font-medium">{map.name}</div>
-                <div className="text-sm text-gray-400">{map.description}</div>
-                <div className="text-xs text-gray-500 mt-1">
-                  等级范围: Lv.{map.levelRange.min} - Lv.{map.levelRange.max}
-                </div>
-              </div>
-              {currentPlayer?.currentMapId === map.id && (
-                <span className="text-xs bg-primary-600 px-2 py-1 rounded">当前位置</span>
-              )}
-            </div>
+            <span className="mr-1">{tab.icon}</span>
+            {tab.label}
           </button>
         ))}
+      </div>
+
+      {/* Tab内容 */}
+      <div className="min-h-[300px]">
+        {activeTab === 'navigate' && (
+          <div className="space-y-4">
+            {/* 相邻地图导航 */}
+            <AdjacentMaps />
+
+            {/* 使用说明 */}
+            <div className="game-panel p-3 text-xs text-[var(--game-text-muted)]">
+              <div className="flex items-start gap-2">
+                <span>💡</span>
+                <div>
+                  <p className="font-medium text-[var(--game-text)] mb-1">移动提示</p>
+                  <p>步行移动只能到达相邻的地图。传送到远处请使用"传送"功能。</p>
+                  <p className="mt-1">首次到达新地图时，会自动解锁该地图的传送点。</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {activeTab === 'teleport' && (
+          <TeleportPanel />
+        )}
+
+        {activeTab === 'region' && (
+          <RegionMapView />
+        )}
       </div>
     </div>
   );

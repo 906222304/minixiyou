@@ -9,17 +9,20 @@ import {
   executeAction,
   clearBattle,
   inventoryItems,
+  isSkillUsable,
+  getSkillCooldown,
 } from '@/signals';
 import { gamePhase } from '@/signals/gameSignals';
 import type { CombatUnit, BattleAction, Skill, Item } from '@/types';
 
 interface BattleActionsProps {
   selectedTargetId?: string;
+  onSelectTarget?: (targetId: string) => void;
 }
 
 type PanelType = 'none' | 'skills' | 'items';
 
-export function BattleActions({ selectedTargetId }: BattleActionsProps) {
+export function BattleActions({ selectedTargetId, onSelectTarget }: BattleActionsProps) {
   useSignals();
 
   const [activePanel, setActivePanel] = useState<PanelType>('none');
@@ -33,16 +36,25 @@ export function BattleActions({ selectedTargetId }: BattleActionsProps) {
 
   // 获取当前行动单位
   const currentActor = getCurrentActor(state.playerFormation, state.enemies, state.currentActorIndex);
-  const isPlayerTurn = currentActor?.isPlayerSide && (currentActor.type === 'player' || currentActor.type === 'companion');
+  // 玩家或伙伴的回合才可操作
+  const isPlayerTurn = currentActor?.isPlayerSide &&
+    (currentActor.type === 'player' || currentActor.type === 'companion');
 
-  // 获取当前单位可用的技能
+  // 获取当前单位可用的技能（考虑冷却和MP）
   const availableSkills = useMemo(() => {
     if (!currentActor || currentActor.skills.length === 0) return [];
 
-    return currentActor.skills.filter(skill => {
-      // 检查MP是否足够
-      return currentActor.mp >= skill.mpCost;
-    });
+    return currentActor.skills.filter(skill => isSkillUsable(currentActor, skill.id));
+  }, [currentActor]);
+
+  // 获取所有技能（包括冷却中的）
+  const allSkills = useMemo(() => {
+    if (!currentActor) return [];
+    return currentActor.skills.map(skill => ({
+      skill,
+      cooldown: getSkillCooldown(currentActor.id, skill.id),
+      canUse: isSkillUsable(currentActor, skill.id),
+    }));
   }, [currentActor]);
 
   // 获取可用的道具（消耗品类）
@@ -75,6 +87,8 @@ export function BattleActions({ selectedTargetId }: BattleActionsProps) {
     };
 
     executeAction(action);
+    // 清除目标选择
+    onSelectTarget?.('');
   };
 
   // 执行技能
@@ -82,12 +96,14 @@ export function BattleActions({ selectedTargetId }: BattleActionsProps) {
     if (!currentActor) return;
 
     // 群体技能不需要选择目标
-    const targetId = skill.targetType === 'all_enemies' || skill.targetType === 'all_allies'
+    const targetId = skill.targetType === 'all_enemies' ||
+                      skill.targetType === 'all_allies' ||
+                      skill.targetType === 'self'
       ? undefined
       : selectedTargetId;
 
     // 单体技能需要选择目标
-    if (skill.targetType === 'single_enemy' && !targetId) {
+    if ((skill.targetType === 'single_enemy' || skill.targetType === 'single_ally') && !targetId) {
       return;
     }
 
@@ -100,6 +116,8 @@ export function BattleActions({ selectedTargetId }: BattleActionsProps) {
 
     executeAction(action);
     setActivePanel('none');
+    // 清除目标选择
+    onSelectTarget?.('');
   };
 
   // 使用道具
@@ -115,6 +133,8 @@ export function BattleActions({ selectedTargetId }: BattleActionsProps) {
 
     executeAction(action);
     setActivePanel('none');
+    // 清除目标选择
+    onSelectTarget?.('');
   };
 
   // 执行防御
@@ -141,8 +161,12 @@ export function BattleActions({ selectedTargetId }: BattleActionsProps) {
     executeAction(action);
   };
 
-  // 战斗结束处理
+  // 战斗结束处理 - 应用奖励
   const handleBattleEnd = () => {
+    if (state.result?.victory) {
+      // TODO: 应用经验和金币奖励到玩家
+      // 当前只是简单结束战斗
+    }
     clearBattle();
     gamePhase.value = 'playing';
   };
@@ -152,16 +176,24 @@ export function BattleActions({ selectedTargetId }: BattleActionsProps) {
     return (
       <div className="space-y-3">
         <div className={`text-center text-lg font-bold ${state.result.victory ? 'text-[#16a34a]' : 'text-[#dc2626]'}`}>
-          {state.result.victory ? '胜利！' : '失败...'}
+          {state.result.victory ? '战斗胜利！' : '战斗失败...'}
         </div>
         {state.result.victory && (
-          <div className="text-center text-sm text-[var(--game-text-muted)]">
-            <p>获得经验: {state.result.rewards.exp}</p>
-            <p>获得金币: {state.result.rewards.gold}</p>
+          <div className="text-center text-sm text-[var(--game-text-muted)] space-y-1">
+            <p>战斗回合: {state.result.stats.rounds}</p>
+            <p>总伤害输出: {state.result.stats.totalDamageDealt}</p>
+            <p>暴击次数: {state.result.stats.criticalHits}</p>
+            <div className="border-t border-[var(--game-border)] pt-2 mt-2">
+              <p className="text-[#16a34a]">获得经验: +{state.result.rewards.exp}</p>
+              <p className="text-[#eab308]">获得金币: +{state.result.rewards.gold}</p>
+              {state.result.rewards.items.length > 0 && (
+                <p className="text-[#60a5fa]">获得物品: {state.result.rewards.items.map(i => i.itemId).join(', ')}</p>
+              )}
+            </div>
           </div>
         )}
         <button
-          onClick={() => handleBattleEnd()}
+          onClick={handleBattleEnd}
           className="game-btn game-btn-primary w-full py-3 font-medium"
         >
           确定
@@ -190,9 +222,14 @@ export function BattleActions({ selectedTargetId }: BattleActionsProps) {
             {speed}x
           </button>
         </div>
-        <p className="text-center text-[var(--game-text-muted)] text-sm">
-          {auto ? '自动战斗中...' : '等待敌人行动...'}
-        </p>
+        <div className="text-center">
+          <p className="text-sm text-[var(--game-gold-dark)] font-medium">
+            {currentActor?.name} 的回合
+          </p>
+          <p className="text-[var(--game-text-muted)] text-sm">
+            {auto ? '自动战斗中...' : '等待中...'}
+          </p>
+        </div>
       </div>
     );
   }
@@ -228,7 +265,7 @@ export function BattleActions({ selectedTargetId }: BattleActionsProps) {
         {currentActor?.name} 的回合
         {currentActor && (
           <span className="text-[var(--game-text-muted)] ml-2">
-            MP: {currentActor.mp}/{currentActor.maxMp}
+            HP: {currentActor.hp}/{currentActor.maxHp} | MP: {currentActor.mp}/{currentActor.maxMp}
           </span>
         )}
       </div>
@@ -245,34 +282,36 @@ export function BattleActions({ selectedTargetId }: BattleActionsProps) {
               关闭
             </button>
           </div>
-          {availableSkills.length === 0 ? (
+          {allSkills.length === 0 ? (
             <p className="text-center text-[var(--game-text-muted)] text-sm py-4">
               没有可用技能
             </p>
           ) : (
             <div className="space-y-2">
-              {availableSkills.map((skill) => {
-                const canUse = currentActor && currentActor.mp >= skill.mpCost;
-                return (
-                  <button
-                    key={skill.id}
-                    onClick={() => canUse && handleUseSkill(skill)}
-                    disabled={!canUse}
-                    className={`w-full game-card p-2 text-left ${!canUse ? 'opacity-50' : ''}`}
-                  >
-                    <div className="flex items-center gap-2">
-                      <span className="text-lg">{skill.icon}</span>
-                      <div className="flex-1 min-w-0">
-                        <div className="font-medium text-sm truncate">{skill.name}</div>
-                        <div className="text-xs text-[var(--game-text-muted)] truncate">
-                          {skill.description}
-                        </div>
+              {allSkills.map(({ skill, cooldown, canUse }) => (
+                <button
+                  key={skill.id}
+                  onClick={() => canUse && handleUseSkill(skill)}
+                  disabled={!canUse}
+                  className={`w-full game-card p-2 text-left ${!canUse ? 'opacity-50' : ''}`}
+                >
+                  <div className="flex items-center gap-2">
+                    <span className="text-lg">{skill.icon}</span>
+                    <div className="flex-1 min-w-0">
+                      <div className="font-medium text-sm truncate">{skill.name}</div>
+                      <div className="text-xs text-[var(--game-text-muted)] truncate">
+                        {skill.description}
                       </div>
-                      <span className="text-xs text-[#60a5fa]">{skill.mpCost} MP</span>
                     </div>
-                  </button>
-                );
-              })}
+                    <div className="text-right">
+                      <span className="text-xs text-[#60a5fa]">{skill.mpCost} MP</span>
+                      {cooldown > 0 && (
+                        <div className="text-xs text-[#f87171]">CD: {cooldown}</div>
+                      )}
+                    </div>
+                  </div>
+                </button>
+              ))}
             </div>
           )}
         </div>
@@ -303,14 +342,14 @@ export function BattleActions({ selectedTargetId }: BattleActionsProps) {
                   className="w-full game-card p-2 text-left"
                 >
                   <div className="flex items-center gap-2">
-                    <span className="text-lg">🧪</span>
+                    <span className="text-lg">{'potion' in item ? '🧪' : '📦'}</span>
                     <div className="flex-1 min-w-0">
                       <div className="font-medium text-sm truncate">{item.name}</div>
                       <div className="text-xs text-[var(--game-text-muted)]">
                         消耗品
                       </div>
                     </div>
-                    <span className="text-xs text-[var(--game-text-dim)]">×{item.count}</span>
+                    <span className="text-xs text-[var(--game-text-dim)]">x{item.count}</span>
                   </div>
                 </button>
               ))}
@@ -332,10 +371,12 @@ export function BattleActions({ selectedTargetId }: BattleActionsProps) {
             </button>
             <button
               onClick={() => setActivePanel('skills')}
-              disabled={availableSkills.length === 0}
-              className="game-btn game-btn-magic py-3 font-medium text-sm disabled:opacity-50"
+              className="game-btn game-btn-magic py-3 font-medium text-sm"
             >
               技能
+              {availableSkills.length > 0 && (
+                <span className="ml-1 text-xs">({availableSkills.length})</span>
+              )}
             </button>
             <button
               onClick={handleDefend}
@@ -351,6 +392,9 @@ export function BattleActions({ selectedTargetId }: BattleActionsProps) {
               className="game-btn game-btn-success py-2 font-medium text-sm disabled:opacity-50"
             >
               道具
+              {usableItems.length > 0 && (
+                <span className="ml-1 text-xs">({usableItems.length})</span>
+              )}
             </button>
             <button
               onClick={handleEscape}
@@ -363,9 +407,11 @@ export function BattleActions({ selectedTargetId }: BattleActionsProps) {
       )}
 
       {/* 目标选择提示 */}
-      {!selectedTargetId && activePanel === 'none' && (
+      {activePanel === 'none' && (
         <p className="text-center text-[var(--game-text-muted)] text-xs">
-          请点击敌方单位选择攻击目标
+          {selectedTargetId
+            ? '已选择目标，点击"攻击"执行'
+            : '请点击敌方单位选择攻击目标'}
         </p>
       )}
     </div>

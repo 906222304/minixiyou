@@ -25,6 +25,7 @@ import { DungeonPage } from '@/components/dungeon';
 import { CharacterPage } from '@/components/character/CharacterPage';
 import { CultivationPage } from '@/components/cultivation';
 import { AchievementPage } from '@/components/achievement';
+import { getMap } from '@/constants/maps';
 
 // 梦幻西游风格图标
 const Icons = {
@@ -261,7 +262,7 @@ export function GameLayout() {
                     欢迎回来，{currentPlayer.name}！
                   </h2>
                   <p className="text-sm text-[var(--game-text-muted)]">
-                    你现在位于 <span className="text-[#60a5fa]">{currentPlayer.currentMapId}</span>
+                    你现在位于 <span className="text-[#60a5fa]">{getMap(currentPlayer.currentMapId)?.name ?? currentPlayer.currentMapId}</span>
                   </p>
                 </div>
               </div>

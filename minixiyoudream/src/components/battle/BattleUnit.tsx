@@ -8,11 +8,12 @@ interface BattleUnitProps {
   isEnemy?: boolean;
   isPet?: boolean;
   isActive?: boolean;
+  isSelected?: boolean;
   onClick?: () => void;
   selectable?: boolean;
 }
 
-export function BattleUnit({ unit, isEnemy, isPet, isActive, onClick, selectable }: BattleUnitProps) {
+export function BattleUnit({ unit, isEnemy, isPet, isActive, isSelected, onClick, selectable }: BattleUnitProps) {
   useSignals();
 
   const hpPercent = (unit.hp / unit.maxHp) * 100;
@@ -24,8 +25,9 @@ export function BattleUnit({ unit, isEnemy, isPet, isActive, onClick, selectable
       className={`
         relative flex flex-col items-center p-2 rounded-xl transition-all bg-white/70 shadow-sm
         ${isDead ? 'opacity-50 grayscale' : ''}
-        ${isActive ? 'ring-2 ring-[var(--game-gold)] shadow-lg' : ''}
-        ${selectable ? 'cursor-pointer hover:bg-white/90 hover:shadow-md' : ''}
+        ${isActive ? 'ring-2 ring-[var(--game-gold)] shadow-lg animate-pulse' : ''}
+        ${isSelected ? 'ring-2 ring-[#dc2626] bg-red-50/70' : ''}
+        ${selectable && !isDead ? 'cursor-pointer hover:bg-white/90 hover:shadow-md hover:scale-105' : ''}
       `}
       onClick={onClick}
     >
@@ -35,17 +37,21 @@ export function BattleUnit({ unit, isEnemy, isPet, isActive, onClick, selectable
         ${isActive ? 'scale-110' : ''}
         ${isDead ? 'grayscale' : ''}
       `}>
-        {isDead ? '💀' : isPet ? '🐾' : isEnemy ? '👤' : '🧑'}
+        {isDead ? '💀' : isPet ? '🐾' : isEnemy ? '👹' : '🧑'}
       </div>
 
       {/* HP条 */}
-      <div className="w-16 h-2.5 bg-gray-200 rounded-full overflow-hidden">
+      <div className="w-16 h-2.5 bg-gray-200 rounded-full overflow-hidden relative">
         <div
           className={`h-full transition-all duration-300 rounded-full ${
             hpPercent > 50 ? 'bg-[#4ade80]' : hpPercent > 25 ? 'bg-[#fbbf24]' : 'bg-[#f87171]'
           }`}
           style={{ width: `${hpPercent}%` }}
         />
+        {/* HP数值显示在条内 */}
+        <span className="absolute inset-0 flex items-center justify-center text-[8px] font-medium text-gray-700">
+          {unit.hp}
+        </span>
       </div>
 
       {/* MP条（仅非宠物显示） */}
@@ -63,11 +69,6 @@ export function BattleUnit({ unit, isEnemy, isPet, isActive, onClick, selectable
         {unit.name}
       </div>
 
-      {/* HP数值 */}
-      <div className="text-xs text-[var(--game-text-muted)]">
-        {unit.hp}/{unit.maxHp}
-      </div>
-
       {/* 状态效果指示 */}
       {unit.statusEffects.length > 0 && (
         <div className="flex gap-0.5 mt-0.5">
@@ -82,6 +83,13 @@ export function BattleUnit({ unit, isEnemy, isPet, isActive, onClick, selectable
       {/* 防御状态指示 */}
       {unit.isDefending && (
         <div className="absolute -top-1 -right-1 text-xs">🛡️</div>
+      )}
+
+      {/* 选中指示器 */}
+      {isSelected && (
+        <div className="absolute -bottom-1 left-1/2 transform -translate-x-1/2">
+          <span className="text-xs text-[#dc2626]">▼</span>
+        </div>
       )}
     </div>
   );

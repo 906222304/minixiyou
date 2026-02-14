@@ -1,11 +1,25 @@
 // 玩家状态管理
 
 import { signal, computed } from '@preact/signals-react';
-import type { Player, CreatePlayerOptions, CharacterTrait, FullStats } from '@/types';
+import type { Player, CreatePlayerOptions, CharacterTrait, FullStats, AllocatedPoints, BaseStats, RaceType } from '@/types';
 import { generateUUID } from '@/types';
 import { getRace } from '@/constants/races';
 import { getFaction } from '@/constants/factions';
 import { calculateCombatStats, calculateBaseStats } from '@/constants/formulas';
+
+/** 每级获得的属性点数 */
+const POINTS_PER_LEVEL = 5;
+
+/** 初始化空属性点分配 */
+function createEmptyAllocatedPoints(): AllocatedPoints {
+  return {
+    strength: 0,
+    intelligence: 0,
+    vitality: 0,
+    agility: 0,
+    willpower: 0,
+  };
+}
 
 /** 玩家状态 */
 export const player = signal<Player | null>(null);
@@ -116,6 +130,9 @@ export function createPlayer(options: CreatePlayerOptions): Player {
     factionId: options.factionId,
     level: 1,
     exp: 0,
+    // 属性点系统 - 初始有5点可分配
+    attributePoints: POINTS_PER_LEVEL,
+    allocatedPoints: createEmptyAllocatedPoints(),
     baseStats: finalStats,
     equipmentStats: {},
     bondStats: {},
@@ -211,6 +228,57 @@ export function updatePlayerPosition(mapId: string, x?: number, y?: number): voi
   };
 }
 
+/** 计算包含已分配属性点的基础属性 */
+function calculateStatsWithAllocatedPoints(
+  baseValues: BaseStats,
+  allocatedPoints: AllocatedPoints,
+  level: number,
+  growthRate: BaseStats
+): BaseStats {
+  // 基础成长
+  const baseGrowth = calculateBaseStats(baseValues, level, growthRate);
+
+  // 加上已分配的属性点
+  return {
+    strength: baseGrowth.strength + allocatedPoints.strength,
+    intelligence: baseGrowth.intelligence + allocatedPoints.intelligence,
+    vitality: baseGrowth.vitality + allocatedPoints.vitality,
+    agility: baseGrowth.agility + allocatedPoints.agility,
+    willpower: baseGrowth.willpower + allocatedPoints.willpower,
+  };
+}
+
+/** 重新计算玩家最终属性 */
+function recalculatePlayerStats(
+  baseValues: BaseStats,
+  allocatedPoints: AllocatedPoints,
+  level: number,
+  race: RaceType
+): FullStats {
+  // 计算包含属性点的基础属性
+  const newBaseStats = calculateStatsWithAllocatedPoints(
+    baseValues,
+    allocatedPoints,
+    level,
+    {
+      strength: 2,
+      intelligence: 2,
+      vitality: 2,
+      agility: 2,
+      willpower: 2,
+    }
+  );
+
+  // 计算战斗属性
+  const newCombatStats = calculateCombatStats(newBaseStats, race, level);
+
+  // 合并属性
+  return {
+    ...newBaseStats,
+    ...newCombatStats,
+  };
+}
+
 /** 增加经验值 */
 export function addPlayerExp(exp: number): boolean {
   if (!player.value) return false;
@@ -218,17 +286,22 @@ export function addPlayerExp(exp: number): boolean {
   let currentExp = player.value.exp + exp;
   let currentLevel = player.value.level;
   let leveledUp = false;
+  let levelsGained = 0;
 
   // 检查升级（简化版）
   while (currentExp >= 100 * currentLevel && currentLevel < 100) {
     currentExp -= 100 * currentLevel;
     currentLevel++;
     leveledUp = true;
+    levelsGained++;
   }
 
   if (leveledUp) {
-    // 重新计算属性
-    const newBaseStats = calculateBaseStats(
+    // 获得新的属性点（每级5点）
+    const newAttributePoints = player.value.attributePoints + levelsGained * POINTS_PER_LEVEL;
+
+    // 重新计算属性（包含已分配的属性点）
+    const finalStats = recalculatePlayerStats(
       {
         strength: 10,
         intelligence: 10,
@@ -236,38 +309,23 @@ export function addPlayerExp(exp: number): boolean {
         agility: 10,
         willpower: 10,
       },
+      player.value.allocatedPoints,
       currentLevel,
-      {
-        strength: 2,
-        intelligence: 2,
-        vitality: 2,
-        agility: 2,
-        willpower: 2,
-      }
+      player.value.race
     );
-
-    const newCombatStats = calculateCombatStats(
-      newBaseStats,
-      player.value.race,
-      currentLevel
-    );
-
-    const finalStats: FullStats = {
-      ...newBaseStats,
-      ...newCombatStats,
-    };
 
     player.value = {
       ...player.value,
       level: currentLevel,
       exp: currentExp,
+      attributePoints: newAttributePoints,
       baseStats: finalStats,
       finalStats: finalStats,
       maxHp: finalStats.maxHp,
       maxMp: finalStats.maxMp,
       hp: finalStats.maxHp,
       mp: finalStats.maxMp,
-      skillPoints: player.value.skillPoints + (currentLevel - player.value.level),
+      skillPoints: player.value.skillPoints + levelsGained,
       updatedAt: Date.now(),
     };
   } else {
@@ -280,3 +338,139 @@ export function addPlayerExp(exp: number): boolean {
 
   return leveledUp;
 }
+
+/** 分配属性点 */
+export function allocateAttributePoint(stat: keyof BaseStats): boolean {
+  if (!player.value) return false;
+  if (player.value.attributePoints <= 0) return false;
+
+  // 增加对应属性点
+  const newAllocatedPoints = {
+    ...player.value.allocatedPoints,
+    [stat]: player.value.allocatedPoints[stat] + 1,
+  };
+
+  // 重新计算最终属性
+  const finalStats = recalculatePlayerStats(
+    {
+      strength: 10,
+      intelligence: 10,
+      vitality: 10,
+      agility: 10,
+      willpower: 10,
+    },
+    newAllocatedPoints,
+    player.value.level,
+    player.value.race
+  );
+
+  player.value = {
+    ...player.value,
+    attributePoints: player.value.attributePoints - 1,
+    allocatedPoints: newAllocatedPoints,
+    baseStats: finalStats,
+    finalStats: finalStats,
+    maxHp: finalStats.maxHp,
+    maxMp: finalStats.maxMp,
+    // 如果当前HP/MP低于新的最大值，则补满
+    hp: Math.max(player.value.hp, finalStats.maxHp),
+    mp: Math.max(player.value.mp, finalStats.maxMp),
+    updatedAt: Date.now(),
+  };
+
+  return true;
+}
+
+/** 撤销属性点分配 */
+export function deallocateAttributePoint(stat: keyof BaseStats): boolean {
+  if (!player.value) return false;
+  if (player.value.allocatedPoints[stat] <= 0) return false;
+
+  // 减少对应属性点
+  const newAllocatedPoints = {
+    ...player.value.allocatedPoints,
+    [stat]: player.value.allocatedPoints[stat] - 1,
+  };
+
+  // 重新计算最终属性
+  const finalStats = recalculatePlayerStats(
+    {
+      strength: 10,
+      intelligence: 10,
+      vitality: 10,
+      agility: 10,
+      willpower: 10,
+    },
+    newAllocatedPoints,
+    player.value.level,
+    player.value.race
+  );
+
+  player.value = {
+    ...player.value,
+    attributePoints: player.value.attributePoints + 1,
+    allocatedPoints: newAllocatedPoints,
+    baseStats: finalStats,
+    finalStats: finalStats,
+    maxHp: finalStats.maxHp,
+    maxMp: finalStats.maxMp,
+    // 如果当前HP/MP超过新的最大值，则调整为最大值
+    hp: Math.min(player.value.hp, finalStats.maxHp),
+    mp: Math.min(player.value.mp, finalStats.maxMp),
+    updatedAt: Date.now(),
+  };
+
+  return true;
+}
+
+/** 重置所有属性点（需要消耗金币） */
+export function resetAttributePoints(goldCost: number): boolean {
+  if (!player.value) return false;
+  if (player.value.gold < goldCost) return false;
+
+  // 计算总已分配点数
+  const totalAllocated = Object.values(player.value.allocatedPoints).reduce((sum, v) => sum + v, 0);
+
+  // 重新计算最终属性（不含分配的点数）
+  const finalStats = recalculatePlayerStats(
+    {
+      strength: 10,
+      intelligence: 10,
+      vitality: 10,
+      agility: 10,
+      willpower: 10,
+    },
+    createEmptyAllocatedPoints(),
+    player.value.level,
+    player.value.race
+  );
+
+  player.value = {
+    ...player.value,
+    gold: player.value.gold - goldCost,
+    attributePoints: player.value.attributePoints + totalAllocated,
+    allocatedPoints: createEmptyAllocatedPoints(),
+    baseStats: finalStats,
+    finalStats: finalStats,
+    maxHp: finalStats.maxHp,
+    maxMp: finalStats.maxMp,
+    hp: Math.min(player.value.hp, finalStats.maxHp),
+    mp: Math.min(player.value.mp, finalStats.maxMp),
+    updatedAt: Date.now(),
+  };
+
+  return true;
+}
+
+/** 计算属性点重置费用 */
+export function calculateResetCost(): number {
+  if (!player.value) return 0;
+  // 基础费用100金币，每级增加50金币
+  return 100 + player.value.level * 50;
+}
+
+/** 获取当前可分配属性点数 */
+export const playerAttributePoints = computed(() => player.value?.attributePoints ?? 0);
+
+/** 获取已分配属性点 */
+export const playerAllocatedPoints = computed(() => player.value?.allocatedPoints ?? createEmptyAllocatedPoints());

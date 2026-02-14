@@ -29,6 +29,13 @@ export {
   updatePlayerGold,
   updatePlayerPosition,
   addPlayerExp,
+  // 属性点系统
+  allocateAttributePoint,
+  deallocateAttributePoint,
+  resetAttributePoints,
+  calculateResetCost,
+  playerAttributePoints,
+  playerAllocatedPoints,
 } from './playerSignals';
 
 // 伙伴状态
@@ -61,7 +68,8 @@ export {
   executeAction,
   endBattle,
   clearBattle,
-  nextRound,
+  isSkillUsable,
+  getSkillCooldown,
 } from './battleSignals';
 
 // UI状态
