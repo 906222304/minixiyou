@@ -1,6 +1,7 @@
 // 合宠服务逻辑
 
 import type { Pet, PetAptitude, PetSkill, FusionResult, Quality } from '@/types';
+import type { CombatStats } from '@/types/common';
 import { generateUUID } from '@/types';
 import { getPetTemplate } from '@/constants/pets';
 import { calculatePetStats } from '@/constants/formulas';
@@ -305,12 +306,19 @@ export const petFusionService = {
       throw new Error(`Pet template not found: ${mainPet.baseId}`);
     }
 
+    // 修复: 使用类型安全的转换替代双重类型断言
+    // 将 PetAptitude 转换为 Record<string, number> 格式
+    const aptitudeRecord: Record<string, number> = {
+      attack: newAptitude.attack,
+      defense: newAptitude.defense,
+      magic: newAptitude.magic,
+      speed: newAptitude.speed,
+      hp: newAptitude.hp,
+      mp: newAptitude.mp,
+    };
+
     // 计算新属性
-    const stats = calculatePetStats(
-      template.baseStats,
-      newAptitude as unknown as Record<string, number>,
-      level
-    );
+    const stats = calculatePetStats(template.baseStats, aptitudeRecord, level) as CombatStats;
 
     // 限制技能数量不超过技能槽
     const finalSkills = skills.slice(0, maxSkills);

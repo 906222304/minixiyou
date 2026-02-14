@@ -34,18 +34,22 @@ export function calculateEquipmentStats(equipment: EquipmentSlots): Partial<Comb
   for (const equip of Object.values(equipment)) {
     if (!equip) continue;
 
-    // 基础属性
+    // 基础属性 - 修复: 使用类型安全的方式处理属性累加
     for (const [key, value] of Object.entries(equip.baseStats)) {
-      const currentValue = (stats as Record<string, number>)[key] || 0;
-      (stats as Record<string, number>)[key] = currentValue + (value as number);
+      const statKey = key as keyof CombatStats;
+      if (statKey in stats) {
+        stats[statKey] = (stats[statKey] || 0) + (value as number);
+      } else {
+        stats[statKey] = value as number;
+      }
     }
 
-    // 词条属性（只计算基础词条）
+    // 词条属性（只计算基础词条）- 修复: 使用类型安全的方式处理属性累加
     if (equip.affixes) {
       for (const affix of equip.affixes) {
         if (isBaseAffix(affix) && affix.targetStat && affix.value) {
-          const currentValue = (stats as Record<string, number>)[affix.targetStat] || 0;
-          (stats as Record<string, number>)[affix.targetStat] = currentValue + affix.value;
+          const statKey = affix.targetStat as keyof CombatStats;
+          stats[statKey] = (stats[statKey] || 0) + affix.value;
         }
       }
     }

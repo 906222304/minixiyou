@@ -126,7 +126,8 @@ export const PET_SKILL_TEMPLATES: Record<string, Omit<PetSkill, 'id'>> = {
     mpCost: 15,
     multiplier: 1.2,
   },
-  skill_cleans: {
+  // 修复: skill_cleans -> skill_cleanse 拼写错误
+  skill_cleanse: {
     name: '净化',
     type: 'active',
     description: '清除主人的负面状态',

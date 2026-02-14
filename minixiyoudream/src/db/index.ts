@@ -3,6 +3,7 @@
 import Dexie, { type Table } from 'dexie';
 import type { Player } from '@/types';
 import type { Item, Equipment, EquipmentSlots } from '@/types';
+import type { AffixLockState } from '@/types/affix';
 import type { Pet } from '@/types';
 import type { Companion } from '@/types';
 import type { PlayerAchievement, PlayerTitle, AchievementTracker } from '@/types/achievement';
@@ -26,6 +27,8 @@ export interface SaveData {
       items: Item[];
       equipments: Equipment[];
       equippedSlots: EquipmentSlots;
+      /** 词条锁定状态 - 修复: 使用正确的 AffixLockState 类型 */
+      affixLockStates?: AffixLockState[];
     };
     pets: Pet[];
     companions: Companion[];

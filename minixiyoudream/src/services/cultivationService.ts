@@ -21,6 +21,8 @@ import {
   AUTO_CULTIVATION_EXP,
   OFFLINE_CULTIVATION_EFFICIENCY,
   MAX_OFFLINE_CULTIVATION_TIME,
+  // 修复: 导入常量替代硬编码
+  MAX_CULTIVATION_LEVEL,
 } from '@/constants/cultivation';
 import { PRNG } from '@/utils/prng';
 
@@ -62,7 +64,8 @@ export const cultivationService = {
     let totalBonusGained = 0;
 
     // 检查升级
-    while (currentExp >= progress.expToNext && currentLevel < 100) {
+    // 修复: 使用常量 MAX_CULTIVATION_LEVEL 替代硬编码的 100
+    while (currentExp >= progress.expToNext && currentLevel < MAX_CULTIVATION_LEVEL) {
       currentExp -= progress.expToNext;
       currentLevel++;
       leveledUp = true;

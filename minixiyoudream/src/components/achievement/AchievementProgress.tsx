@@ -4,6 +4,8 @@ import { useSignals } from '@preact/signals-react/runtime';
 import {
   achievementStats,
   selectedAchievementCategory,
+  // 修复: 导入 setSelectedAchievementCategory 用于点击事件
+  setSelectedAchievementCategory,
 } from '@/signals/achievementSignals';
 import { ACHIEVEMENT_CATEGORIES } from '@/constants/achievements';
 import type { AchievementCategory, AchievementStats } from '@/types/achievement';
@@ -191,8 +193,9 @@ export function AchievementProgressOverview({ compact = false }: AchievementProg
             key={category}
             category={category}
             stats={stats.categoryProgress[category]}
-            onClick={() => {}}
-            isActive={false}
+            // 修复: 实现点击事件，设置选中的成就类别
+            onClick={() => setSelectedAchievementCategory(category)}
+            isActive={selectedAchievementCategory.value === category}
           />
         ))}
       </div>
@@ -215,7 +218,8 @@ export function AchievementCategoryFilter({ compact = false }: AchievementProgre
     return (
       <div className="flex gap-1 overflow-x-auto pb-2">
         <button
-          onClick={() => {}}
+          // 修复: 实现点击事件，设置为全部类别
+          onClick={() => setSelectedAchievementCategory('all')}
           className={`
             flex-shrink-0 px-3 py-1.5 rounded text-xs font-medium transition-all
             ${currentCategory === 'all'
@@ -234,7 +238,8 @@ export function AchievementCategoryFilter({ compact = false }: AchievementProgre
           return (
             <button
               key={category}
-              onClick={() => {}}
+              // 修复: 实现点击事件，设置为对应类别
+              onClick={() => setSelectedAchievementCategory(category)}
               className={`
                 flex-shrink-0 px-3 py-1.5 rounded text-xs font-medium transition-all flex items-center gap-1
                 ${currentCategory === category
@@ -259,7 +264,8 @@ export function AchievementCategoryFilter({ compact = false }: AchievementProgre
     <div className="grid grid-cols-6 gap-2">
       {/* 全部选项 */}
       <button
-        onClick={() => {}}
+        // 修复: 实现点击事件，设置为全部类别
+        onClick={() => setSelectedAchievementCategory('all')}
         className={`
           p-3 rounded-lg transition-all text-center
           ${currentCategory === 'all'
@@ -285,7 +291,8 @@ export function AchievementCategoryFilter({ compact = false }: AchievementProgre
         return (
           <button
             key={category}
-            onClick={() => {}}
+            // 修复: 实现点击事件，设置为对应类别
+            onClick={() => setSelectedAchievementCategory(category)}
             className={`
               p-3 rounded-lg transition-all text-center
               ${currentCategory === category

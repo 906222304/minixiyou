@@ -14,6 +14,8 @@ import {
 } from '@/constants/formations';
 import { formationService } from '@/services/formationService';
 import { showToast } from '@/signals/uiSignals';
+// 修复: 添加金币相关导入
+import { playerGold, updatePlayerGold } from '@/signals/playerSignals';
 
 interface FormationUpgradeProps {
   /** 阵法ID */
@@ -28,6 +30,8 @@ export function FormationUpgrade({ formationId, onClose }: FormationUpgradeProps
   const [upgrading, setUpgrading] = useState(false);
   const formation = getFormation(formationId);
   const playerFormation = getPlayerFormation(formationId);
+  // 修复: 获取当前金币
+  const currentGold = playerGold.value;
 
   if (!formation) {
     return (
@@ -49,10 +53,20 @@ export function FormationUpgrade({ formationId, onClose }: FormationUpgradeProps
   const progress = formationService.getFormationProgress(playerFormation);
   const isMaxLevel = playerFormation.level >= formation.maxLevel;
 
-  const handleUpgrade = (expGain: number) => {
+  // 修复: 添加金币扣除逻辑到升级函数
+  const handleUpgrade = (expGain: number, goldCost: number) => {
+    // 检查金币是否足够
+    if (currentGold < goldCost) {
+      showToast('金币不足', 'error');
+      return;
+    }
+
     setUpgrading(true);
 
     setTimeout(() => {
+      // 扣除金币
+      updatePlayerGold(-goldCost);
+
       const result = addFormationExp(formationId, expGain);
 
       if (result.success) {
@@ -179,24 +193,24 @@ export function FormationUpgrade({ formationId, onClose }: FormationUpgradeProps
               label="小型经验丹"
               exp={50}
               cost={100}
-              onClick={() => handleUpgrade(50)}
-              disabled={upgrading}
+              onClick={() => handleUpgrade(50, 100)}
+              disabled={upgrading || currentGold < 100}
               color={typeColor}
             />
             <UpgradeButton
               label="中型经验丹"
               exp={150}
               cost={250}
-              onClick={() => handleUpgrade(150)}
-              disabled={upgrading}
+              onClick={() => handleUpgrade(150, 250)}
+              disabled={upgrading || currentGold < 250}
               color={typeColor}
             />
             <UpgradeButton
               label="大型经验丹"
               exp={500}
               cost={800}
-              onClick={() => handleUpgrade(500)}
-              disabled={upgrading}
+              onClick={() => handleUpgrade(500, 800)}
+              disabled={upgrading || currentGold < 800}
               color={typeColor}
             />
           </div>

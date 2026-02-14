@@ -1,6 +1,6 @@
 // 装备强化服务
 
-import type { Equipment, CombatStats } from '@/types';
+import type { Equipment, CombatStats, Quality } from '@/types';
 import type { PRNG } from '@/utils/prng';
 import {
   getEnhancementLevelConfig,
@@ -214,7 +214,8 @@ class EnhancementService {
    * @returns 最大强化等级
    */
   getMaxEnhanceLevel(quality: string): number {
-    return getMaxEnhanceLevel(quality as any) || 5;
+    // 修复: 使用正确的 Quality 类型断言替代 any
+    return getMaxEnhanceLevel(quality as Quality) || 5;
   }
 
   /**

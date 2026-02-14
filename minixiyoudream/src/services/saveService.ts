@@ -10,6 +10,8 @@ import {
 } from '@/signals/inventorySignals';
 import { companions } from '@/signals/companionSignals';
 import { playerPets } from '@/signals/petSignals';
+// 修复: 导入 AffixLockState 类型
+import type { AffixLockState } from '@/types/affix';
 
 /** 存档结果 */
 export interface SaveResult {
@@ -49,6 +51,8 @@ function getCurrentGameData(): SaveData['data'] {
       items: inventoryItems.value,
       equipments: inventoryEquipments.value,
       equippedSlots: equippedSlots.value,
+      // 修复: 保存词条锁定状态（将 Map 转换为数组）
+      affixLockStates: Array.from(affixLockStates.value.values()),
     },
     pets: playerPets.value,
     companions: companions.value,
@@ -74,6 +78,18 @@ function applyGameData(data: SaveData['data']): void {
   inventoryEquipments.value = data.inventory.equipments;
   equippedSlots.value = data.inventory.equippedSlots;
 
+  // 修复: 恢复词条锁定状态（从数组转换为 Map）
+  if (data.inventory.affixLockStates) {
+    const lockStateMap = new Map<string, AffixLockState>();
+    for (const state of data.inventory.affixLockStates) {
+      lockStateMap.set(state.equipmentId, state);
+    }
+    affixLockStates.value = lockStateMap;
+  } else {
+    // 旧存档可能没有这个字段，清空词条锁定状态
+    affixLockStates.value = new Map();
+  }
+
   // 恢复宠物状态
   if (data.pets) {
     playerPets.value = data.pets;
@@ -83,9 +99,6 @@ function applyGameData(data: SaveData['data']): void {
   if (data.companions) {
     companions.value = data.companions;
   }
-
-  // 清空词条锁定状态
-  affixLockStates.value = new Map();
 }
 
 /**

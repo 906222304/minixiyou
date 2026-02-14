@@ -13,6 +13,8 @@ import {
 } from '@/services/teleportService';
 import { getAllTeleportPoints } from '@/constants/teleports';
 import type { TeleportPoint } from '@/constants/teleports';
+// 修复: 添加 getMap 导入用于获取地图名称
+import { getMap } from '@/constants/maps';
 
 type TeleportFilter = 'all' | 'unlocked' | 'available';
 
@@ -151,7 +153,10 @@ export function TeleportPanel() {
       {currentPlayer && (
         <div className="card bg-primary-900/30 border-primary-500">
           <div className="text-sm text-gray-400 mb-1">当前位置</div>
-          <div className="font-medium">{currentPlayer.currentMapId}</div>
+          {/* 修复: 显示地图名称而非 ID */}
+          <div className="font-medium">
+            {getMap(currentPlayer.currentMapId)?.name ?? currentPlayer.currentMapId}
+          </div>
         </div>
       )}
 

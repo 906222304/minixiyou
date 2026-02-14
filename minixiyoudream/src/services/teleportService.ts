@@ -8,7 +8,8 @@ import {
   type TeleportPoint,
 } from '@/constants/teleports';
 import { getMap } from '@/constants/maps';
-import { player, updatePlayerPosition, updatePlayerGold, playerLevel } from '@/signals/playerSignals';
+// 修复: 移除 playerLevel，使用 player.value?.level 确保一致性
+import { player, updatePlayerPosition, updatePlayerGold } from '@/signals/playerSignals';
 
 /** 已解锁的传送点列表 */
 export const unlockedTeleports = signal<string[]>(getDefaultUnlockedTeleports());
@@ -23,7 +24,8 @@ export const unlockedTeleportDetails = computed(() => {
 
 /** 当前可用的传送点（已解锁且满足等级要求） */
 export const availableTeleports = computed(() => {
-  const currentLevel = playerLevel.value;
+  // 修复: 使用 player.value?.level 替代 playerLevel.value 确保一致性
+  const currentLevel = player.value?.level ?? 1;
   return getAllTeleportPoints().filter(tp => {
     if (!unlockedTeleports.value.includes(tp.id)) return false;
     if (tp.requirements?.minLevel && currentLevel < tp.requirements.minLevel) return false;
@@ -42,8 +44,9 @@ export function unlockTeleport(teleportId: string): { success: boolean; message:
     return { success: false, message: '该传送点已解锁' };
   }
 
-  // 检查等级要求
-  if (teleport.requirements?.minLevel && playerLevel.value < teleport.requirements.minLevel) {
+  // 修复: 使用 player.value?.level 替代 playerLevel.value 确保一致性
+  const currentLevel = player.value?.level ?? 1;
+  if (teleport.requirements?.minLevel && currentLevel < teleport.requirements.minLevel) {
     return { success: false, message: `等级不足，需要 Lv.${teleport.requirements.minLevel}` };
   }
 
@@ -65,8 +68,9 @@ export function teleport(teleportId: string): { success: boolean; message: strin
     return { success: false, message: '该传送点尚未解锁' };
   }
 
-  // 检查等级要求
-  if (teleportPoint.requirements?.minLevel && playerLevel.value < teleportPoint.requirements.minLevel) {
+  // 修复: 使用 player.value?.level 替代 playerLevel.value 确保一致性
+  const currentLevel = player.value?.level ?? 1;
+  if (teleportPoint.requirements?.minLevel && currentLevel < teleportPoint.requirements.minLevel) {
     return { success: false, message: `等级不足，需要 Lv.${teleportPoint.requirements.minLevel}` };
   }
 
@@ -127,7 +131,9 @@ export function isTeleportAvailable(teleportId: string): boolean {
 
   if (!unlockedTeleports.value.includes(teleportId)) return false;
 
-  if (teleport.requirements?.minLevel && playerLevel.value < teleport.requirements.minLevel) {
+  // 修复: 使用 player.value?.level 替代 playerLevel.value 确保一致性
+  const currentLevel = player.value?.level ?? 1;
+  if (teleport.requirements?.minLevel && currentLevel < teleport.requirements.minLevel) {
     return false;
   }
 
