@@ -1,4 +1,4 @@
-// 任务配置 - 梦幻西游风格剧情系统（复刻自xiyou项目）
+// 任务配置 - 迷你西游梦风格剧情系统（复刻自xiyou项目）
 
 import type { Quest, QuestChapter, DialogLine } from '@/types/quest';
 

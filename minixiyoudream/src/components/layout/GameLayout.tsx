@@ -1,4 +1,4 @@
-// 游戏主布局组件 - 梦幻西游风格
+// 游戏主布局组件 - 迷你西游梦风格
 
 import { useEffect } from 'react';
 import { useSignals } from '@preact/signals-react/runtime';
@@ -30,7 +30,7 @@ import { AchievementPage } from '@/components/achievement';
 import { QuestPage, QuestHint, QuestHintInline, QuestDialog } from '@/components/quest';
 import { getMap } from '@/constants/maps';
 
-// 梦幻西游风格图标
+// 迷你西游梦风格图标
 const Icons = {
   home: (
     <svg className="w-6 h-6" viewBox="0 0 24 24" fill="currentColor">

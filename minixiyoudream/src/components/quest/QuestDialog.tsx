@@ -1,4 +1,4 @@
-// 任务对话组件 - 梦幻西游风格
+// 任务对话组件 - 迷你西游梦风格
 
 import { useEffect, useCallback } from 'react';
 import { useSignals } from '@preact/signals-react/runtime';

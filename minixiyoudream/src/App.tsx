@@ -53,7 +53,7 @@ function App() {
             <span className="text-5xl">🐉</span>
           </div>
           <h1 className="text-4xl font-bold text-[var(--game-gold)] mb-2">
-            梦幻西游
+            迷你西游梦
           </h1>
           <p className="text-[var(--game-text-muted)] text-sm tracking-widest">MiniXiyouDream</p>
         </header>

@@ -1,4 +1,4 @@
-# MiniXiyouDream 梦幻西游
+# MiniXiyouDream 迷你西游梦
 
 > 西游题材单机文字 RPG 游戏
 

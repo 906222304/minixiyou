@@ -13,8 +13,8 @@ export default defineConfig({
       registerType: 'autoUpdate',
       includeAssets: ['favicon.ico', 'icons/*.png'],
       manifest: {
-        name: 'MiniXiyouDream - 梦幻西游',
-        short_name: '梦幻西游',
+        name: 'MiniXiyouDream - 迷你西游梦',
+        short_name: '迷你西游梦',
         description: '单机文字RPG游戏',
         start_url: '/',
         display: 'standalone',
