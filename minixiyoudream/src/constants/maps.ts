@@ -1516,6 +1516,372 @@ export const MAPS: Record<string, GameMap> = {
     teleporters: [],
     icon: '🚪',
   },
+
+  // ==================== 第九章：西域区域 ====================
+
+  // 丝绸之路
+  map_silk_road: {
+    id: 'map_silk_road',
+    name: '丝绸之路',
+    description: '连接中原与西域的商道，漫漫黄沙，驼铃声声。',
+    type: 'field',
+    region: 'western',
+    levelRange: { min: 20, max: 25 },
+    size: { width: 20, height: 15 },
+    connections: [
+      { direction: 'west', targetMapId: 'map_western_region' },
+      { direction: 'east', targetMapId: 'map_datang_west' },
+    ],
+    npcs: [
+      {
+        id: 'npc_caravan_leader',
+        name: '商队首领',
+        avatar: '🧔',
+        type: 'quest',
+        position: { x: 10, y: 7 },
+        dialogues: {
+          default: ['这丝绸之路可不是好走的...', '想当年我也是个冒险者！'],
+          greeting: '外乡人？'
+        },
+        questIds: ['main_9_1']
+      },
+    ],
+    events: [],
+    teleporters: [],
+    encounterConfig: {
+      rate: 0.15,
+      enemyGroups: ['enemy_group_desert_bandits', 'enemy_group_sand_worms'],
+      stepTrigger: 8,
+    },
+    icon: '🐪',
+  },
+
+  // 西域
+  map_western_region: {
+    id: 'map_western_region',
+    name: '西域',
+    description: '神秘的西域大地，异域风情，危机四伏。',
+    type: 'field',
+    region: 'western',
+    levelRange: { min: 21, max: 28 },
+    size: { width: 15, height: 15 },
+    connections: [
+      { direction: 'east', targetMapId: 'map_silk_road' },
+      { direction: 'north', targetMapId: 'map_xiliang_kingdom' },
+      { direction: 'south', targetMapId: 'map_demonic_rift' },
+    ],
+    npcs: [],
+    events: [],
+    teleporters: [],
+    encounterConfig: {
+      rate: 0.18,
+      enemyGroups: ['enemy_group_desert_creatures', 'enemy_group_scorpions'],
+      stepTrigger: 7,
+    },
+    icon: '🏜️',
+  },
+
+  // 西凉国
+  map_xiliang_kingdom: {
+    id: 'map_xiliang_kingdom',
+    name: '西凉国',
+    description: '西域的神秘国度，清清公主的故乡。',
+    type: 'town',
+    region: 'western',
+    levelRange: { min: 22, max: 30 },
+    size: { width: 15, height: 15 },
+    connections: [
+      { direction: 'south', targetMapId: 'map_western_region' },
+      { direction: 'east', targetMapId: 'map_witch_palace' },
+    ],
+    npcs: [
+      {
+        id: 'npc_witch_king',
+        name: '巫王',
+        avatar: '👑',
+        type: 'quest',
+        position: { x: 8, y: 5 },
+        dialogues: {
+          default: ['吾乃西凉国主...', '清清是我的女儿...'],
+          greeting: '中原人？'
+        },
+        questIds: ['main_9_4', 'main_10_1', 'main_10_5']
+      },
+      {
+        id: 'npc_qingqing_xiliang',
+        name: '清清',
+        avatar: '👧',
+        type: 'quest',
+        position: { x: 10, y: 8 },
+        dialogues: {
+          default: ['终于回到了故乡...', '谢谢你一路陪我到这里。'],
+          greeting: '你来了...'
+        },
+        questIds: ['main_9_5', 'main_9_6', 'main_10_4']
+      },
+    ],
+    events: [],
+    teleporters: [],
+    icon: '🏰',
+  },
+
+  // 魔气裂隙
+  map_demonic_rift: {
+    id: 'map_demonic_rift',
+    name: '魔气裂隙',
+    description: '涌动着黑暗气息的裂隙，魔王的力量从此泄漏。',
+    type: 'dungeon',
+    region: 'western',
+    levelRange: { min: 24, max: 30 },
+    size: { width: 12, height: 12 },
+    connections: [
+      { direction: 'north', targetMapId: 'map_western_region' },
+      { direction: 'east', targetMapId: 'map_ancient_seal' },
+    ],
+    npcs: [],
+    events: [],
+    teleporters: [],
+    encounterConfig: {
+      rate: 0.25,
+      enemyGroups: ['enemy_group_lesser_demons', 'enemy_group_demon_scouts'],
+      stepTrigger: 4,
+    },
+    icon: '😈',
+  },
+
+  // 上古封印
+  map_ancient_seal: {
+    id: 'map_ancient_seal',
+    name: '上古封印',
+    description: '封印着上古魔王的神秘神殿，已被黑暗侵蚀。',
+    type: 'dungeon',
+    region: 'western',
+    levelRange: { min: 25, max: 32 },
+    size: { width: 15, height: 15 },
+    connections: [
+      { direction: 'west', targetMapId: 'map_demonic_rift' },
+    ],
+    npcs: [],
+    events: [],
+    teleporters: [],
+    encounterConfig: {
+      rate: 0.28,
+      enemyGroups: ['enemy_group_demon_generals', 'enemy_group_shadow_beasts'],
+      stepTrigger: 4,
+    },
+    icon: '🔮',
+  },
+
+  // 魔王城
+  map_demon_castle: {
+    id: 'map_demon_castle',
+    name: '魔王城',
+    description: '魔王盘踞的黑暗城堡，最终的决战之地。',
+    type: 'dungeon',
+    region: 'western',
+    levelRange: { min: 28, max: 35 },
+    size: { width: 20, height: 20 },
+    connections: [],
+    npcs: [],
+    events: [
+      {
+        id: 'event_demon_king',
+        type: 'battle',
+        position: { x: 10, y: 15 },
+        trigger: 'step',
+        data: { enemyGroupId: 'enemy_group_demon_king' },
+        oneTime: false,
+      },
+    ],
+    teleporters: [],
+    encounterConfig: {
+      rate: 0.3,
+      enemyGroups: ['enemy_group_demon_elites', 'enemy_group_four_generals'],
+      stepTrigger: 3,
+    },
+    icon: '👹',
+  },
+
+  // 巫王宫殿
+  map_witch_palace: {
+    id: 'map_witch_palace',
+    name: '巫王宫殿',
+    description: '西凉国王宫，金碧辉煌。',
+    type: 'town',
+    region: 'western',
+    levelRange: { min: 22, max: 30 },
+    size: { width: 12, height: 12 },
+    connections: [
+      { direction: 'west', targetMapId: 'map_xiliang_kingdom' },
+    ],
+    npcs: [
+      {
+        id: 'npc_palace_guard_captain',
+        name: '宫廷守卫队长',
+        avatar: '💂',
+        type: 'quest',
+        position: { x: 6, y: 4 },
+        dialogues: {
+          default: ['王宫重地，闲人免进！'],
+          greeting: '站住！'
+        },
+        questIds: ['main_9_3']
+      },
+    ],
+    events: [],
+    teleporters: [],
+    icon: '🏛️',
+  },
+
+  // ==================== 第十二章：东海龙宫区域 ====================
+
+  // 龙宫
+  map_dragon_palace: {
+    id: 'map_dragon_palace',
+    name: '东海龙宫',
+    description: '东海之下的神秘宫殿，龙王的居所。',
+    type: 'dungeon',
+    region: 'donghai',
+    levelRange: { min: 30, max: 40 },
+    size: { width: 15, height: 15 },
+    connections: [
+      { direction: 'north', targetMapId: 'map_donghai_seaforest' },
+    ],
+    npcs: [
+      {
+        id: 'npc_dragon_king',
+        name: '龙王',
+        avatar: '🐉',
+        type: 'quest',
+        position: { x: 7, y: 7 },
+        dialogues: {
+          default: ['吾乃东海龙王...', '年轻人，你的传说才刚刚开始...'],
+          greeting: '有缘人...'
+        },
+        questIds: ['main_12_5']
+      },
+    ],
+    events: [],
+    teleporters: [],
+    encounterConfig: {
+      rate: 0.2,
+      enemyGroups: ['enemy_group_sea_dragons', 'enemy_group_dragon_guards'],
+      stepTrigger: 5,
+    },
+    icon: '🐉',
+  },
+
+  // ==================== 长安城扩展地图 ====================
+
+  // 长安夜市
+  map_changan_night_market: {
+    id: 'map_changan_night_market',
+    name: '长安夜市',
+    description: '长安城夜晚最繁华的地方，各种消息的集散地。',
+    type: 'town',
+    region: 'changan',
+    levelRange: { min: 4, max: 10 },
+    size: { width: 12, height: 10 },
+    connections: [
+      { direction: 'west', targetMapId: 'map_changan' },
+    ],
+    npcs: [
+      {
+        id: 'npc_merchant_wang',
+        name: '王商人',
+        avatar: '🧔',
+        type: 'quest',
+        position: { x: 5, y: 5 },
+        dialogues: {
+          default: ['小伙子，看你气宇不凡啊！', '最近城里的黑衣人越来越多了...'],
+          greeting: '要买点什么？'
+        },
+        questIds: ['main_2_7']
+      },
+    ],
+    events: [],
+    teleporters: [],
+    icon: '🏮',
+  },
+
+  // 秘密据点
+  map_secret_hideout: {
+    id: 'map_secret_hideout',
+    name: '秘密据点',
+    description: '黑衣人的秘密藏身之处。',
+    type: 'dungeon',
+    region: 'changan',
+    levelRange: { min: 5, max: 10 },
+    size: { width: 10, height: 10 },
+    connections: [
+      { direction: 'north', targetMapId: 'map_changan' },
+    ],
+    npcs: [],
+    events: [],
+    teleporters: [],
+    encounterConfig: {
+      rate: 0.2,
+      enemyGroups: ['enemy_group_black_guards', 'enemy_group_scouts'],
+      stepTrigger: 5,
+    },
+    icon: '🕵️',
+  },
+
+  // 大雁塔深处
+  map_dayan_ta_deep: {
+    id: 'map_dayan_ta_deep',
+    name: '大雁塔深处',
+    description: '大雁塔的最深层，传说中的法宝就藏在这里。',
+    type: 'dungeon',
+    region: 'changan',
+    levelRange: { min: 13, max: 18 },
+    size: { width: 12, height: 12 },
+    connections: [
+      { direction: 'west', targetMapId: 'map_dayan_ta' },
+    ],
+    npcs: [],
+    events: [
+      {
+        id: 'event_tower_guardian',
+        type: 'battle',
+        position: { x: 6, y: 10 },
+        trigger: 'step',
+        data: { enemyGroupId: 'enemy_group_tower_guardian' },
+        oneTime: false,
+      },
+    ],
+    teleporters: [],
+    encounterConfig: {
+      rate: 0.22,
+      enemyGroups: ['enemy_group_tower_spirits', 'enemy_group_tower_guardian'],
+      stepTrigger: 4,
+    },
+    icon: '🗼',
+  },
+
+  // 中原（返回点）
+  map_central_plains: {
+    id: 'map_central_plains',
+    name: '中原',
+    description: '中原大地，冒险的起点与终点。',
+    type: 'field',
+    region: 'datang',
+    levelRange: { min: 30, max: 35 },
+    size: { width: 15, height: 15 },
+    connections: [
+      { direction: 'north', targetMapId: 'map_changan' },
+      { direction: 'east', targetMapId: 'map_datang_capital' },
+    ],
+    npcs: [],
+    events: [],
+    teleporters: [],
+    encounterConfig: {
+      rate: 0.15,
+      enemyGroups: ['enemy_group_wolves', 'enemy_group_bandits'],
+      stepTrigger: 8,
+    },
+    icon: '🌾',
+  },
 };
 
 /** 获取地图配置 */
@@ -1543,6 +1909,7 @@ export function getRegionName(region: string): string {
     fangcun: '方寸山',
     donghai: '东海',
     xianyang: '咸阳',
+    western: '西域',
   };
   return regionNames[region] || region;
 }

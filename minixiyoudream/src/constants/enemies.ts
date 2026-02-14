@@ -928,6 +928,104 @@ export const ENEMY_TEMPLATES: Record<string, EnemyTemplate> = {
     capturable: false,
   },
 
+  // 通用Boss模板（用于新章节）
+  enemy_boss_ghost: {
+    id: 'enemy_boss_ghost',
+    name: '魔将',
+    description: '魔王麾下的强大将领',
+    icon: '💀',
+    type: 'boss',
+    baseStats: {
+      physicalAttack: 80,
+      physicalDefense: 60,
+      magicAttack: 70,
+      magicDefense: 50,
+      speed: 40,
+      maxHp: 1000,
+      maxMp: 300,
+      critRate: 0.15,
+      critDamage: 0.6,
+      hitRate: 0.95,
+      dodgeRate: 0.1,
+    },
+    elementResistances: { fire: 20, ice: 20, thunder: 20 },
+    skills: [],
+    aiBehavior: 'aggressive',
+    rarity: 'epic',
+    levelRange: { min: 15, max: 32 },
+    expReward: 500,
+    goldReward: 300,
+    drops: [
+      { itemId: 'item_enhance_stone_advanced', rate: 0.3, minCount: 1, maxCount: 2 },
+    ],
+    capturable: false,
+  },
+
+  boss_demon_king: {
+    id: 'boss_demon_king',
+    name: '魔王',
+    description: '最终的敌人，上古魔王',
+    icon: '👹',
+    type: 'boss',
+    baseStats: {
+      physicalAttack: 200,
+      physicalDefense: 150,
+      magicAttack: 180,
+      magicDefense: 120,
+      speed: 60,
+      maxHp: 5000,
+      maxMp: 2000,
+      critRate: 0.25,
+      critDamage: 1.0,
+      hitRate: 0.99,
+      dodgeRate: 0.2,
+    },
+    elementResistances: { fire: 50, ice: 50, thunder: 50 },
+    skills: [],
+    aiBehavior: 'balanced',
+    rarity: 'legendary',
+    levelRange: { min: 30, max: 30 },
+    expReward: 5000,
+    goldReward: 3000,
+    drops: [
+      { itemId: 'item_legend_treasure_box', rate: 1.0, minCount: 1, maxCount: 1 },
+      { itemId: 'item_spirit_bead_complete', rate: 1.0, minCount: 1, maxCount: 1 },
+    ],
+    capturable: false,
+  },
+
+  boss_dragon_king: {
+    id: 'boss_dragon_king',
+    name: '龙王',
+    description: '东海龙宫的统治者',
+    icon: '🐉',
+    type: 'boss',
+    baseStats: {
+      physicalAttack: 150,
+      physicalDefense: 120,
+      magicAttack: 180,
+      magicDefense: 150,
+      speed: 50,
+      maxHp: 3000,
+      maxMp: 1500,
+      critRate: 0.2,
+      critDamage: 0.9,
+      hitRate: 0.98,
+      dodgeRate: 0.15,
+    },
+    elementResistances: { fire: -30, ice: 50, thunder: 30 },
+    skills: [],
+    aiBehavior: 'balanced',
+    rarity: 'legendary',
+    levelRange: { min: 32, max: 32 },
+    expReward: 3000,
+    goldReward: 2000,
+    drops: [
+      { itemId: 'item_dragon_pearl', rate: 0.5, minCount: 1, maxCount: 1 },
+    ],
+    capturable: false,
+  },
+
   // ========== 剧情任务相关怪物 ==========
 
   // 第一章：东海村区域
@@ -2097,6 +2195,257 @@ export const ENEMY_GROUPS: Record<string, EnemyGroup> = {
       ],
       minTotalCount: 3,
       maxTotalCount: 5,
+    },
+  },
+
+  // ==================== 新增敌人组（西域/魔界） ====================
+
+  enemy_group_desert_bandits: {
+    id: 'enemy_group_desert_bandits',
+    name: '沙漠强盗',
+    description: '丝绸之路上的强盗团伙',
+    icon: '🏴',
+    difficulty: 'normal',
+    weight: 20,
+    dynamicConfig: {
+      members: [
+        { templateId: 'enemy_bandit', minLevel: 20, maxLevel: 24, minCount: 2, maxCount: 4, weight: 100 },
+      ],
+      minTotalCount: 2,
+      maxTotalCount: 4,
+    },
+  },
+
+  enemy_group_sand_worms: {
+    id: 'enemy_group_sand_worms',
+    name: '沙虫群',
+    description: '沙漠中的巨大虫群',
+    icon: '🐛',
+    difficulty: 'normal',
+    weight: 15,
+    dynamicConfig: {
+      members: [
+        { templateId: 'enemy_snake', minLevel: 20, maxLevel: 24, minCount: 2, maxCount: 4, weight: 100 },
+      ],
+      minTotalCount: 2,
+      maxTotalCount: 4,
+    },
+  },
+
+  enemy_group_desert_creatures: {
+    id: 'enemy_group_desert_creatures',
+    name: '沙漠生物',
+    description: '西域沙漠中的各种生物',
+    icon: '🦂',
+    difficulty: 'normal',
+    weight: 20,
+    dynamicConfig: {
+      members: [
+        { templateId: 'enemy_snake', minLevel: 21, maxLevel: 26, minCount: 1, maxCount: 3, weight: 60 },
+        { templateId: 'enemy_wolf', minLevel: 21, maxLevel: 26, minCount: 1, maxCount: 2, weight: 40 },
+      ],
+      minTotalCount: 2,
+      maxTotalCount: 4,
+    },
+  },
+
+  enemy_group_scorpions: {
+    id: 'enemy_group_scorpions',
+    name: '蝎子群',
+    description: '西域的毒蝎群',
+    icon: '🦂',
+    difficulty: 'normal',
+    weight: 15,
+    dynamicConfig: {
+      members: [
+        { templateId: 'enemy_snake', minLevel: 22, maxLevel: 27, minCount: 2, maxCount: 5, weight: 100 },
+      ],
+      minTotalCount: 3,
+      maxTotalCount: 5,
+    },
+  },
+
+  enemy_group_lesser_demons: {
+    id: 'enemy_group_lesser_demons',
+    name: '小恶魔群',
+    description: '魔气裂隙中的低等恶魔',
+    icon: '😈',
+    difficulty: 'hard',
+    weight: 10,
+    dynamicConfig: {
+      members: [
+        { templateId: 'enemy_ghost', minLevel: 24, maxLevel: 28, minCount: 2, maxCount: 5, weight: 100 },
+      ],
+      minTotalCount: 3,
+      maxTotalCount: 5,
+    },
+  },
+
+  enemy_group_demon_scouts: {
+    id: 'enemy_group_demon_scouts',
+    name: '恶魔斥候',
+    description: '魔王的侦察兵',
+    icon: '🕵️',
+    difficulty: 'hard',
+    weight: 10,
+    dynamicConfig: {
+      members: [
+        { templateId: 'enemy_ghost', minLevel: 24, maxLevel: 28, minCount: 1, maxCount: 3, weight: 100 },
+      ],
+      minTotalCount: 2,
+      maxTotalCount: 3,
+    },
+  },
+
+  enemy_group_demon_generals: {
+    id: 'enemy_group_demon_generals',
+    name: '魔将群',
+    description: '魔王手下的精锐将领',
+    icon: '💀',
+    difficulty: 'elite',
+    weight: 5,
+    dynamicConfig: {
+      members: [
+        { templateId: 'enemy_boss_ghost', minLevel: 26, maxLevel: 30, minCount: 1, maxCount: 2, weight: 100 },
+      ],
+      minTotalCount: 1,
+      maxTotalCount: 2,
+    },
+  },
+
+  enemy_group_shadow_beasts: {
+    id: 'enemy_group_shadow_beasts',
+    name: '暗影兽群',
+    description: '上古封印中的暗影生物',
+    icon: '👾',
+    difficulty: 'elite',
+    weight: 5,
+    dynamicConfig: {
+      members: [
+        { templateId: 'enemy_ghost', minLevel: 26, maxLevel: 30, minCount: 2, maxCount: 4, weight: 100 },
+      ],
+      minTotalCount: 2,
+      maxTotalCount: 4,
+    },
+  },
+
+  enemy_group_demon_elites: {
+    id: 'enemy_group_demon_elites',
+    name: '恶魔精锐',
+    description: '魔王城的精锐守卫',
+    icon: '👹',
+    difficulty: 'elite',
+    weight: 5,
+    dynamicConfig: {
+      members: [
+        { templateId: 'enemy_boss_ghost', minLevel: 28, maxLevel: 32, minCount: 2, maxCount: 4, weight: 100 },
+      ],
+      minTotalCount: 2,
+      maxTotalCount: 4,
+    },
+  },
+
+  enemy_group_four_generals: {
+    id: 'enemy_group_four_generals',
+    name: '四魔将',
+    description: '魔王麾下的四位大将军',
+    icon: '💀',
+    difficulty: 'boss',
+    weight: 2,
+    dynamicConfig: {
+      members: [
+        { templateId: 'enemy_boss_ghost', minLevel: 29, maxLevel: 29, minCount: 1, maxCount: 1, weight: 100 },
+      ],
+      minTotalCount: 1,
+      maxTotalCount: 1,
+    },
+  },
+
+  enemy_group_demon_king: {
+    id: 'enemy_group_demon_king',
+    name: '魔王',
+    description: '最终的敌人，魔王本尊',
+    icon: '👹',
+    difficulty: 'boss',
+    weight: 1,
+    enemies: [
+      { templateId: 'enemy_boss_ghost', level: 30, position: 2 },
+    ],
+  },
+
+  enemy_group_scouts: {
+    id: 'enemy_group_scouts',
+    name: '斥候群',
+    description: '神秘组织的斥候',
+    icon: '🕵️',
+    difficulty: 'normal',
+    weight: 15,
+    dynamicConfig: {
+      members: [
+        { templateId: 'enemy_bandit', minLevel: 5, maxLevel: 8, minCount: 2, maxCount: 4, weight: 100 },
+      ],
+      minTotalCount: 2,
+      maxTotalCount: 4,
+    },
+  },
+
+  enemy_group_tower_spirits: {
+    id: 'enemy_group_tower_spirits',
+    name: '塔中灵体',
+    description: '大雁塔深处的灵体',
+    icon: '👻',
+    difficulty: 'hard',
+    weight: 10,
+    dynamicConfig: {
+      members: [
+        { templateId: 'enemy_ghost', minLevel: 13, maxLevel: 17, minCount: 2, maxCount: 4, weight: 100 },
+      ],
+      minTotalCount: 2,
+      maxTotalCount: 4,
+    },
+  },
+
+  enemy_group_tower_guardian: {
+    id: 'enemy_group_tower_guardian',
+    name: '塔守护者',
+    description: '大雁塔深处的守护者',
+    icon: '🗿',
+    difficulty: 'elite',
+    weight: 5,
+    enemies: [
+      { templateId: 'enemy_boss_ghost', level: 15, position: 2 },
+    ],
+  },
+
+  enemy_group_dragon_guards: {
+    id: 'enemy_group_dragon_guards',
+    name: '龙宫守卫',
+    description: '东海龙宫的守卫',
+    icon: '🐲',
+    difficulty: 'elite',
+    weight: 8,
+    dynamicConfig: {
+      members: [
+        { templateId: 'enemy_water_demon', minLevel: 30, maxLevel: 35, minCount: 2, maxCount: 4, weight: 100 },
+      ],
+      minTotalCount: 2,
+      maxTotalCount: 4,
+    },
+  },
+
+  enemy_group_sea_dragons: {
+    id: 'enemy_group_sea_dragons',
+    name: '海龙群',
+    description: '东海的海龙',
+    icon: '🐉',
+    difficulty: 'elite',
+    weight: 5,
+    dynamicConfig: {
+      members: [
+        { templateId: 'enemy_water_demon', minLevel: 30, maxLevel: 38, minCount: 1, maxCount: 3, weight: 100 },
+      ],
+      minTotalCount: 1,
+      maxTotalCount: 3,
     },
   },
 };

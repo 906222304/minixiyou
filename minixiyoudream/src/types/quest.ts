@@ -16,7 +16,13 @@ export type QuestConditionType =
   | 'level'       // 达到等级
   | 'battle'      // 完成战斗
   | 'visit_map'   // 访问地图
-  | 'capture';    // 捕捉宠物
+  | 'capture'     // 捕捉宠物
+  | 'dungeon'     // 完成副本
+  | 'skill_use'   // 使用技能
+  | 'enhance'     // 强化装备
+  | 'arena'       // 竞技场挑战
+  | 'gift'        // 赠送礼物
+  | 'fish';       // 钓鱼
 
 /** 任务条件 */
 export interface QuestCondition {
@@ -236,6 +242,24 @@ export interface QuestTracker {
 
   // 战斗胜利追踪
   battlesWon: Record<string, number>;
+
+  // 副本完成追踪
+  dungeonsCompleted: Record<string, number>;
+
+  // 技能使用追踪
+  skillsUsed: Record<string, number>;
+
+  // 装备强化追踪
+  equipmentsEnhanced: number;
+
+  // 竞技场挑战追踪
+  arenaBattles: number;
+
+  // 礼物赠送追踪
+  giftsGiven: number;
+
+  // 钓鱼追踪
+  fishCaught: number;
 
   // 日常任务追踪
   dailyQuestsCompletedToday: string[];

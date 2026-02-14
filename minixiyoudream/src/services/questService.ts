@@ -40,6 +40,12 @@ function createDefaultTracker(): QuestTracker {
     mapsVisited: [],
     equipmentsObtained: [],
     battlesWon: {},
+    dungeonsCompleted: {},
+    skillsUsed: {},
+    equipmentsEnhanced: 0,
+    arenaBattles: 0,
+    giftsGiven: 0,
+    fishCaught: 0,
     dailyQuestsCompletedToday: [],
     lastDailyReset: Date.now(),
   };
@@ -391,9 +397,27 @@ class QuestService {
             .filter(([id]) => id.includes('boss') || id === 'boss')
             .reduce((sum, [, count]) => sum + count, 0);
         }
+        if (condition.target === 'elite') {
+          // 统计精英怪物击杀
+          return Object.entries(tracker.monstersKilled)
+            .filter(([id]) => id.includes('elite') || id.includes('_elite_'))
+            .reduce((sum, [, count]) => sum + count, 0);
+        }
         return tracker.monstersKilled[condition.target] || 0;
 
       case 'collect':
+        if (condition.target === 'any_gem') {
+          // 统计所有宝石收集
+          return Object.entries(tracker.itemsCollected)
+            .filter(([id]) => id.startsWith('gem_'))
+            .reduce((sum, [, count]) => sum + count, 0);
+        }
+        if (condition.target === 'any_material') {
+          // 统计所有材料收集
+          return Object.entries(tracker.itemsCollected)
+            .filter(([id]) => id.startsWith('item_') && !id.includes('potion'))
+            .reduce((sum, [, count]) => sum + count, 0);
+        }
         return tracker.itemsCollected[condition.target] || 0;
 
       case 'talk':
@@ -415,11 +439,45 @@ class QuestService {
         if (condition.target === 'any') {
           return Object.values(tracker.battlesWon).reduce((a, b) => a + b, 0);
         }
+        if (condition.target === 'with_pet') {
+          // 带宠物的战斗，暂时用总战斗数
+          return Object.values(tracker.battlesWon).reduce((a, b) => a + b, 0);
+        }
         return tracker.battlesWon[condition.target] || 0;
 
       case 'level':
         // level条件通过updateLevelCondition方法更新，不从tracker读取
         return 0;
+
+      case 'dungeon':
+        if (condition.target === 'any') {
+          return Object.values(tracker.dungeonsCompleted).reduce((a, b) => a + b, 0);
+        }
+        return tracker.dungeonsCompleted[condition.target] || 0;
+
+      case 'skill_use':
+        if (condition.target === 'any') {
+          return Object.values(tracker.skillsUsed).reduce((a, b) => a + b, 0);
+        }
+        return tracker.skillsUsed[condition.target] || 0;
+
+      case 'enhance':
+        return tracker.equipmentsEnhanced;
+
+      case 'arena':
+        return tracker.arenaBattles;
+
+      case 'gift':
+        return tracker.giftsGiven;
+
+      case 'fish':
+        return tracker.fishCaught;
+
+      case 'capture':
+        // 捕捉条件，使用物品收集中的宠物相关物品
+        return Object.entries(tracker.itemsCollected)
+          .filter(([id]) => id.startsWith('pet_'))
+          .reduce((sum, [, count]) => sum + count, 0);
 
       default:
         return 0;
