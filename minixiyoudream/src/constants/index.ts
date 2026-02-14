@@ -59,3 +59,12 @@ export * from './petFusion';
 
 // 成就
 export * from './achievements';
+
+// 任务
+export * from './quests';
+
+// 宝石
+export * from './gems';
+
+// 物品
+export * from './items';

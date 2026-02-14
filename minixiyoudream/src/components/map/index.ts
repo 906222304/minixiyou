@@ -5,3 +5,4 @@ export { CurrentMapInfo } from './CurrentMapInfo';
 export { AdjacentMaps } from './AdjacentMaps';
 export { RegionMapView } from './RegionMapView';
 export { TeleportPanel } from './TeleportPanel';
+export { NPCInteractionModal } from './NPCInteractionModal';

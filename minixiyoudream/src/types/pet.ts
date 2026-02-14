@@ -108,15 +108,6 @@ export interface Pet {
   maxMp: number;
 }
 
-/** 捕捉道具 */
-export interface CaptureItem {
-  id: string;
-  name: string;
-  description: string;
-  captureBonus: number;  // 捕捉率加成
-  rarityBonus?: number;  // 稀有度加成
-}
-
 /** 合宠结果 */
 export interface FusionResult {
   pet: Pet;

@@ -3,6 +3,8 @@
 import { signal, computed } from '@preact/signals-react';
 import { achievementService } from '@/services/achievementService';
 import { ACHIEVEMENT_CATEGORIES } from '@/constants/achievements';
+import { updatePlayerGold, addPlayerExp } from './playerSignals';
+import { addItem } from './inventorySignals';
 import type {
   AchievementProgressInfo,
   AchievementStats,
@@ -179,7 +181,27 @@ export async function claimAchievementReward(
   try {
     const result = await achievementService.claimReward(playerId, achievementId);
 
-    if (result.success) {
+    if (result.success && result.reward) {
+      // 实际发放奖励
+      const reward = result.reward;
+
+      // 发放金币
+      if (reward.gold && reward.gold > 0) {
+        updatePlayerGold(reward.gold);
+      }
+
+      // 发放经验
+      if (reward.exp && reward.exp > 0) {
+        addPlayerExp(reward.exp);
+      }
+
+      // 发放物品
+      if (reward.items && reward.items.length > 0) {
+        for (const itemReward of reward.items) {
+          addItem(itemReward.itemId, itemReward.count);
+        }
+      }
+
       // 更新本地状态
       achievementProgress.value = achievementProgress.value.map(p => {
         if (p.achievement.id === achievementId) {

@@ -228,30 +228,75 @@ export function CharacterCreation() {
             <div className="space-y-4">
               <div className="text-center mb-4">
                 <h2 className="text-lg font-semibold text-[var(--game-text)]">选择种族</h2>
-                <p className="text-sm text-[var(--game-text-muted)]">不同种族拥有独特天赋</p>
+                <p className="text-sm text-[var(--game-text-muted)]">不同种族拥有独特天赋和属性倾向</p>
               </div>
 
               <div className="space-y-3">
-                {races.map((race) => (
-                  <button
-                    key={race.type}
-                    onClick={() => handleRaceSelect(race.type)}
-                    className="w-full game-card p-5 text-left"
-                  >
-                    <div className="flex items-start gap-4">
-                      <span className="text-3xl">{race.icon}</span>
-                      <div className="flex-1">
-                        <h3 className="font-semibold text-[var(--game-text)]">{race.name}</h3>
-                        <p className="text-sm text-[var(--game-text-muted)] mt-1">{race.description}</p>
-                        <div className="mt-2 px-2 py-1 bg-[var(--game-gold)]/20 rounded-lg inline-block">
-                          <p className="text-xs text-[var(--game-gold-dark)]">
-                            {race.passiveSkill.name}: {race.passiveSkill.description}
-                          </p>
+                {races.map((race) => {
+                  // 计算属性条的最大值用于可视化
+                  const maxStat = 14;
+                  const statLabels: Record<string, { name: string; color: string }> = {
+                    strength: { name: '力量', color: 'bg-red-400' },
+                    intelligence: { name: '灵力', color: 'bg-blue-400' },
+                    vitality: { name: '体质', color: 'bg-green-400' },
+                    agility: { name: '敏捷', color: 'bg-yellow-400' },
+                    willpower: { name: '魔力', color: 'bg-purple-400' },
+                  };
+
+                  return (
+                    <button
+                      key={race.type}
+                      onClick={() => handleRaceSelect(race.type)}
+                      className="w-full game-card p-5 text-left"
+                    >
+                      <div className="flex items-start gap-4">
+                        <span className="text-3xl">{race.icon}</span>
+                        <div className="flex-1">
+                          <h3 className="font-semibold text-[var(--game-text)]">{race.name}</h3>
+                          <p className="text-sm text-[var(--game-text-muted)] mt-1">{race.description}</p>
+
+                          {/* 属性倾向条 */}
+                          <div className="mt-3 space-y-1.5">
+                            {Object.entries(race.baseStats).map(([stat, value]) => {
+                              const statInfo = statLabels[stat];
+                              return (
+                                <div key={stat} className="flex items-center gap-2">
+                                  <span className="text-xs text-[var(--game-text-muted)] w-10">{statInfo.name}</span>
+                                  <div className="flex-1 h-2 bg-slate-200 rounded-full overflow-hidden">
+                                    <div
+                                      className={`h-full ${statInfo.color} rounded-full transition-all duration-300`}
+                                      style={{ width: `${(value / maxStat) * 100}%` }}
+                                    />
+                                  </div>
+                                  <span className="text-xs text-[var(--game-text-dim)] w-6 text-right">{value}</span>
+                                </div>
+                              );
+                            })}
+                          </div>
+
+                          {/* 种族特性 */}
+                          <div className="mt-3 flex flex-wrap gap-1.5">
+                            {race.traits.map((trait) => (
+                              <span
+                                key={trait.id}
+                                className="px-2 py-0.5 bg-[var(--game-gold)]/20 rounded text-xs text-[var(--game-gold-dark)]"
+                              >
+                                {trait.name}
+                              </span>
+                            ))}
+                          </div>
+
+                          {/* 被动技能 */}
+                          <div className="mt-2 px-2 py-1 bg-blue-50 rounded-lg inline-block">
+                            <p className="text-xs text-blue-600">
+                              <span className="font-medium">{race.passiveSkill.name}</span>: {race.passiveSkill.description}
+                            </p>
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  </button>
-                ))}
+                    </button>
+                  );
+                })}
               </div>
 
               <button
@@ -360,7 +405,9 @@ export function CharacterCreation() {
           )}
 
           {/* 步骤5：确认创建 */}
-          {step === 'confirm' && (
+          {step === 'confirm' && (() => {
+            const selectedRaceData = races.find(r => r.type === selectedRace);
+            return (
             <div className="space-y-4">
               <div className="text-center mb-4">
                 <h2 className="text-lg font-semibold text-[var(--game-text)]">确认角色信息</h2>
@@ -369,28 +416,67 @@ export function CharacterCreation() {
 
               <div className="game-panel p-6">
                 <div className="flex items-center gap-3 mb-6 pb-4 border-b border-[var(--game-border)]">
-                  <div className="p-3 bg-[var(--game-gold)]/20 rounded-xl">
-                    {Icons.user}
+                  <div className="p-3 bg-[var(--game-gold)]/20 rounded-xl text-2xl">
+                    {selectedRaceData?.icon}
                   </div>
                   <div>
                     <h3 className="font-semibold text-[var(--game-text)] text-lg">{name}</h3>
                     <p className="text-sm text-[var(--game-text-muted)]">
-                      {races.find(r => r.type === selectedRace)?.name} · {availableFactions.find(f => f.id === selectedFaction)?.name}
+                      {selectedRaceData?.name} · {availableFactions.find(f => f.id === selectedFaction)?.name}
                     </p>
                   </div>
                 </div>
 
                 <div className="space-y-4">
-                  <div className="flex justify-between items-center">
-                    <span className="text-[var(--game-text-muted)]">种族</span>
-                    <span className="text-[var(--game-text)] font-medium">{races.find(r => r.type === selectedRace)?.name}</span>
+                  {/* 种族信息 */}
+                  <div className="pb-4 border-b border-[var(--game-border)]">
+                    <p className="text-[var(--game-text-muted)] text-sm mb-2">种族属性</p>
+                    {selectedRaceData && (
+                      <div className="grid grid-cols-5 gap-2 text-center">
+                        <div className="bg-red-50 rounded-lg p-2">
+                          <div className="text-xs text-red-600">力量</div>
+                          <div className="font-semibold text-red-700">{selectedRaceData.baseStats.strength}</div>
+                        </div>
+                        <div className="bg-blue-50 rounded-lg p-2">
+                          <div className="text-xs text-blue-600">灵力</div>
+                          <div className="font-semibold text-blue-700">{selectedRaceData.baseStats.intelligence}</div>
+                        </div>
+                        <div className="bg-green-50 rounded-lg p-2">
+                          <div className="text-xs text-green-600">体质</div>
+                          <div className="font-semibold text-green-700">{selectedRaceData.baseStats.vitality}</div>
+                        </div>
+                        <div className="bg-yellow-50 rounded-lg p-2">
+                          <div className="text-xs text-yellow-600">敏捷</div>
+                          <div className="font-semibold text-yellow-700">{selectedRaceData.baseStats.agility}</div>
+                        </div>
+                        <div className="bg-purple-50 rounded-lg p-2">
+                          <div className="text-xs text-purple-600">魔力</div>
+                          <div className="font-semibold text-purple-700">{selectedRaceData.baseStats.willpower}</div>
+                        </div>
+                      </div>
+                    )}
                   </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-[var(--game-text-muted)]">门派</span>
-                    <span className="text-[var(--game-text)] font-medium">{availableFactions.find(f => f.id === selectedFaction)?.name}</span>
-                  </div>
-                  <div className="pt-4 border-t border-[var(--game-border)]">
-                    <p className="text-[var(--game-text-muted)] mb-3">特性</p>
+
+                  {/* 种族特性 */}
+                  {selectedRaceData && selectedRaceData.traits.length > 0 && (
+                    <div className="pb-4 border-b border-[var(--game-border)]">
+                      <p className="text-[var(--game-text-muted)] text-sm mb-2">种族特性</p>
+                      <div className="flex flex-wrap gap-2">
+                        {selectedRaceData.traits.map((trait) => (
+                          <span
+                            key={trait.id}
+                            className="px-3 py-1.5 rounded-lg text-sm font-medium bg-[var(--game-gold)]/20 text-[var(--game-gold-dark)]"
+                          >
+                            {trait.name}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* 天赋特性 */}
+                  <div className="pt-2">
+                    <p className="text-[var(--game-text-muted)] text-sm mb-2">天赋特性</p>
                     <div className="flex flex-wrap gap-2">
                       {rolledTraits.map((trait) => (
                         <span
@@ -421,7 +507,8 @@ export function CharacterCreation() {
                 <span>返回修改</span>
               </button>
             </div>
-          )}
+            );
+          })()}
         </div>
       </div>
     </div>

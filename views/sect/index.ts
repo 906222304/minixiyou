@@ -1,1 +1,0 @@
-export { useSectHandlers } from './useSectHandlers';

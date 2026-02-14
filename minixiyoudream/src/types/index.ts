@@ -53,3 +53,6 @@ export * from './formation';
 
 // 成就
 export * from './achievement';
+
+// 任务
+export * from './quest';

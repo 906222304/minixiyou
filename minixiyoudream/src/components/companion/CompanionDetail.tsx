@@ -1,7 +1,9 @@
 // 伙伴详情组件
 
+import { useState } from 'react';
 import { useSignals } from '@preact/signals-react/runtime';
 import type { Companion } from '@/types';
+import { CompanionAIConfig } from './CompanionAIConfig';
 
 interface CompanionDetailProps {
   companion: Companion;
@@ -11,6 +13,8 @@ interface CompanionDetailProps {
 
 export function CompanionDetail({ companion, onClose, onToggleActive }: CompanionDetailProps) {
   useSignals();
+
+  const [showAIConfig, setShowAIConfig] = useState(false);
 
   const statNames: Record<string, string> = {
     physicalAttack: '物理攻击',
@@ -127,6 +131,14 @@ export function CompanionDetail({ companion, onClose, onToggleActive }: Companio
 
         {/* 操作按钮 */}
         <div className="space-y-2">
+          {/* AI战斗配置按钮 */}
+          <button
+            onClick={() => setShowAIConfig(true)}
+            className="w-full py-3 rounded-lg font-medium touch-btn bg-purple-600 hover:bg-purple-500"
+          >
+            ⚙️ 战斗AI配置
+          </button>
+
           <button
             onClick={() => {
               onToggleActive(companion.id);
@@ -148,6 +160,14 @@ export function CompanionDetail({ companion, onClose, onToggleActive }: Companio
           </button>
         </div>
       </div>
+
+      {/* AI配置弹窗 */}
+      {showAIConfig && (
+        <CompanionAIConfig
+          companion={companion}
+          onClose={() => setShowAIConfig(false)}
+        />
+      )}
     </div>
   );
 }

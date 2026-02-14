@@ -1,9 +1,13 @@
 // 背包状态管理
 
 import { signal, computed } from '@preact/signals-react';
-import type { Item, Equipment, EquipmentSlots, AffixLockState } from '@/types';
+import type { Item, Equipment, EquipmentSlots, AffixLockState, ItemEffect } from '@/types';
 import { generateUUID } from '@/types';
 import { createEmptyEquipmentSlots } from '@/types/equipment';
+import { getItemTemplate } from '@/constants/items';
+import { updateEquipEvent } from './questSignals';
+import { player, updatePlayerHp, updatePlayerMp, updatePlayerGold } from './playerSignals';
+import { addPlayerExp } from './playerSignals';
 
 /** 背包物品列表 */
 export const inventoryItems = signal<Item[]>([]);
@@ -30,6 +34,13 @@ export const equipmentCount = computed(() => inventoryEquipments.value.length);
 export const isInventoryFull = computed(() => {
   return inventoryItems.value.length >= maxInventorySlots;
 });
+
+/** 检查是否拥有指定物品（根据模板ID） */
+export function hasItem(templateId: string, count: number = 1): boolean {
+  const items = inventoryItems.value;
+  const item = items.find(i => i.templateId === templateId);
+  return item !== undefined && item.count >= count;
+}
 
 /** 添加物品到背包 */
 export function addItem(templateId: string, count: number = 1): boolean {
@@ -92,6 +103,129 @@ export function removeItem(itemId: string, count: number = 1): boolean {
   }
 
   return true;
+}
+
+/** 使用消耗品 */
+export function useItem(itemId: string): { success: boolean; message: string; effects?: ItemEffect[] } {
+  const items = inventoryItems.value;
+  const item = items.find((i) => i.id === itemId);
+
+  if (!item) {
+    return { success: false, message: '物品不存在' };
+  }
+
+  // 获取物品模板
+  const template = getItemTemplate(item.templateId);
+  if (!template) {
+    return { success: false, message: '物品模板不存在' };
+  }
+
+  if (!template.usable) {
+    return { success: false, message: '该物品无法使用' };
+  }
+
+  // 检查使用条件
+  if (template.useRequirements) {
+    const currentPlayer = player.value;
+    if (!currentPlayer) {
+      return { success: false, message: '玩家数据不存在' };
+    }
+
+    if (template.useRequirements.minLevel && currentPlayer.level < template.useRequirements.minLevel) {
+      return { success: false, message: `需要等级 ${template.useRequirements.minLevel}` };
+    }
+
+    // 检查是否需要战斗中
+    if (template.useRequirements.inBattle) {
+      // TODO: 检查是否在战斗中
+      // return { success: false, message: '只能在战斗中使用' };
+    }
+  }
+
+  // 应用效果
+  const effects = template.effects || [];
+  let effectMessage = '';
+
+  for (const effect of effects) {
+    switch (effect.type) {
+      case 'heal_hp':
+        if (effect.value) {
+          updatePlayerHp(effect.value);
+          effectMessage += `恢复 ${effect.value} HP `;
+        }
+        break;
+      case 'heal_mp':
+        if (effect.value) {
+          updatePlayerMp(effect.value);
+          effectMessage += `恢复 ${effect.value} MP `;
+        }
+        break;
+      case 'heal_hp_percent':
+        if (effect.value && player.value) {
+          const healAmount = Math.floor(player.value.maxHp * effect.value / 100);
+          updatePlayerHp(healAmount);
+          effectMessage += `恢复 ${effect.value}% HP (${healAmount}) `;
+        }
+        break;
+      case 'heal_mp_percent':
+        if (effect.value && player.value) {
+          const healAmount = Math.floor(player.value.maxMp * effect.value / 100);
+          updatePlayerMp(healAmount);
+          effectMessage += `恢复 ${effect.value}% MP (${healAmount}) `;
+        }
+        break;
+      case 'cure':
+        // TODO: 实现治愈负面状态的逻辑
+        effectMessage += '治愈负面状态 ';
+        break;
+      case 'add_exp':
+        if (effect.value) {
+          const leveledUp = addPlayerExp(effect.value);
+          effectMessage += `获得 ${effect.value} 经验值 `;
+          if (leveledUp) {
+            effectMessage += '(升级了!) ';
+          }
+        }
+        break;
+      case 'add_gold':
+        if (effect.value) {
+          // 添加一定范围内的随机金币
+          const variance = effect.value * 0.5; // 50%浮动
+          const minGold = Math.floor(effect.value - variance);
+          const maxGold = Math.floor(effect.value + variance);
+          const goldGained = Math.floor(Math.random() * (maxGold - minGold + 1)) + minGold;
+          updatePlayerGold(goldGained);
+          effectMessage += `获得 ${goldGained} 金币 `;
+        }
+        break;
+      case 'open_box':
+        // 宝箱逻辑：随机选择一个物品
+        if (effect.boxItems && effect.boxItems.length > 0) {
+          const randomItem = effect.boxItems[Math.floor(Math.random() * effect.boxItems.length)];
+          addItem(randomItem, 1);
+          const itemTemplate = getItemTemplate(randomItem);
+          effectMessage += `开出了 ${itemTemplate?.name || randomItem} `;
+        }
+        break;
+      case 'buff':
+        // TODO: 实现增益效果
+        if (effect.stat && effect.value && effect.duration) {
+          effectMessage += `获得 ${effect.stat} +${effect.value} (${effect.duration}回合) `;
+        }
+        break;
+      default:
+        break;
+    }
+  }
+
+  // 减少物品数量
+  removeItem(itemId, 1);
+
+  return {
+    success: true,
+    message: effectMessage || '使用成功',
+    effects,
+  };
 }
 
 /** 添加装备到背包 */
@@ -164,6 +298,14 @@ export function equipItem(equipmentId: string): boolean {
 
     // 更新玩家属性
     updatePlayerStats();
+
+    // 触发任务事件：装备物品
+    const currentPlayer = player.value;
+    if (currentPlayer) {
+      updateEquipEvent(currentPlayer.id, equipment.templateId).catch(err =>
+        console.error('[Inventory] Failed to trigger equip event:', err)
+      );
+    }
   });
 
   return true;
@@ -208,7 +350,17 @@ export function getEquipmentStats(): Partial<import('@/types').CombatStats> {
       (stats as Record<string, number>)[key] = currentValue + (value as number);
     }
 
-    // TODO: 加入宝石属性
+    // 宝石属性加成
+    if (equipment.gems && equipment.gems.length > 0) {
+      for (const gem of equipment.gems) {
+        if (!gem) continue;
+
+        for (const [key, value] of Object.entries(gem.statBonus)) {
+          const currentValue = (stats as Record<string, number>)[key] || 0;
+          (stats as Record<string, number>)[key] = currentValue + (value as number);
+        }
+      }
+    }
   }
 
   return stats;

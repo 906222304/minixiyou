@@ -10,10 +10,14 @@ import {
   newlyUnlockedAchievements,
   isAchievementLoading,
   claimableRewardCount,
+  playerTitles,
+  activeTitle,
   setSelectedAchievementCategory,
   claimAchievementReward,
   removeNewlyUnlockedAchievement,
   clearNewlyUnlockedAchievements,
+  activatePlayerTitle,
+  deactivatePlayerTitle,
 } from '@/signals/achievementSignals';
 import { ACHIEVEMENT_CATEGORIES } from '@/constants/achievements';
 import { player } from '@/signals/playerSignals';
@@ -262,19 +266,190 @@ function AchievementList() {
 function TitleManager() {
   useSignals();
 
-  // This will be expanded with actual title data from signals
+  const titles = playerTitles.value;
+  const active = activeTitle.value;
+  const currentPlayer = player.value;
+
+  // 激活称号
+  const handleActivate = async (titleId: string) => {
+    if (!currentPlayer) return;
+
+    // 如果已有激活称号，先取消
+    if (active) {
+      await deactivatePlayerTitle(currentPlayer.id);
+    }
+
+    const success = await activatePlayerTitle(currentPlayer.id, titleId);
+    if (success) {
+      showSuccess('称号已激活');
+    } else {
+      showError('激活失败');
+    }
+  };
+
+  // 取消激活
+  const handleDeactivate = async () => {
+    if (!currentPlayer) return;
+
+    const success = await deactivatePlayerTitle(currentPlayer.id);
+    if (success) {
+      showSuccess('已取消激活称号');
+    } else {
+      showError('取消失败');
+    }
+  };
+
+  // 渲染属性加成
+  const renderStatBonus = (statBonus?: Record<string, number>) => {
+    if (!statBonus || Object.keys(statBonus).length === 0) return null;
+
+    const statNames: Record<string, string> = {
+      strength: '力量',
+      intelligence: '智力',
+      vitality: '体质',
+      agility: '敏捷',
+      willpower: '耐力',
+      physicalAttack: '物攻',
+      magicAttack: '法攻',
+      physicalDefense: '物防',
+      magicDefense: '法防',
+    };
+
+    return (
+      <div className="flex flex-wrap gap-1 mt-2">
+        {Object.entries(statBonus).map(([stat, value]) => (
+          <span key={stat} className="text-xs px-2 py-0.5 bg-green-900/30 text-green-400 rounded">
+            {statNames[stat] || stat} +{value}
+          </span>
+        ))}
+      </div>
+    );
+  };
 
   return (
-    <div className="game-panel p-4">
-      <h3 className="text-lg font-bold text-[var(--game-gold)] mb-4 flex items-center gap-2">
-        <span>👑</span>
-        <span>称号管理</span>
-      </h3>
+    <div className="space-y-4">
+      {/* 当前激活称号 */}
+      {active && (
+        <div className="game-panel p-4 border-2 border-[var(--game-gold)]/50">
+          <h4 className="text-sm font-medium text-[var(--game-text-muted)] mb-3 flex items-center gap-2">
+            <span>✨</span>
+            <span>当前称号</span>
+          </h4>
+          <div className="flex items-center gap-3">
+            <span
+              className="text-3xl"
+              style={{ filter: active.title.rare ? 'drop-shadow(0 0 8px gold)' : 'none' }}
+            >
+              {active.title.icon}
+            </span>
+            <div className="flex-1">
+              <div
+                className="font-bold text-lg"
+                style={{ color: active.title.color }}
+              >
+                {active.title.name}
+              </div>
+              <div className="text-sm text-[var(--game-text-muted)]">
+                {active.title.description}
+              </div>
+              {renderStatBonus(active.title.statBonus)}
+            </div>
+            <button
+              onClick={handleDeactivate}
+              className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg text-sm transition-colors"
+            >
+              取消激活
+            </button>
+          </div>
+        </div>
+      )}
 
-      <div className="text-center text-[var(--game-text-muted)] py-8">
-        <div className="text-4xl mb-3">🎖️</div>
-        <p>完成特定成就可获得称号</p>
-        <p className="text-sm mt-2">称号可提供额外属性加成</p>
+      {/* 称号列表 */}
+      <div className="game-panel p-4">
+        <h3 className="text-lg font-bold text-[var(--game-gold)] mb-4 flex items-center gap-2">
+          <span>👑</span>
+          <span>我的称号</span>
+          <span className="text-sm font-normal text-[var(--game-text-muted)]">
+            ({titles.length})
+          </span>
+        </h3>
+
+        {titles.length === 0 ? (
+          <div className="text-center text-[var(--game-text-muted)] py-8">
+            <div className="text-4xl mb-3">🎖️</div>
+            <p>暂无称号</p>
+            <p className="text-sm mt-2">完成特定成就可获得称号</p>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {titles.map((playerTitle) => {
+              const title = playerTitle.title;
+              const isActive = playerTitle.isActive;
+
+              return (
+                <div
+                  key={playerTitle.titleId}
+                  className={`p-4 rounded-lg transition-all ${
+                    isActive
+                      ? 'bg-[var(--game-gold)]/10 border border-[var(--game-gold)]/30'
+                      : 'bg-black/20 hover:bg-black/30'
+                  }`}
+                >
+                  <div className="flex items-center gap-3">
+                    <span
+                      className="text-2xl"
+                      style={{
+                        filter: title.rare ? 'drop-shadow(0 0 6px gold)' : 'none',
+                      }}
+                    >
+                      {title.icon}
+                    </span>
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2">
+                        <span
+                          className="font-medium"
+                          style={{ color: title.color }}
+                        >
+                          {title.name}
+                        </span>
+                        {title.rare && (
+                          <span className="text-xs px-1.5 py-0.5 bg-yellow-900/50 text-yellow-400 rounded">
+                            稀有
+                          </span>
+                        )}
+                        {isActive && (
+                          <span className="text-xs px-1.5 py-0.5 bg-green-900/50 text-green-400 rounded">
+                            使用中
+                          </span>
+                        )}
+                      </div>
+                      <div className="text-sm text-[var(--game-text-muted)]">
+                        {title.description}
+                      </div>
+                      {renderStatBonus(title.statBonus)}
+                      <div className="text-xs text-[var(--game-text-dim)] mt-1">
+                        获得时间: {new Date(playerTitle.acquiredAt).toLocaleDateString()}
+                      </div>
+                    </div>
+                    {!isActive && (
+                      <button
+                        onClick={() => handleActivate(playerTitle.titleId)}
+                        className="px-3 py-1.5 bg-[var(--game-gold)] text-[var(--game-bg-dark)] rounded-lg text-sm font-medium hover:brightness-110 transition-all"
+                      >
+                        激活
+                      </button>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+
+      {/* 提示信息 */}
+      <div className="text-center text-xs text-[var(--game-text-dim)]">
+        称号可通过完成成就获得，激活称号可获得属性加成
       </div>
     </div>
   );

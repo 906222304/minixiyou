@@ -7,6 +7,7 @@ import type { AffixLockState } from '@/types/affix';
 import type { Pet } from '@/types';
 import type { Companion } from '@/types';
 import type { PlayerAchievement, PlayerTitle, AchievementTracker } from '@/types/achievement';
+import type { DungeonProgress } from '@/types/dungeon';
 
 /** 存档数据结构 */
 export interface SaveData {
@@ -70,6 +71,18 @@ export interface AchievementData {
   updatedAt: number;
 }
 
+/** 副本数据存储结构 */
+export interface DungeonData {
+  /** 自增主键 */
+  id?: number;
+  /** 玩家ID */
+  playerId: string;
+  /** 副本进度列表 */
+  progress: DungeonProgress[];
+  /** 更新时间戳 */
+  updatedAt: number;
+}
+
 /** 游戏数据库类 */
 class GameDatabase extends Dexie {
   /** 存档表 */
@@ -78,14 +91,17 @@ class GameDatabase extends Dexie {
   autoSaves!: Table<AutoSaveData>;
   /** 成就数据表 */
   achievements!: Table<AchievementData>;
+  /** 副本数据表 */
+  dungeonProgress!: Table<DungeonData>;
 
   constructor() {
     super('MiniXiyouDream');
 
-    this.version(2).stores({
+    this.version(3).stores({
       saves: '++id, name, updatedAt, createdAt',
       autoSaves: '++id, type, updatedAt',
       achievements: '++id, playerId, updatedAt',
+      dungeonProgress: '++id, playerId, updatedAt',
     });
   }
 }

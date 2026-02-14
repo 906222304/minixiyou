@@ -4,3 +4,4 @@ export { BattleLayout } from './BattleLayout';
 export { BattleUnit } from './BattleUnit';
 export { BattleLog } from './BattleLog';
 export { BattleActions } from './BattleActions';
+export { AutoBattleConfigModal } from './AutoBattleConfigModal';

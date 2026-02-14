@@ -2,7 +2,7 @@
 
 import type { Equipment, EquipmentSlot, EquipmentSlots, CombatStats, FullStats, Companion } from '@/types';
 import { isBaseAffix } from '@/types/affix';
-import { companions, getCompanion } from '@/signals/companionSignals';
+import { companions, getCompanion, bondBonuses } from '@/signals/companionSignals';
 import { inventoryEquipments, addEquipment, removeEquipment } from '@/signals/inventorySignals';
 import { getEquipmentTemplate } from '@/constants/equipment';
 
@@ -54,7 +54,17 @@ export function calculateEquipmentStats(equipment: EquipmentSlots): Partial<Comb
       }
     }
 
-    // TODO: 加入宝石属性
+    // 宝石属性加成
+    if (equip.gems && equip.gems.length > 0) {
+      for (const gem of equip.gems) {
+        if (!gem) continue;
+
+        for (const [key, value] of Object.entries(gem.statBonus)) {
+          const statKey = key as keyof CombatStats;
+          stats[statKey] = (stats[statKey] || 0) + (value as number);
+        }
+      }
+    }
   }
 
   return stats;
@@ -208,32 +218,38 @@ export function getEquipableItems(companionId: string, slot: EquipmentSlot): Equ
 /** 计算最终属性 */
 export function calculateFinalStats(
   companion: Companion,
-  equipmentStats: Partial<FullStats>
+  equipmentStats: Partial<FullStats>,
+  bondStats?: Record<string, number>
 ): FullStats {
   const favorabilityMult = getFavorabilityMultiplier(companion.favorabilityLevel);
 
   // 基础属性
   const baseStats = companion.baseStats;
 
-  // 计算最终属性 = (基础 + 装备) * 羁绊 * 好感度
-  // TODO: 加入羁绊加成
+  // 获取羁绊加成（如果未传入则从信号获取）
+  const bonds = bondStats ?? bondBonuses.value;
+
+  // 辅助函数：安全获取羁绊属性
+  const getBondBonus = (stat: string): number => bonds[stat] || 0;
+
+  // 计算最终属性 = (基础 + 装备 + 羁绊) * 好感度
   const finalStats: FullStats = {
-    strength: Math.floor((baseStats.strength + (equipmentStats.strength || 0)) * favorabilityMult),
-    intelligence: Math.floor((baseStats.intelligence + (equipmentStats.intelligence || 0)) * favorabilityMult),
-    vitality: Math.floor((baseStats.vitality + (equipmentStats.vitality || 0)) * favorabilityMult),
-    agility: Math.floor((baseStats.agility + (equipmentStats.agility || 0)) * favorabilityMult),
-    willpower: Math.floor((baseStats.willpower + (equipmentStats.willpower || 0)) * favorabilityMult),
-    physicalAttack: Math.floor((baseStats.physicalAttack + (equipmentStats.physicalAttack || 0)) * favorabilityMult),
-    physicalDefense: Math.floor((baseStats.physicalDefense + (equipmentStats.physicalDefense || 0)) * favorabilityMult),
-    magicAttack: Math.floor((baseStats.magicAttack + (equipmentStats.magicAttack || 0)) * favorabilityMult),
-    magicDefense: Math.floor((baseStats.magicDefense + (equipmentStats.magicDefense || 0)) * favorabilityMult),
-    speed: Math.floor((baseStats.speed + (equipmentStats.speed || 0)) * favorabilityMult),
-    maxHp: Math.floor((baseStats.maxHp + (equipmentStats.maxHp || 0)) * favorabilityMult),
-    maxMp: Math.floor((baseStats.maxMp + (equipmentStats.maxMp || 0)) * favorabilityMult),
-    critRate: Math.min(1, (baseStats.critRate + (equipmentStats.critRate || 0)) * favorabilityMult),
-    critDamage: (baseStats.critDamage + (equipmentStats.critDamage || 0)) * favorabilityMult,
-    hitRate: Math.min(1, (baseStats.hitRate + (equipmentStats.hitRate || 0)) * favorabilityMult),
-    dodgeRate: Math.min(0.5, (baseStats.dodgeRate + (equipmentStats.dodgeRate || 0)) * favorabilityMult),
+    strength: Math.floor((baseStats.strength + (equipmentStats.strength || 0) + getBondBonus('strength')) * favorabilityMult),
+    intelligence: Math.floor((baseStats.intelligence + (equipmentStats.intelligence || 0) + getBondBonus('intelligence')) * favorabilityMult),
+    vitality: Math.floor((baseStats.vitality + (equipmentStats.vitality || 0) + getBondBonus('vitality')) * favorabilityMult),
+    agility: Math.floor((baseStats.agility + (equipmentStats.agility || 0) + getBondBonus('agility')) * favorabilityMult),
+    willpower: Math.floor((baseStats.willpower + (equipmentStats.willpower || 0) + getBondBonus('willpower')) * favorabilityMult),
+    physicalAttack: Math.floor((baseStats.physicalAttack + (equipmentStats.physicalAttack || 0) + getBondBonus('physicalAttack')) * favorabilityMult),
+    physicalDefense: Math.floor((baseStats.physicalDefense + (equipmentStats.physicalDefense || 0) + getBondBonus('physicalDefense')) * favorabilityMult),
+    magicAttack: Math.floor((baseStats.magicAttack + (equipmentStats.magicAttack || 0) + getBondBonus('magicAttack')) * favorabilityMult),
+    magicDefense: Math.floor((baseStats.magicDefense + (equipmentStats.magicDefense || 0) + getBondBonus('magicDefense')) * favorabilityMult),
+    speed: Math.floor((baseStats.speed + (equipmentStats.speed || 0) + getBondBonus('speed')) * favorabilityMult),
+    maxHp: Math.floor((baseStats.maxHp + (equipmentStats.maxHp || 0) + getBondBonus('maxHp')) * favorabilityMult),
+    maxMp: Math.floor((baseStats.maxMp + (equipmentStats.maxMp || 0) + getBondBonus('maxMp')) * favorabilityMult),
+    critRate: Math.min(1, (baseStats.critRate + (equipmentStats.critRate || 0) + getBondBonus('critRate')) * favorabilityMult),
+    critDamage: (baseStats.critDamage + (equipmentStats.critDamage || 0) + getBondBonus('critDamage')) * favorabilityMult,
+    hitRate: Math.min(1, (baseStats.hitRate + (equipmentStats.hitRate || 0) + getBondBonus('hitRate')) * favorabilityMult),
+    dodgeRate: Math.min(0.5, (baseStats.dodgeRate + (equipmentStats.dodgeRate || 0) + getBondBonus('dodgeRate')) * favorabilityMult),
   };
 
   return finalStats;

@@ -3,6 +3,7 @@
 import { computed } from '@preact/signals-react';
 import { getMap, getMapsByRegion, getAllMaps } from '@/constants/maps';
 import { player, updatePlayerPosition, playerLevel } from '@/signals/playerSignals';
+import { hasItem } from '@/signals/inventorySignals';
 import { unlockTeleport, isTeleportUnlocked } from '@/services/teleportService';
 import { getTeleportByMapId } from '@/constants/teleports';
 import type { GameMap, MapConnection, Direction, MapType } from '@/types';
@@ -75,8 +76,7 @@ export function canMoveToMap(targetMapId: string): { canMove: boolean; reason: s
   }
 
   // 检查物品限制（如果有）
-  if (connection.requiredItem) {
-    // TODO: 检查玩家是否拥有所需物品
+  if (connection.requiredItem && !hasItem(connection.requiredItem)) {
     return { canMove: false, reason: '缺少所需物品' };
   }
 
@@ -175,7 +175,7 @@ export function getAvailableAdjacentMaps(): Array<MapConnection & { targetMap: G
       reason = `需要 Lv.${conn.requiredLevel}`;
     }
 
-    if (conn.requiredItem) {
+    if (conn.requiredItem && !hasItem(conn.requiredItem)) {
       canMove = false;
       reason = '缺少物品';
     }

@@ -25,6 +25,7 @@ import {
   MAX_CULTIVATION_LEVEL,
 } from '@/constants/cultivation';
 import { PRNG } from '@/utils/prng';
+import { hasItem, removeItem } from '@/signals/inventorySignals';
 
 // ============================================
 // 修炼服务
@@ -186,19 +187,19 @@ export const cultivationService = {
       };
     }
 
-    // TODO: 检查突破物品
-    // if (nextRealm.requiredItem && !hasItem(nextRealm.requiredItem)) {
-    //   return {
-    //     result: {
-    //       success: false,
-    //       fromRealm: data.realm,
-    //       toRealm: data.realm,
-    //       newRealmName: data.realmName,
-    //       reason: '缺少突破物品',
-    //     },
-    //     data,
-    //   };
-    // }
+    // 检查突破物品
+    if (nextRealm.requiredItem && !hasItem(nextRealm.requiredItem)) {
+      return {
+        result: {
+          success: false,
+          fromRealm: data.realm,
+          toRealm: data.realm,
+          newRealmName: data.realmName,
+          reason: `缺少突破物品`,
+        },
+        data,
+      };
+    }
 
     // 计算成功率
     const successRate = calculateBreakthroughSuccessRate(
@@ -212,7 +213,11 @@ export const cultivationService = {
     const success = roll < successRate;
 
     if (success) {
-      // 突破成功
+      // 突破成功，消耗突破物品
+      if (nextRealm.requiredItem) {
+        removeItem(nextRealm.requiredItem, 1);
+      }
+
       const rewards: string[] = [];
       if (nextRealm.effect) {
         rewards.push(`获得效果: ${nextRealm.effect}`);
@@ -364,10 +369,10 @@ export const cultivationService = {
       };
     }
 
-    // TODO: 检查突破物品
-    // if (nextRealm.requiredItem && !hasItem(nextRealm.requiredItem)) {
-    //   return { canBreakthrough: false, reason: '缺少突破物品' };
-    // }
+    // 检查突破物品
+    if (nextRealm.requiredItem && !hasItem(nextRealm.requiredItem)) {
+      return { canBreakthrough: false, reason: '缺少突破物品' };
+    }
 
     return { canBreakthrough: true };
   },

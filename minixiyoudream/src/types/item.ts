@@ -1,6 +1,7 @@
 // 物品类型定义
 
 import type { UUID, Quality } from './common';
+import type { GemType } from './equipment';
 
 /** 物品类型 */
 export type ItemType =
@@ -10,14 +11,28 @@ export type ItemType =
   | 'quest'        // 任务物品
   | 'skill_book'   // 技能书
   | 'gem'          // 宝石
-  | 'capture';     // 捕捉道具
+  | 'special';     // 特殊物品（经验丹、金币袋、宝箱等）
+
+/** 使用效果类型 */
+export type ItemEffectType =
+  | 'heal_hp'          // 恢复HP
+  | 'heal_mp'          // 恢复MP
+  | 'heal_hp_percent'  // 恢复HP百分比
+  | 'heal_mp_percent'  // 恢复MP百分比
+  | 'buff'             // 增益效果
+  | 'cure'             // 治愈负面状态
+  | 'revive'           // 复活
+  | 'add_exp'          // 增加经验
+  | 'add_gold'         // 增加金币
+  | 'open_box';        // 开启宝箱
 
 /** 使用效果 */
 export interface ItemEffect {
-  type: 'heal_hp' | 'heal_mp' | 'buff' | 'cure' | 'revive' | 'capture';
+  type: ItemEffectType;
   value?: number;
   stat?: string;
   duration?: number;
+  boxItems?: string[];       // 宝箱可能开出的物品ID列表
 }
 
 /** 物品模板 */
@@ -55,6 +70,16 @@ export interface ItemTemplate {
 
   // 获取途径
   sources: string[];
+
+  // 宝石相关属性（仅gem类型）
+  gemType?: GemType;
+  gemLevel?: number;
+
+  // 材料子类型（仅material类型）
+  materialSubType?: 'enhance' | 'reforge' | 'craft' | 'ticket' | 'general';
+
+  // 任务物品相关（仅quest类型）
+  questId?: string;
 }
 
 /** 物品实例 */
@@ -65,6 +90,9 @@ export interface Item {
   type: ItemType;
   quality: Quality;
   count: number;
+  // 宝石相关属性（仅gem类型）
+  gemType?: GemType;
+  gemLevel?: number;
 }
 
 /** 背包 */

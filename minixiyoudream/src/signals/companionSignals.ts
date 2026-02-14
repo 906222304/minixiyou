@@ -4,6 +4,7 @@ import { signal, computed } from '@preact/signals-react';
 import type { Companion, ActiveBond } from '@/types';
 import { generateUUID } from '@/types';
 import { COMPANION_TEMPLATES, BONDS } from '@/constants/companions';
+import { showSuccess } from './uiSignals';
 
 /** 已解锁伙伴列表 */
 export const companions = signal<Companion[]>([]);
@@ -192,6 +193,102 @@ export function canUnlockCompanion(templateId: string): boolean {
     return false;
   }
 
-  // TODO: 检查解锁条件
-  return true;
+  // 检查解锁条件
+  const condition = template.unlockCondition;
+  if (!condition) return true; // 无条件限制，可解锁
+
+  // 具体条件检查需要外部调用checkCompanionUnlockByCondition
+  return false;
+}
+
+/** 根据条件类型检查并解锁伙伴 */
+export function checkCompanionUnlockByCondition(
+  conditionType: 'story' | 'dungeon' | 'level',
+  targetId: string
+): Companion | null {
+  for (const [templateId, template] of Object.entries(COMPANION_TEMPLATES)) {
+    // 跳过已解锁的伙伴
+    if (companions.value.some(c => c.baseId === templateId)) {
+      continue;
+    }
+
+    const condition = template.unlockCondition;
+    if (!condition) continue;
+
+    // 检查条件类型和目标是否匹配
+    if (condition.type === conditionType && condition.targetId === targetId) {
+      const companion = unlockCompanion(templateId);
+      if (companion) {
+        showSuccess(`解锁伙伴：${companion.name}！`);
+        return companion;
+      }
+    }
+  }
+
+  return null;
+}
+
+/** 检查等级条件解锁伙伴 */
+export function checkLevelUnlockCompanion(level: number): Companion[] {
+  const unlocked: Companion[] = [];
+
+  for (const [templateId, template] of Object.entries(COMPANION_TEMPLATES)) {
+    // 跳过已解锁的伙伴
+    if (companions.value.some(c => c.baseId === templateId)) {
+      continue;
+    }
+
+    const condition = template.unlockCondition;
+    if (!condition || condition.type !== 'level') continue;
+
+    // 检查等级条件 (targetId 格式: "level_20")
+    const requiredLevel = parseInt(condition.targetId.replace('level_', ''), 10);
+    if (!isNaN(requiredLevel) && level >= requiredLevel) {
+      const companion = unlockCompanion(templateId);
+      if (companion) {
+        showSuccess(`解锁伙伴：${companion.name}！`);
+        unlocked.push(companion);
+      }
+    }
+  }
+
+  return unlocked;
+}
+
+/** 检查副本通关解锁伙伴 */
+export function checkDungeonUnlockCompanion(dungeonId: string): Companion | null {
+  return checkCompanionUnlockByCondition('dungeon', dungeonId);
+}
+
+/** 检查剧情完成解锁伙伴 */
+export function checkStoryUnlockCompanion(storyId: string): Companion | null {
+  return checkCompanionUnlockByCondition('story', storyId);
+}
+
+/** 获取所有可解锁的伙伴（用于UI显示） */
+export function getUnlockableCompanions(): Array<{
+  templateId: string;
+  name: string;
+  avatar: string;
+  condition: string;
+  canUnlock: boolean;
+}> {
+  const result = [];
+
+  for (const [templateId, template] of Object.entries(COMPANION_TEMPLATES)) {
+    // 跳过已解锁的伙伴
+    if (companions.value.some(c => c.baseId === templateId)) {
+      continue;
+    }
+
+    result.push({
+      templateId,
+      name: template.name,
+      avatar: template.avatar,
+      condition: template.unlockCondition?.description || '无条件',
+      canUnlock: canUnlockCompanion(templateId),
+    });
+  }
+
+  return result;
 }

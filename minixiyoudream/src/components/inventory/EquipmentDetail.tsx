@@ -2,13 +2,19 @@
 
 import { useState } from 'react';
 import { useSignals } from '@preact/signals-react/runtime';
-import { equipItem, playerGold } from '@/signals';
+import { equipItem, playerGold, useItem, inventoryItems } from '@/signals';
+import { showSuccess, showError } from '@/signals/uiSignals';
 import { getQualityColor, getQualityName } from '@/utils/helpers';
 import { getStatBonus } from '@/constants/enhancement';
+import { getEquipmentTemplate } from '@/constants/equipment';
+import { getGemIcon, getGemColor } from '@/constants/gems';
+import { gemService } from '@/services/gemService';
 import { AffixList } from './AffixDisplay';
 import { AffixReforgeModal } from './AffixReforgeModal';
 import { EnhancementModal } from './EnhancementModal';
+import { GemSocketModal } from './GemSocketModal';
 import type { Item, Equipment } from '@/types';
+import type { BaseStats } from '@/types/common';
 
 interface EquipmentDetailProps {
   item: Item | Equipment;
@@ -51,6 +57,7 @@ export function EquipmentDetail({ item, onClose, onUpdate }: EquipmentDetailProp
 
   const [showReforgeModal, setShowReforgeModal] = useState(false);
   const [showEnhanceModal, setShowEnhanceModal] = useState(false);
+  const [showGemModal, setShowGemModal] = useState(false);
   const [currentEquipment, setCurrentEquipment] = useState<Equipment | null>(
     'baseStats' in item ? item as Equipment : null
   );
@@ -60,6 +67,9 @@ export function EquipmentDetail({ item, onClose, onUpdate }: EquipmentDetailProp
 
   // 获取玩家金币
   const currentGold = playerGold.value;
+
+  // 获取背包中的宝石
+  const playerGems = inventoryItems.value.filter(i => i.type === 'gem');
 
   const handleEquip = () => {
     if (isEquipment) {
@@ -80,6 +90,10 @@ export function EquipmentDetail({ item, onClose, onUpdate }: EquipmentDetailProp
     setShowEnhanceModal(true);
   };
 
+  const handleOpenGem = () => {
+    setShowGemModal(true);
+  };
+
   const handleReforgeSuccess = (newEquipment: Equipment) => {
     setCurrentEquipment(newEquipment);
     onUpdate?.(newEquipment);
@@ -88,6 +102,24 @@ export function EquipmentDetail({ item, onClose, onUpdate }: EquipmentDetailProp
   const handleEnhanceSuccess = (newEquipment: Equipment) => {
     setCurrentEquipment(newEquipment);
     onUpdate?.(newEquipment);
+  };
+
+  const handleGemSuccess = (newEquipment: Equipment) => {
+    setCurrentEquipment(newEquipment);
+    onUpdate?.(newEquipment);
+  };
+
+  // 使用消耗品
+  const handleUseItem = () => {
+    if (isEquipment) return;
+
+    const result = useItem(item.id);
+    if (result.success) {
+      showSuccess(result.message);
+      onClose();
+    } else {
+      showError(result.message);
+    }
   };
 
   const displayItem = currentEquipment || item;
@@ -167,31 +199,75 @@ export function EquipmentDetail({ item, onClose, onUpdate }: EquipmentDetailProp
 
   /** 渲染宝石槽 */
   const renderGems = () => {
-    if (!equipment?.gems?.length) return null;
+    const template = equipment ? getEquipmentTemplate(equipment.templateId) : null;
+    if (!template || template.gemSlots <= 0) return null;
+
+    const socketedCount = gemService.getSocketedGemCount(equipment!);
+
+    // 宝石属性加成
+    const gemStats = equipment ? gemService.getTotalGemStats(equipment) : {};
+    const statEntries = Object.entries(gemStats).filter(([_, value]) => value && value > 0);
+
+    const statNames: Record<keyof BaseStats, string> = {
+      strength: '力量',
+      intelligence: '灵力',
+      vitality: '体质',
+      agility: '敏捷',
+      willpower: '魔力',
+    };
 
     return (
       <div className="mb-4">
         <h4 className="text-sm font-semibold text-[var(--game-text-muted)] mb-3 flex items-center gap-2">
           <span className="text-base">💎</span>
           <span>宝石槽</span>
+          <span className="text-xs text-[var(--game-text-dim)] ml-auto">
+            {socketedCount} / {template.gemSlots}
+          </span>
         </h4>
-        <div className="flex gap-2">
-          {equipment.gems.map((gem, index) => (
+        <div className="flex gap-2 mb-3">
+          {equipment!.gems.slice(0, template.gemSlots).map((gem, index) => (
             <div
               key={index}
               className={`
-                w-12 h-12 rounded-lg flex items-center justify-center text-xl
-                transition-all duration-200
+                w-12 h-12 rounded-lg flex flex-col items-center justify-center text-xl
+                transition-all duration-200 cursor-pointer
                 ${gem
-                  ? 'bg-[#2a1a3a] border-2 border-[#7a5a9a] shadow-[0_0_15px_rgba(192,132,252,0.3)]'
-                  : 'bg-black/30 border-2 border-[var(--game-border)]'
+                  ? 'bg-[#2a1a3a] border-2 hover:shadow-[0_0_20px_rgba(192,132,252,0.5)]'
+                  : 'bg-black/30 border-2 border-[var(--game-border)] hover:border-[var(--game-gold)]'
                 }
               `}
+              style={gem ? {
+                borderColor: getGemColor(gem.type),
+                boxShadow: `0 0 15px ${getGemColor(gem.type)}40`
+              } : {}}
+              onClick={handleOpenGem}
+              title={gem ? `${gem.name}\n点击管理宝石` : '点击镶嵌宝石'}
             >
-              {gem ? '💎' : <span className="text-[var(--game-text-dim)] text-xs">空</span>}
+              {gem ? (
+                <>
+                  <span>{getGemIcon(gem.type)}</span>
+                  <span className="text-[8px] text-[var(--game-text-dim)]">Lv.{gem.level}</span>
+                </>
+              ) : (
+                <span className="text-[var(--game-text-dim)] text-xs">空</span>
+              )}
             </div>
           ))}
         </div>
+        {/* 宝石属性加成 */}
+        {statEntries.length > 0 && (
+          <div className="flex flex-wrap gap-1">
+            {statEntries.map(([stat, value]) => (
+              <span
+                key={stat}
+                className="text-xs bg-[var(--game-gold)]/20 text-[var(--game-gold)] px-2 py-0.5 rounded"
+              >
+                {statNames[stat as keyof BaseStats]}+{value}
+              </span>
+            ))}
+          </div>
+        )}
       </div>
     );
   };
@@ -306,6 +382,34 @@ export function EquipmentDetail({ item, onClose, onUpdate }: EquipmentDetailProp
               </button>
             )}
 
+            {/* 宝石镶嵌按钮 */}
+            {equipment && (() => {
+              const template = getEquipmentTemplate(equipment.templateId);
+              return template && template.gemSlots > 0;
+            })() && (
+              <button
+                onClick={handleOpenGem}
+                className="game-btn w-full"
+                style={{
+                  background: 'linear-gradient(135deg, #2a1a4a 0%, #1a1a3a 100%)',
+                  borderColor: '#7a5a9a',
+                }}
+              >
+                <span className="flex items-center justify-center gap-2">
+                  <span>💎</span>
+                  <span>宝石镶嵌</span>
+                  {equipment.gems && equipment.gems.some(g => g !== null) && (
+                    <span className="text-xs text-[#c084fc]">
+                      ({equipment.gems.filter(g => g !== null).length}/{(() => {
+                        const template = getEquipmentTemplate(equipment.templateId);
+                        return template ? template.gemSlots : 0;
+                      })()})
+                    </span>
+                  )}
+                </span>
+              </button>
+            )}
+
             {/* 装备/卸下按钮 */}
             {isEquipment && !isEquipped && (
               <button
@@ -327,6 +431,19 @@ export function EquipmentDetail({ item, onClose, onUpdate }: EquipmentDetailProp
                 <span className="flex items-center justify-center gap-2">
                   <span>📦</span>
                   卸下
+                </span>
+              </button>
+            )}
+
+            {/* 使用消耗品按钮 */}
+            {!isEquipment && (
+              <button
+                onClick={handleUseItem}
+                className="game-btn game-btn-success w-full"
+              >
+                <span className="flex items-center justify-center gap-2">
+                  <span>🧪</span>
+                  使用
                 </span>
               </button>
             )}
@@ -358,6 +475,17 @@ export function EquipmentDetail({ item, onClose, onUpdate }: EquipmentDetailProp
           protectionStones={0}
           onClose={() => setShowEnhanceModal(false)}
           onEnhanceSuccess={handleEnhanceSuccess}
+        />
+      )}
+
+      {/* 宝石镶嵌弹窗 */}
+      {showGemModal && currentEquipment && (
+        <GemSocketModal
+          equipment={currentEquipment}
+          playerGems={playerGems}
+          onClose={() => setShowGemModal(false)}
+          onSocketSuccess={(newEquipment) => handleGemSuccess(newEquipment)}
+          onRemoveSuccess={(newEquipment) => handleGemSuccess(newEquipment)}
         />
       )}
     </>

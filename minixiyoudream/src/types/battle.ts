@@ -183,3 +183,97 @@ export interface BattleConfig {
   canCapture: boolean;
   maxRounds: number;
 }
+
+/** 目标选择策略 */
+export type TargetStrategy = 'random' | 'weakest' | 'strongest' | 'lowestHp' | 'highestHp';
+
+/** 角色自动战斗配置 */
+export interface CharacterAutoConfig {
+  /** 优先使用的技能ID */
+  preferredSkillId: string | null;
+  /** 目标选择策略 */
+  targetStrategy: TargetStrategy;
+  /** HP低于此百分比时使用药品 (0-100) */
+  hpThreshold: number;
+  /** MP低于此百分比时使用药品 (0-100) */
+  mpThreshold: number;
+  /** 是否自动使用药品 */
+  autoUsePotion: boolean;
+}
+
+/** 宠物自动战斗配置 */
+export interface PetAutoConfig {
+  /** 优先使用的技能ID */
+  preferredSkillId: string | null;
+  /** 目标选择策略 */
+  targetStrategy: TargetStrategy;
+}
+
+/** 自动战斗配置 */
+export interface AutoBattleConfig {
+  /** 角色配置 */
+  character: CharacterAutoConfig;
+  /** 宠物配置 */
+  pet: PetAutoConfig;
+}
+
+/** 伙伴AI策略 */
+export type CompanionStrategy = 'aggressive' | 'balanced' | 'defensive';
+
+/** 伙伴优先目标类型 */
+export type CompanionPreferredTarget = 'random' | 'boss' | 'weakest' | 'highestDamage' | 'lowestHp';
+
+/** 伙伴保护目标类型 */
+export type CompanionProtectTarget = 'player' | 'weakest' | 'none';
+
+/** 伙伴AI配置 */
+export interface CompanionAIConfig {
+  /** 伙伴ID */
+  companionId: string;
+  /** 攻击策略 */
+  strategy: CompanionStrategy;
+  /** 优先目标 */
+  preferredTarget: CompanionPreferredTarget;
+  /** 技能优先级列表 (技能ID按优先级排序) */
+  skillPriority: string[];
+  /** 保护目标 */
+  protectTarget: CompanionProtectTarget;
+  /** HP低于此百分比时更倾向于防御 (0-100) */
+  defensiveHpThreshold: number;
+  /** 是否自动使用治疗技能 */
+  autoHeal: boolean;
+  /** 治疗目标HP阈值 (0-100) */
+  healThreshold: number;
+}
+
+/** 默认角色自动战斗配置 */
+export const DEFAULT_CHARACTER_AUTO_CONFIG: CharacterAutoConfig = {
+  preferredSkillId: null,
+  targetStrategy: 'lowestHp',
+  hpThreshold: 30,
+  mpThreshold: 20,
+  autoUsePotion: true,
+};
+
+/** 默认宠物自动战斗配置 */
+export const DEFAULT_PET_AUTO_CONFIG: PetAutoConfig = {
+  preferredSkillId: null,
+  targetStrategy: 'random',
+};
+
+/** 默认自动战斗配置 */
+export const DEFAULT_AUTO_BATTLE_CONFIG: AutoBattleConfig = {
+  character: DEFAULT_CHARACTER_AUTO_CONFIG,
+  pet: DEFAULT_PET_AUTO_CONFIG,
+};
+
+/** 默认伙伴AI配置 */
+export const DEFAULT_COMPANION_AI_CONFIG: Omit<CompanionAIConfig, 'companionId'> = {
+  strategy: 'balanced',
+  preferredTarget: 'weakest',
+  skillPriority: [],
+  protectTarget: 'player',
+  defensiveHpThreshold: 30,
+  autoHeal: true,
+  healThreshold: 40,
+};

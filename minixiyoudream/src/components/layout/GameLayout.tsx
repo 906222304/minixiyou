@@ -1,5 +1,6 @@
 // 游戏主布局组件 - 梦幻西游风格
 
+import { useEffect } from 'react';
 import { useSignals } from '@preact/signals-react/runtime';
 import {
   player,
@@ -17,6 +18,7 @@ import {
   type Page,
 } from '@/signals';
 import { gamePhase } from '@/signals/gameSignals';
+import { initQuests, isQuestInitialized } from '@/signals/questSignals';
 import { InventoryPage } from '@/components/inventory';
 import { PetPage } from '@/components/pet';
 import { CompanionPage } from '@/components/companion';
@@ -25,6 +27,7 @@ import { DungeonPage } from '@/components/dungeon';
 import { CharacterPage } from '@/components/character/CharacterPage';
 import { CultivationPage } from '@/components/cultivation';
 import { AchievementPage } from '@/components/achievement';
+import { QuestPage, QuestHint, QuestHintInline, QuestDialog } from '@/components/quest';
 import { getMap } from '@/constants/maps';
 
 // 梦幻西游风格图标
@@ -96,6 +99,7 @@ const NAV_ITEMS: { page: Page; icon: React.ReactNode; label: string; emoji: stri
   { page: 'dungeon', icon: Icons.dungeon, label: '副本', emoji: '🏰' },
   { page: 'cultivation', icon: Icons.settings, label: '修炼', emoji: '🧘' },
   { page: 'achievement', icon: Icons.settings, label: '成就', emoji: '🏆' },
+  { page: 'quest', icon: Icons.settings, label: '任务', emoji: '📜' },
 ];
 
 export function GameLayout() {
@@ -110,6 +114,14 @@ export function GameLayout() {
   const level = playerLevel.value;
   const page = currentPage.value;
   const sidebarOpen = showSidebar.value;
+  const questInitialized = isQuestInitialized.value;
+
+  // 初始化任务系统
+  useEffect(() => {
+    if (currentPlayer && !questInitialized) {
+      initQuests(currentPlayer.id, currentPlayer.level);
+    }
+  }, [currentPlayer?.id, questInitialized]);
 
   if (!currentPlayer) return null;
 
@@ -253,18 +265,23 @@ export function GameLayout() {
       <main className="flex-1 p-4 overflow-auto pb-28 relative z-10">
         {page === 'home' && (
           <div className="space-y-5">
-            {/* 欢迎卡片 */}
-            <div className="game-panel p-5">
-              <div className="flex items-center gap-3 mb-3">
-                <span className="text-3xl">👋</span>
-                <div>
-                  <h2 className="text-lg font-bold text-[var(--game-gold)]">
-                    欢迎回来，{currentPlayer.name}！
-                  </h2>
-                  <p className="text-sm text-[var(--game-text-muted)]">
-                    你现在位于 <span className="text-[#60a5fa]">{getMap(currentPlayer.currentMapId)?.name ?? currentPlayer.currentMapId}</span>
-                  </p>
+            {/* 欢迎信息 + 任务栏 */}
+            <div className="game-panel p-4">
+              <div className="flex items-center justify-between">
+                {/* 左侧：欢迎信息 */}
+                <div className="flex items-center gap-3">
+                  <span className="text-3xl">👋</span>
+                  <div>
+                    <h2 className="text-lg font-bold text-[var(--game-gold)]">
+                      欢迎回来，{currentPlayer.name}！
+                    </h2>
+                    <p className="text-sm text-[var(--game-text-muted)]">
+                      你现在位于 <span className="text-[#60a5fa]">{getMap(currentPlayer.currentMapId)?.name ?? currentPlayer.currentMapId}</span>
+                    </p>
+                  </div>
                 </div>
+                {/* 右侧：任务栏 */}
+                <QuestHintInline />
               </div>
             </div>
 
@@ -317,7 +334,12 @@ export function GameLayout() {
         {page === 'cultivation' && <CultivationPage />}
 
         {page === 'achievement' && <AchievementPage />}
+
+        {page === 'quest' && <QuestPage />}
       </main>
+
+      {/* 常驻任务提示 */}
+      <QuestHint />
 
       {/* 底部导航 */}
       <nav className="fixed bottom-4 left-4 right-4 z-20">
@@ -350,6 +372,9 @@ export function GameLayout() {
           </div>
         </div>
       </nav>
+
+      {/* 任务对话弹窗 */}
+      <QuestDialog fullscreen />
     </div>
   );
 }

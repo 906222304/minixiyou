@@ -11,9 +11,18 @@ import {
   inventoryItems,
   isSkillUsable,
   getSkillCooldown,
+  updatePlayerGold,
+  addPlayerExp,
+  addItem,
+  canCaptureEnemy,
+  getCaptureRate,
+  playerLevel,
+  checkLevelUnlockCompanion,
 } from '@/signals';
 import { gamePhase } from '@/signals/gameSignals';
+import { getItemTemplate } from '@/constants/items';
 import type { CombatUnit, BattleAction, Skill, Item } from '@/types';
+import { AutoBattleConfigModal } from './AutoBattleConfigModal';
 
 interface BattleActionsProps {
   selectedTargetId?: string;
@@ -26,6 +35,7 @@ export function BattleActions({ selectedTargetId, onSelectTarget }: BattleAction
   useSignals();
 
   const [activePanel, setActivePanel] = useState<PanelType>('none');
+  const [showAutoConfig, setShowAutoConfig] = useState(false);
 
   const state = battleState.value;
   const speed = battleSpeed.value;
@@ -161,11 +171,57 @@ export function BattleActions({ selectedTargetId, onSelectTarget }: BattleAction
     executeAction(action);
   };
 
+  // 尝试捕捉宠物
+  const handleCapture = () => {
+    if (!currentActor || !selectedTargetId) return;
+
+    const action: BattleAction = {
+      actorId: currentActor.id,
+      type: 'capture',
+      targetId: selectedTargetId,
+    };
+
+    executeAction(action);
+    onSelectTarget?.('');
+  };
+
+  // 检查选中的目标是否可捕捉
+  const selectedEnemy = selectedTargetId
+    ? state.enemies.find(e => e.id === selectedTargetId)
+    : null;
+  const canCapture = selectedEnemy ? canCaptureEnemy(selectedEnemy) : false;
+  const captureRate = selectedEnemy ? getCaptureRate(selectedEnemy) : 0;
+
   // 战斗结束处理 - 应用奖励
   const handleBattleEnd = () => {
+    const previousLevel = playerLevel.value;
+
     if (state.result?.victory) {
-      // TODO: 应用经验和金币奖励到玩家
-      // 当前只是简单结束战斗
+      // 实际发放奖励
+      const rewards = state.result.rewards;
+
+      // 发放经验
+      if (rewards.exp > 0) {
+        addPlayerExp(rewards.exp);
+      }
+
+      // 发放金币
+      if (rewards.gold > 0) {
+        updatePlayerGold(rewards.gold);
+      }
+
+      // 发放物品
+      if (rewards.items && rewards.items.length > 0) {
+        for (const itemReward of rewards.items) {
+          addItem(itemReward.itemId, itemReward.count || 1);
+        }
+      }
+
+      // 检查等级解锁伙伴（等级变化时）
+      const currentLevel = playerLevel.value;
+      if (currentLevel > previousLevel) {
+        checkLevelUnlockCompanion(currentLevel);
+      }
     }
     clearBattle();
     gamePhase.value = 'playing';
@@ -187,7 +243,14 @@ export function BattleActions({ selectedTargetId, onSelectTarget }: BattleAction
               <p className="text-[#16a34a]">获得经验: +{state.result.rewards.exp}</p>
               <p className="text-[#eab308]">获得金币: +{state.result.rewards.gold}</p>
               {state.result.rewards.items.length > 0 && (
-                <p className="text-[#60a5fa]">获得物品: {state.result.rewards.items.map(i => i.itemId).join(', ')}</p>
+                <div className="text-[#60a5fa]">
+                  <span>获得物品: </span>
+                  {state.result.rewards.items.map((i, idx) => {
+                    const template = getItemTemplate(i.itemId);
+                    const name = template?.name || i.itemId;
+                    return <span key={idx}>{name}{i.count > 1 ? ` x${i.count}` : ''}{idx < state.result!.rewards.items.length - 1 ? ', ' : ''}</span>;
+                  })}
+                </div>
               )}
             </div>
           </div>
@@ -207,6 +270,13 @@ export function BattleActions({ selectedTargetId, onSelectTarget }: BattleAction
     return (
       <div className="space-y-3">
         <div className="flex justify-center gap-2">
+          <button
+            onClick={() => setShowAutoConfig(true)}
+            className="game-btn game-btn-sm px-2 py-2 text-sm font-medium"
+            title="自动战斗配置"
+          >
+            ⚙️
+          </button>
           <button
             onClick={toggleAuto}
             className={`game-btn game-btn-sm px-3 py-2 text-sm font-medium ${
@@ -230,6 +300,12 @@ export function BattleActions({ selectedTargetId, onSelectTarget }: BattleAction
             {auto ? '自动战斗中...' : '等待中...'}
           </p>
         </div>
+
+        {/* 自动战斗配置弹窗 */}
+        <AutoBattleConfigModal
+          isOpen={showAutoConfig}
+          onClose={() => setShowAutoConfig(false)}
+        />
       </div>
     );
   }
@@ -243,6 +319,13 @@ export function BattleActions({ selectedTargetId, onSelectTarget }: BattleAction
           <span className="font-medium text-[var(--game-text)]">{state.round}/{state.maxRounds}</span>
         </div>
         <div className="flex gap-2">
+          <button
+            onClick={() => setShowAutoConfig(true)}
+            className="game-btn game-btn-sm px-2 py-1 text-xs"
+            title="自动战斗配置"
+          >
+            ⚙️
+          </button>
           <button
             onClick={toggleAuto}
             className={`game-btn game-btn-sm px-2 py-1 text-xs ${
@@ -385,7 +468,7 @@ export function BattleActions({ selectedTargetId, onSelectTarget }: BattleAction
               防御
             </button>
           </div>
-          <div className="grid grid-cols-2 gap-2">
+          <div className="grid grid-cols-3 gap-2">
             <button
               onClick={() => setActivePanel('items')}
               disabled={usableItems.length === 0}
@@ -397,10 +480,18 @@ export function BattleActions({ selectedTargetId, onSelectTarget }: BattleAction
               )}
             </button>
             <button
-              onClick={handleEscape}
-              className="game-btn py-2 font-medium text-sm"
+              onClick={handleCapture}
+              disabled={!canCapture}
+              className="game-btn py-2 font-medium text-sm disabled:opacity-50"
+              title={canCapture ? `捕捉成功率: ${Math.round(captureRate * 100)}%` : '该目标无法捕捉'}
             >
-              逃跑
+              🧬 捕捉
+            </button>
+            <button
+              onClick={handleEscape}
+              className="game-btn game-btn-danger py-2 font-medium text-sm"
+            >
+              🏃 逃跑
             </button>
           </div>
         </>
@@ -414,6 +505,12 @@ export function BattleActions({ selectedTargetId, onSelectTarget }: BattleAction
             : '请点击敌方单位选择攻击目标'}
         </p>
       )}
+
+      {/* 自动战斗配置弹窗 */}
+      <AutoBattleConfigModal
+        isOpen={showAutoConfig}
+        onClose={() => setShowAutoConfig(false)}
+      />
     </div>
   );
 }

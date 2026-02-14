@@ -21,12 +21,25 @@ export interface MapConnection {
   requiredItem?: string;
 }
 
+/** NPC类型 */
+export type NPCType =
+  | 'merchant'    // 商人（商店）
+  | 'quest'       // 任务发布者
+  | 'trainer'     // 训练师（技能学习）
+  | 'story'       // 剧情NPC
+  | 'healer'      // 治疗师（回复HP/MP）
+  | 'teleporter'  // 传送员
+  | 'blacksmith'  // 铁匠（装备强化/修理）
+  | 'alchemist'   // 炼金师（药剂制作）
+  | 'stable'      // 马厩管理员（宠物相关）
+  | 'banker';     // 仓库管理员
+
 /** NPC配置 */
 export interface NPC {
   id: string;
   name: string;
   avatar: string;
-  type: 'merchant' | 'quest' | 'trainer' | 'story';
+  type: NPCType;
 
   // 位置
   position: { x: number; y: number };
@@ -35,11 +48,19 @@ export interface NPC {
   dialogues: {
     default: string[];
     quest?: string[];
+    greeting?: string;
   };
 
   // 功能
-  shopId?: string;
-  questIds?: string[];
+  shopId?: string;          // 商店ID（商人使用）
+  questIds?: string[];      // 任务ID列表
+  teleportDestinations?: {  // 传送目的地（传送员使用）
+    mapId: string;
+    name: string;
+    cost: number;
+  }[];
+  healCost?: number;        // 治疗费用（治疗师使用）
+  services?: string[];      // 提供的服务列表
 }
 
 /** 地图事件 */

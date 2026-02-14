@@ -6,8 +6,11 @@ import { CurrentMapInfo } from './CurrentMapInfo';
 import { AdjacentMaps } from './AdjacentMaps';
 import { RegionMapView } from './RegionMapView';
 import { TeleportPanel } from './TeleportPanel';
+import { MapMonsters } from './MapMonsters';
+import { AutoBattle } from './AutoBattle';
+import { currentMap } from '@/services/mapService';
 
-type TabType = 'navigate' | 'teleport' | 'region';
+type TabType = 'navigate' | 'teleport' | 'region' | 'battle';
 
 export function MapPage() {
   useSignals();
@@ -16,9 +19,14 @@ export function MapPage() {
 
   const tabs: { id: TabType; label: string; icon: string }[] = [
     { id: 'navigate', label: '移动', icon: '🚶' },
+    { id: 'battle', label: '挂机', icon: '⚔️' },
     { id: 'teleport', label: '传送', icon: '✨' },
     { id: 'region', label: '区域', icon: '🗺️' },
   ];
+
+  // 当前地图是否有怪物
+  const map = currentMap.value;
+  const hasMonsters = map?.encounterConfig && map.encounterConfig.enemyGroups.length > 0;
 
   return (
     <div className="space-y-4">
@@ -55,6 +63,9 @@ export function MapPage() {
             {/* 相邻地图导航 */}
             <AdjacentMaps />
 
+            {/* 如果当前地图有怪物，显示怪物列表 */}
+            {hasMonsters && <MapMonsters />}
+
             {/* 使用说明 */}
             <div className="game-panel p-3 text-xs text-[var(--game-text-muted)]">
               <div className="flex items-start gap-2">
@@ -66,6 +77,24 @@ export function MapPage() {
                 </div>
               </div>
             </div>
+          </div>
+        )}
+
+        {activeTab === 'battle' && (
+          <div className="space-y-4">
+            {/* 挂机战斗控制 */}
+            {hasMonsters ? (
+              <>
+                <AutoBattle />
+                <MapMonsters />
+              </>
+            ) : (
+              <div className="game-panel p-6 text-center">
+                <div className="text-4xl mb-3">🏰</div>
+                <p className="text-[var(--game-text-muted)]">当前地图是安全区域，没有怪物出没。</p>
+                <p className="text-sm text-[var(--game-text-dim)] mt-2">请前往野外地图进行挂机打怪。</p>
+              </div>
+            )}
           </div>
         )}
 

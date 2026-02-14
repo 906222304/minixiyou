@@ -123,15 +123,48 @@ export interface Enemy {
   petTemplateId?: string;
 }
 
-/** 敌人组 */
+/** 怪物组难度 */
+export type EnemyGroupDifficulty = 'easy' | 'normal' | 'hard' | 'elite' | 'boss';
+
+/** 敌人组中的敌人配置（支持动态生成） */
+export interface EnemyGroupMemberConfig {
+  templateId: string;         // 怪物模板ID
+  minLevel?: number;          // 最小等级（如果不设置，使用模板默认）
+  maxLevel?: number;          // 最大等级
+  minCount: number;           // 最小数量
+  maxCount: number;           // 最大数量
+  weight: number;             // 出现权重（用于随机选择）
+  position?: number;          // 固定位置（可选）
+}
+
+/** 敌人组固定配置（用于固定阵容） */
+export interface EnemyGroupFixedMember {
+  templateId: string;
+  level: number;
+  position: number;
+}
+
+/** 敌人组（支持动态生成和固定阵容两种模式） */
 export interface EnemyGroup {
   id: string;
   name: string;
-  enemies: {
-    templateId: string;
-    level: number;
-    position: number;
-  }[];
+
+  // 动态生成配置（随机生成怪物组合）
+  dynamicConfig?: {
+    members: EnemyGroupMemberConfig[];  // 可能出现的怪物
+    minTotalCount: number;               // 最少怪物总数
+    maxTotalCount: number;               // 最多怪物总数
+    totalLevelRange?: {                  // 总等级范围限制
+      min: number;
+      max: number;
+    };
+  };
+
+  // 固定阵容配置
+  enemies?: EnemyGroupFixedMember[];
+
+  // 难度
+  difficulty: EnemyGroupDifficulty;
 
   // 阵型加成
   formationBonus?: {
@@ -139,6 +172,15 @@ export interface EnemyGroup {
     value: number;
     isPercent: boolean;
   };
+
+  // 出现权重（用于地图选择怪物组）
+  weight?: number;
+
+  // 描述
+  description?: string;
+
+  // 图标
+  icon?: string;
 }
 
 /** 生成敌人的配置 */

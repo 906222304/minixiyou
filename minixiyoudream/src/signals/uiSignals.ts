@@ -15,6 +15,7 @@ export type Page =
   | 'dungeon'
   | 'cultivation'
   | 'achievement'
+  | 'quest'
   | 'settings';
 
 /** 当前页面 */

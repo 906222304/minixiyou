@@ -1,14 +1,17 @@
 // 战斗状态管理
 
 import { signal, computed } from '@preact/signals-react';
-import type { BattleState, BattleFormation, CombatUnit, BattleAction, BattleLog, BattleResult, Skill, PetSkill, ActionQueueItem } from '@/types';
-import { generateUUID } from '@/types';
-import { player } from './playerSignals';
+import type { BattleState, BattleFormation, CombatUnit, BattleAction, BattleLog, BattleResult, Skill, PetSkill, ActionQueueItem, Enemy, AutoBattleConfig, CompanionAIConfig } from '@/types';
+import { generateUUID, DEFAULT_AUTO_BATTLE_CONFIG, DEFAULT_COMPANION_AI_CONFIG } from '@/types';
+import { player, getCaptureSkillLevel, calculateCaptureRate } from './playerSignals';
 import { activePet } from './petSignals';
 import { activeCompanions } from './companionSignals';
 import { removeItem } from './inventorySignals';
 import { getSkill } from '@/constants/skills';
 import { getItemTemplate } from '@/constants/items';
+import { updateKillQuestEvent, updateBattleWinEvent } from './questSignals';
+import { createPet, addPet, petCount, maxPets } from './petSignals';
+import { getEnemyTemplate } from '@/constants/enemies';
 
 /** 技能冷却追踪 */
 interface SkillCooldown {
@@ -49,7 +52,7 @@ export const playerFormation = computed<BattleFormation>(() => {
 /** 敌人列表 */
 export const enemies = computed(() => battleState.value?.enemies ?? []);
 
-/** 获取所有存活单位 */
+/** 获取所有存活单位（按速度排序） */
 function getAllAliveUnits(state: BattleState): CombatUnit[] {
   const units: CombatUnit[] = [];
 
@@ -63,7 +66,8 @@ function getAllAliveUnits(state: BattleState): CombatUnit[] {
     if (enemy.hp > 0) units.push(enemy);
   }
 
-  return units;
+  // 按速度排序（高速度先行动）
+  return units.sort((a, b) => b.stats.speed - a.stats.speed);
 }
 
 /** 构建行动队列 */
@@ -329,11 +333,19 @@ export function getSkillCooldown(unitId: string, skillId: string): number {
 /** 执行行动 */
 export function executeAction(action: BattleAction): void {
   const state = battleState.value;
-  if (!state) return;
+  if (!state) {
+    console.log('[Battle] executeAction: 无战斗状态');
+    return;
+  }
 
   // 查找行动者
   const actor = findUnit(action.actorId);
-  if (!actor || actor.hp <= 0) return;
+  if (!actor || actor.hp <= 0) {
+    console.log('[Battle] executeAction: 行动者无效或已死亡', { actorId: action.actorId, actor });
+    return;
+  }
+
+  console.log(`[Battle] executeAction: ${actor.name} 执行 ${action.type} 行动`);
 
   // 生成日志
   const log: BattleLog = {
@@ -483,6 +495,69 @@ export function executeAction(action: BattleAction): void {
       }
       break;
     }
+    case 'capture': {
+      // 宠物捕捉
+      const target = findUnit(action.targetId || '');
+      if (!target || target.hp <= 0 || target.isPlayerSide) {
+        log.text = `${actor.name} 无法捕捉该目标`;
+        break;
+      }
+
+      // 获取敌人模板检查是否可捕捉
+      const enemyRef = target.ref as Enemy | undefined;
+      const templateId = enemyRef?.templateId || target.id.split('_')[0];
+      const template = getEnemyTemplate(templateId);
+
+      // 检查是否是普通怪物（只能捕捉普通怪物）
+      if (!template || template.type !== 'normal') {
+        log.text = `${target.name} 不是普通怪物，无法被捕捉`;
+        break;
+      }
+
+      // 检查模板是否标记为可捕捉
+      if (!template.capturable) {
+        log.text = `${target.name} 无法被捕捉`;
+        break;
+      }
+
+      // 检查宠物栏是否已满
+      if (petCount.value >= maxPets) {
+        log.text = `${actor.name} 尝试捕捉 ${target.name}，但宠物栏已满！`;
+        break;
+      }
+
+      // 使用玩家捕捉技能等级计算捕捉率
+      const skillLevel = getCaptureSkillLevel();
+      const baseCaptureRate = calculateCaptureRate(skillLevel, template.type);
+
+      // 敌人HP越低，成功率越高（最多+30%）
+      const hpRatio = target.hp / target.maxHp;
+      const hpBonus = (1 - hpRatio) * 0.3;
+      const captureChance = Math.min(0.90, baseCaptureRate + hpBonus);
+
+      const captured = Math.random() < captureChance;
+
+      if (captured) {
+        // 获取宠物模板ID
+        const petTemplateId = template.petTemplateId || templateId.replace('enemy_', 'pet_');
+
+        // 创建宠物
+        const pet = createPet(petTemplateId);
+        if (pet && addPet(pet)) {
+          log.text = `${actor.name} 成功捕捉了 ${target.name}！`;
+          log.result.heal = 0; // 标记成功
+
+          // 将敌人从战斗中移除（设为死亡）
+          target.hp = 0;
+          target.isDead = true;
+        } else {
+          log.text = `${actor.name} 捕捉 ${target.name} 失败了...`;
+        }
+      } else {
+        log.text = `${actor.name} 尝试捕捉 ${target.name}，但让它逃掉了！`;
+      }
+      break;
+    }
   }
 
   // 添加日志
@@ -498,19 +573,28 @@ export function executeAction(action: BattleAction): void {
 /** 推进到下一个行动者 */
 function advanceToNextActor(): void {
   const state = battleState.value;
-  if (!state) return;
+  if (!state) {
+    console.log('[Battle] advanceToNextActor: 无战斗状态');
+    return;
+  }
 
   // 重新计算行动队列（因为可能有单位死亡）
   const aliveUnits = getAllAliveUnits(state);
 
   // 如果战斗已结束，不推进
-  if (aliveUnits.length === 0) return;
+  if (aliveUnits.length === 0) {
+    console.log('[Battle] advanceToNextActor: 无存活单位');
+    return;
+  }
 
   // 获取当前索引，跳过死亡单位
   let nextIndex = state.currentActorIndex + 1;
 
+  console.log(`[Battle] advanceToNextActor: 当前索引 ${state.currentActorIndex}, 下一个索引 ${nextIndex}, 存活单位数 ${aliveUnits.length}`);
+
   // 如果已经到达队列末尾，开始新回合
   if (nextIndex >= aliveUnits.length) {
+    console.log('[Battle] advanceToNextActor: 到达队列末尾，开始新回合');
     startNewRound();
     return;
   }
@@ -518,6 +602,10 @@ function advanceToNextActor(): void {
   // 更新索引
   state.currentActorIndex = nextIndex;
   battleState.value = { ...state };
+
+  // 获取下一个行动者并记录日志
+  const nextActor = aliveUnits[nextIndex];
+  console.log(`[Battle] advanceToNextActor: 下一个行动者是 ${nextActor?.name} (${nextActor?.isPlayerSide ? '玩家方' : '敌方'})`);
 }
 
 /** 开始新回合 */
@@ -525,8 +613,11 @@ function startNewRound(): void {
   const state = battleState.value;
   if (!state) return;
 
+  console.log(`[Battle] startNewRound: 当前回合 ${state.round}, 最大回合 ${state.maxRounds}`);
+
   // 检查是否达到最大回合数
   if (state.round >= state.maxRounds) {
+    console.log('[Battle] startNewRound: 达到最大回合数，战斗结束');
     endBattle(false);
     return;
   }
@@ -573,7 +664,10 @@ function startNewRound(): void {
     text: `第 ${state.round} 回合开始`,
   });
 
+  // 确保状态更新
   battleState.value = { ...state };
+
+  console.log(`[Battle] startNewRound: 新回合 ${state.round} 开始，行动队列长度 ${state.actionQueue.length}`);
 
   // 检查战斗结束（可能因为DoT死亡）
   checkBattleEnd();
@@ -958,19 +1052,62 @@ export function endBattle(victory: boolean): void {
   const itemDrops: { itemId: string; count: number }[] = [];
 
   if (victory) {
-    // 根据敌人等级和数量计算奖励
+    // 根据敌人配置计算奖励
     for (const enemy of state.enemies) {
-      // 基础经验和金币
-      const baseExp = Math.floor(20 + (enemy.stats.physicalAttack + enemy.stats.magicAttack) * 0.5);
-      const baseGold = Math.floor(10 + enemy.maxHp * 0.1);
+      // 获取敌人引用和模板
+      const enemyRef = enemy.ref as Enemy | undefined;
+      const templateId = enemyRef?.templateId || enemy.id.split('_').slice(0, -1).join('_') || enemy.id;
+      const template = getEnemyTemplate(templateId);
+
+      // 使用模板中的经验和金币奖励，如果没有则使用基础计算
+      const baseExp = template?.expReward ?? Math.floor(20 + (enemy.stats.physicalAttack + enemy.stats.magicAttack) * 0.5);
+      const baseGold = template?.goldReward ?? Math.floor(10 + enemy.maxHp * 0.1);
 
       expReward += baseExp;
       goldReward += baseGold;
 
-      // 随机掉落物品 (10%概率)
-      // TODO: 从敌人配置中获取掉落表
-      if (Math.random() < 0.1) {
-        itemDrops.push({ itemId: 'hp_potion_small', count: 1 });
+      // 从敌人配置中获取掉落表
+      if (template?.drops && template.drops.length > 0) {
+        for (const drop of template.drops) {
+          // 根据掉落概率判断是否掉落
+          if (Math.random() < drop.rate) {
+            // 随机数量（在minCount和maxCount之间）
+            const count = Math.floor(Math.random() * (drop.maxCount - drop.minCount + 1)) + drop.minCount;
+            if (count > 0) {
+              itemDrops.push({ itemId: drop.itemId, count });
+            }
+          }
+        }
+      }
+    }
+
+    // 触发任务事件：击杀怪物和战斗胜利
+    const currentPlayer = player.value;
+    if (currentPlayer) {
+      // 触发战斗胜利事件
+      updateBattleWinEvent(currentPlayer.id).catch(err =>
+        console.error('[Battle] Failed to trigger battle win event:', err)
+      );
+
+      // 为每个被击败的敌人触发击杀事件
+      for (const enemyUnit of state.enemies) {
+        // 获取敌人引用
+        const enemyRef = enemyUnit.ref as Enemy | undefined;
+
+        // 判断是否是Boss
+        const isBoss = enemyRef?.type === 'boss' ||
+                       enemyUnit.name.includes('Boss') ||
+                       enemyUnit.name.includes('BOSS') ||
+                       enemyUnit.name.includes('首领');
+
+        // 优先使用templateId，否则使用ID或名称
+        const monsterId = enemyRef?.templateId || enemyUnit.id || `enemy_${enemyUnit.name}`;
+
+        console.log('[Battle] Triggering kill quest event for:', monsterId, 'isBoss:', isBoss);
+
+        updateKillQuestEvent(currentPlayer.id, monsterId, isBoss).catch(err =>
+          console.error('[Battle] Failed to trigger kill event:', err)
+        );
       }
     }
   }
@@ -1001,4 +1138,197 @@ export function endBattle(victory: boolean): void {
 export function clearBattle(): void {
   battleState.value = null;
   unitCooldowns.clear();
+}
+
+// ============================================
+// 自动战斗配置
+// ============================================
+
+/** 自动战斗配置 - 从localStorage加载或使用默认值 */
+function loadAutoBattleConfig(): AutoBattleConfig {
+  try {
+    const saved = localStorage.getItem('autoBattleConfig');
+    if (saved) {
+      return JSON.parse(saved);
+    }
+  } catch (e) {
+    console.error('[Battle] Failed to load auto battle config:', e);
+  }
+  return {
+    character: { ...DEFAULT_AUTO_BATTLE_CONFIG.character },
+    pet: { ...DEFAULT_AUTO_BATTLE_CONFIG.pet },
+  };
+}
+
+/** 保存自动战斗配置 */
+function saveAutoBattleConfig(config: AutoBattleConfig): void {
+  try {
+    localStorage.setItem('autoBattleConfig', JSON.stringify(config));
+  } catch (e) {
+    console.error('[Battle] Failed to save auto battle config:', e);
+  }
+}
+
+/** 自动战斗配置信号 */
+export const autoBattleConfig = signal<AutoBattleConfig>(loadAutoBattleConfig());
+
+/** 更新角色自动战斗配置 */
+export function updateCharacterAutoConfig(config: Partial<AutoBattleConfig['character']>): void {
+  const newConfig = {
+    ...autoBattleConfig.value,
+    character: {
+      ...autoBattleConfig.value.character,
+      ...config,
+    },
+  };
+  autoBattleConfig.value = newConfig;
+  saveAutoBattleConfig(newConfig);
+}
+
+/** 更新宠物自动战斗配置 */
+export function updatePetAutoConfig(config: Partial<AutoBattleConfig['pet']>): void {
+  const newConfig = {
+    ...autoBattleConfig.value,
+    pet: {
+      ...autoBattleConfig.value.pet,
+      ...config,
+    },
+  };
+  autoBattleConfig.value = newConfig;
+  saveAutoBattleConfig(newConfig);
+}
+
+/** 重置自动战斗配置为默认值 */
+export function resetAutoBattleConfig(): void {
+  const defaultConfig: AutoBattleConfig = {
+    character: { ...DEFAULT_AUTO_BATTLE_CONFIG.character },
+    pet: { ...DEFAULT_AUTO_BATTLE_CONFIG.pet },
+  };
+  autoBattleConfig.value = defaultConfig;
+  saveAutoBattleConfig(defaultConfig);
+}
+
+// ============================================
+// 伙伴AI配置
+// ============================================
+
+/** 伙伴AI配置映射 - 从localStorage加载 */
+function loadCompanionAIConfigs(): Map<string, CompanionAIConfig> {
+  const configs = new Map<string, CompanionAIConfig>();
+  try {
+    const saved = localStorage.getItem('companionAIConfigs');
+    if (saved) {
+      const parsed = JSON.parse(saved);
+      for (const [id, config] of Object.entries(parsed)) {
+        configs.set(id, config as CompanionAIConfig);
+      }
+    }
+  } catch (e) {
+    console.error('[Battle] Failed to load companion AI configs:', e);
+  }
+  return configs;
+}
+
+/** 保存伙伴AI配置 */
+function saveCompanionAIConfigs(configs: Map<string, CompanionAIConfig>): void {
+  try {
+    const obj: Record<string, CompanionAIConfig> = {};
+    configs.forEach((config, id) => {
+      obj[id] = config;
+    });
+    localStorage.setItem('companionAIConfigs', JSON.stringify(obj));
+  } catch (e) {
+    console.error('[Battle] Failed to save companion AI configs:', e);
+  }
+}
+
+/** 伙伴AI配置映射 */
+export const companionAIConfigs = signal<Map<string, CompanionAIConfig>>(loadCompanionAIConfigs());
+
+/** 获取伙伴AI配置 */
+export function getCompanionAIConfig(companionId: string): CompanionAIConfig {
+  const config = companionAIConfigs.value.get(companionId);
+  if (config) return config;
+
+  // 返回默认配置
+  return {
+    companionId,
+    strategy: DEFAULT_COMPANION_AI_CONFIG.strategy,
+    preferredTarget: DEFAULT_COMPANION_AI_CONFIG.preferredTarget,
+    skillPriority: [...DEFAULT_COMPANION_AI_CONFIG.skillPriority],
+    protectTarget: DEFAULT_COMPANION_AI_CONFIG.protectTarget,
+    defensiveHpThreshold: DEFAULT_COMPANION_AI_CONFIG.defensiveHpThreshold,
+    autoHeal: DEFAULT_COMPANION_AI_CONFIG.autoHeal,
+    healThreshold: DEFAULT_COMPANION_AI_CONFIG.healThreshold,
+  };
+}
+
+/** 更新伙伴AI配置 */
+export function updateCompanionAIConfig(companionId: string, config: Partial<Omit<CompanionAIConfig, 'companionId'>>): void {
+  const currentConfig = getCompanionAIConfig(companionId);
+  const newConfig = {
+    ...currentConfig,
+    ...config,
+    companionId,
+  };
+
+  const newMap = new Map(companionAIConfigs.value);
+  newMap.set(companionId, newConfig);
+  companionAIConfigs.value = newMap;
+  saveCompanionAIConfigs(newMap);
+}
+
+/** 重置伙伴AI配置为默认值 */
+export function resetCompanionAIConfig(companionId: string): void {
+  const newMap = new Map(companionAIConfigs.value);
+  newMap.delete(companionId);
+  companionAIConfigs.value = newMap;
+  saveCompanionAIConfigs(newMap);
+}
+
+/** 检查敌人是否可捕捉 */
+export function canCaptureEnemy(enemyUnit: CombatUnit): boolean {
+  // 玩家方的单位不能捕捉
+  if (enemyUnit.isPlayerSide) return false;
+
+  // 已死亡的不能捕捉
+  if (enemyUnit.hp <= 0) return false;
+
+  // 获取敌人模板
+  const enemyRef = enemyUnit.ref as Enemy | undefined;
+  const templateId = enemyRef?.templateId || enemyUnit.id.split('_')[0];
+  const template = getEnemyTemplate(templateId);
+
+  // 没有模板或不可捕捉
+  if (!template || !template.capturable) return false;
+
+  // 只能捕捉普通怪物
+  if (template.type !== 'normal') return false;
+
+  // 检查宠物栏是否已满
+  if (petCount.value >= maxPets) return false;
+
+  return true;
+}
+
+/** 获取捕捉成功率（基于技能等级） */
+export function getCaptureRate(enemyUnit: CombatUnit): number {
+  if (!canCaptureEnemy(enemyUnit)) return 0;
+
+  // 获取敌人模板
+  const enemyRef = enemyUnit.ref as Enemy | undefined;
+  const templateId = enemyRef?.templateId || enemyUnit.id.split('_')[0];
+  const template = getEnemyTemplate(templateId);
+
+  if (!template) return 0;
+
+  // 使用玩家捕捉技能等级计算基础捕捉率
+  const skillLevel = getCaptureSkillLevel();
+  const baseCaptureRate = calculateCaptureRate(skillLevel, template.type);
+
+  // 敌人HP越低，成功率越高（最多+30%）
+  const hpRatio = enemyUnit.hp / enemyUnit.maxHp;
+  const hpBonus = (1 - hpRatio) * 0.3;
+
+  return Math.min(0.90, baseCaptureRate + hpBonus);
 }

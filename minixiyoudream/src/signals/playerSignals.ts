@@ -55,7 +55,7 @@ export const playerGold = computed(() => player.value?.gold ?? 0);
 export const playerExp = computed(() => player.value?.exp ?? 0);
 
 /** 玩家当前位置 */
-export const playerPosition = computed(() => player.value?.currentMapId ?? 'map_changan');
+export const playerPosition = computed(() => player.value?.currentMapId ?? 'map_donghai_village');
 
 /** 创建玩家 */
 export function createPlayer(options: CreatePlayerOptions): Player {
@@ -66,13 +66,16 @@ export function createPlayer(options: CreatePlayerOptions): Player {
     throw new Error('Invalid race or faction');
   }
 
-  // 基础属性
+  // 使用种族的初始基础属性
+  const raceBaseStats = race.baseStats;
+
+  // 基础属性 - 使用种族初始值
   const baseStats: FullStats = {
-    strength: 10,
-    intelligence: 10,
-    vitality: 10,
-    agility: 10,
-    willpower: 10,
+    strength: raceBaseStats.strength,
+    intelligence: raceBaseStats.intelligence,
+    vitality: raceBaseStats.vitality,
+    agility: raceBaseStats.agility,
+    willpower: raceBaseStats.willpower,
     physicalAttack: 20,
     physicalDefense: 10,
     magicAttack: 20,
@@ -86,16 +89,7 @@ export function createPlayer(options: CreatePlayerOptions): Player {
     dodgeRate: 0.02,
   };
 
-  // 应用种族加成
-  for (const [stat, bonus] of Object.entries(race.statBonus)) {
-    if (stat in baseStats && typeof bonus === 'number') {
-      (baseStats as unknown as Record<string, number>)[stat] = Math.floor(
-        (baseStats as unknown as Record<string, number>)[stat] * bonus
-      );
-    }
-  }
-
-  // 计算战斗属性
+  // 计算战斗属性（内部会应用种族加成）
   const combatStats = calculateCombatStats(
     {
       strength: baseStats.strength,
@@ -163,7 +157,8 @@ export function createPlayer(options: CreatePlayerOptions): Player {
     gold: 100,
     activePetId: null,
     pets: [],
-    currentMapId: 'map_changan',
+    captureSkillLevel: 1, // 默认捕捉技能等级为1
+    currentMapId: 'map_donghai_village', // 初始地图为新手村（东海村）
     position: { x: 5, y: 5 },
     createdAt: Date.now(),
     updatedAt: Date.now(),
@@ -213,6 +208,37 @@ export function updatePlayerGold(delta: number): boolean {
   return true;
 }
 
+/** 获取捕捉技能等级 */
+export function getCaptureSkillLevel(): number {
+  return player.value?.captureSkillLevel ?? 1;
+}
+
+/** 升级捕捉技能 */
+export function upgradeCaptureSkill(): boolean {
+  if (!player.value) return false;
+
+  const maxLevel = 10;
+  if (player.value.captureSkillLevel >= maxLevel) return false;
+
+  player.value = {
+    ...player.value,
+    captureSkillLevel: player.value.captureSkillLevel + 1,
+    updatedAt: Date.now(),
+  };
+  return true;
+}
+
+/** 计算捕捉成功率（基于技能等级） */
+export function calculateCaptureRate(skillLevel: number, enemyType: string): number {
+  // 只能捕捉普通怪物
+  if (enemyType !== 'normal') return 0;
+
+  // 基础捕捉率 20% + 每级增加 5%
+  const baseRate = 0.20;
+  const bonusPerLevel = 0.05;
+  return Math.min(0.80, baseRate + (skillLevel - 1) * bonusPerLevel);
+}
+
 /** 更新玩家位置 */
 export function updatePlayerPosition(mapId: string, x?: number, y?: number): void {
   if (!player.value) return;
@@ -250,27 +276,34 @@ function calculateStatsWithAllocatedPoints(
 
 /** 重新计算玩家最终属性 */
 function recalculatePlayerStats(
-  baseValues: BaseStats,
+  raceType: RaceType,
   allocatedPoints: AllocatedPoints,
-  level: number,
-  race: RaceType
+  level: number
 ): FullStats {
-  // 计算包含属性点的基础属性
+  const race = getRace(raceType);
+  if (!race) {
+    throw new Error('Invalid race type');
+  }
+
+  // 计算每级成长值（基于种族成长率）
+  const growthRate: BaseStats = {
+    strength: 2 * race.statGrowth.strength,
+    intelligence: 2 * race.statGrowth.intelligence,
+    vitality: 2 * race.statGrowth.vitality,
+    agility: 2 * race.statGrowth.agility,
+    willpower: 2 * race.statGrowth.willpower,
+  };
+
+  // 计算包含属性点的基础属性（使用种族初始属性）
   const newBaseStats = calculateStatsWithAllocatedPoints(
-    baseValues,
+    race.baseStats,
     allocatedPoints,
     level,
-    {
-      strength: 2,
-      intelligence: 2,
-      vitality: 2,
-      agility: 2,
-      willpower: 2,
-    }
+    growthRate
   );
 
   // 计算战斗属性
-  const newCombatStats = calculateCombatStats(newBaseStats, race, level);
+  const newCombatStats = calculateCombatStats(newBaseStats, raceType, level);
 
   // 合并属性
   return {
@@ -302,16 +335,9 @@ export function addPlayerExp(exp: number): boolean {
 
     // 重新计算属性（包含已分配的属性点）
     const finalStats = recalculatePlayerStats(
-      {
-        strength: 10,
-        intelligence: 10,
-        vitality: 10,
-        agility: 10,
-        willpower: 10,
-      },
+      player.value.race,
       player.value.allocatedPoints,
-      currentLevel,
-      player.value.race
+      currentLevel
     );
 
     player.value = {
@@ -352,16 +378,9 @@ export function allocateAttributePoint(stat: keyof BaseStats): boolean {
 
   // 重新计算最终属性
   const finalStats = recalculatePlayerStats(
-    {
-      strength: 10,
-      intelligence: 10,
-      vitality: 10,
-      agility: 10,
-      willpower: 10,
-    },
+    player.value.race,
     newAllocatedPoints,
-    player.value.level,
-    player.value.race
+    player.value.level
   );
 
   player.value = {
@@ -394,16 +413,9 @@ export function deallocateAttributePoint(stat: keyof BaseStats): boolean {
 
   // 重新计算最终属性
   const finalStats = recalculatePlayerStats(
-    {
-      strength: 10,
-      intelligence: 10,
-      vitality: 10,
-      agility: 10,
-      willpower: 10,
-    },
+    player.value.race,
     newAllocatedPoints,
-    player.value.level,
-    player.value.race
+    player.value.level
   );
 
   player.value = {
@@ -433,16 +445,9 @@ export function resetAttributePoints(goldCost: number): boolean {
 
   // 重新计算最终属性（不含分配的点数）
   const finalStats = recalculatePlayerStats(
-    {
-      strength: 10,
-      intelligence: 10,
-      vitality: 10,
-      agility: 10,
-      willpower: 10,
-    },
+    player.value.race,
     createEmptyAllocatedPoints(),
-    player.value.level,
-    player.value.race
+    player.value.level
   );
 
   player.value = {

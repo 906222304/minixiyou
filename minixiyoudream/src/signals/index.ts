@@ -49,6 +49,11 @@ export {
   increaseFavorability,
   getCompanion,
   canUnlockCompanion,
+  checkCompanionUnlockByCondition,
+  checkLevelUnlockCompanion,
+  checkDungeonUnlockCompanion,
+  checkStoryUnlockCompanion,
+  getUnlockableCompanions,
 } from './companionSignals';
 
 // 战斗状态
@@ -70,6 +75,19 @@ export {
   clearBattle,
   isSkillUsable,
   getSkillCooldown,
+  // 宠物捕捉
+  canCaptureEnemy,
+  getCaptureRate,
+  // 自动战斗配置
+  autoBattleConfig,
+  updateCharacterAutoConfig,
+  updatePetAutoConfig,
+  resetAutoBattleConfig,
+  // 伙伴AI配置
+  companionAIConfigs,
+  getCompanionAIConfig,
+  updateCompanionAIConfig,
+  resetCompanionAIConfig,
 } from './battleSignals';
 
 // UI状态
@@ -108,6 +126,8 @@ export {
   isInventoryFull,
   addItem,
   removeItem,
+  useItem,
+  hasItem,
   addEquipment,
   removeEquipment,
   equipItem,
@@ -231,3 +251,113 @@ export {
   getCategoryName,
   getCategoryIcon,
 } from './achievementSignals';
+
+// 任务状态
+export {
+  questProgress,
+  questStats,
+  questTracker,
+  isQuestInitialized,
+  selectedQuestType,
+  selectedQuestId,
+  currentDialog,
+  currentDialogIndex,
+  isQuestLoading,
+  newlyCompletedQuests,
+  filteredQuestProgress,
+  activeQuests,
+  availableQuests,
+  claimableQuests,
+  mainQuestProgress,
+  selectedQuestDetail,
+  isDialogActive,
+  currentDialogLine,
+  initQuests,
+  refreshQuests,
+  acceptQuest,
+  completeQuest,
+  claimQuestReward,
+  triggerQuestEvent,
+  showQuestDialog,
+  advanceDialog,
+  closeDialog,
+  setSelectedQuestType,
+  setSelectedQuestId,
+  clearNewlyCompletedQuests,
+  removeNewlyCompletedQuest,
+  resetQuestState,
+  getQuestProgressInfo,
+  updateKillQuestEvent,
+  updateItemCollectEvent,
+  updateNpcTalkEvent,
+  updateMapVisitEvent,
+  updateEquipEvent,
+  updateLevelQuestEvent,
+  updateBattleWinEvent,
+  getQuestTypeName,
+  getQuestTypeIcon,
+  getChapterName,
+} from './questSignals';
+
+// 挂机战斗状态
+export {
+  autoBattleEnabled,
+  autoBattleStatus,
+  autoBattleSettings,
+  autoBattleStats,
+  canAutoBattle,
+  autoBattleRunTime,
+  formatRunTime,
+  startAutoBattle,
+  stopAutoBattle,
+  pauseAutoBattle,
+  resumeAutoBattle,
+  toggleAutoBattle,
+  updateAutoBattleSettings,
+  resetAutoBattleStats,
+  attackMonsterImmediately,
+  getCurrentMapMonsters,
+  type AutoBattleStatus,
+  type AutoBattleSettings,
+  type AutoBattleStats,
+} from './autoBattleSignals';
+
+// 副本状态
+export {
+  // 状态
+  dungeonRunState,
+  dungeonProgressList,
+  isInDungeon,
+  currentDungeonId,
+  currentDungeonDifficulty,
+  currentFloor,
+  isDungeonBattle,
+  currentDungeon,
+  isBossFloor,
+  dungeonProgressPercent,
+  isDungeonInitialized,
+  // 初始化
+  initDungeons,
+  // 副本操作
+  enterDungeon,
+  advanceDungeonFloor,
+  completeDungeon,
+  failDungeon,
+  exitDungeon,
+  refreshDungeonProgress,
+  // 检查函数
+  canEnterDungeon,
+  getDungeonProgress,
+  getDungeonRemainingRuns,
+  hasFirstClear,
+  // 战斗回调
+  onDungeonBattleWin,
+  onDungeonBattleLose,
+  // 辅助函数
+  updateDungeonStats,
+  getDifficultyName,
+  getDifficultyColor,
+  getDungeonTypeName,
+  // 类型
+  type EnterDungeonResult,
+} from './dungeonSignals';

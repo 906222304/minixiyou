@@ -113,6 +113,9 @@ export interface Player {
   activePetId: UUID | null;
   pets: Pet[];
 
+  // 捕捉技能等级（1-10级，影响捕捉成功率）
+  captureSkillLevel: number;
+
   // 位置
   currentMapId: string;
   position: { x: number; y: number };

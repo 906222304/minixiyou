@@ -63,6 +63,10 @@
   --game-gold-light: #ffc658;
   --game-gold-glow: rgba(245, 166, 35, 0.3);
 
+  /* 主题色 */
+  --game-primary: #3b82f6;
+  --game-secondary: #8b5cf6;
+
   /* 品质发光 */
   --glow-common: rgba(120, 140, 160, 0.2);
   --glow-rare: rgba(33, 150, 243, 0.25);
@@ -997,4 +1001,164 @@ html {
   width: 64px;
   height: 64px;
   font-size: 32px;
+}
+
+/* ============================================
+   挂机战斗样式
+   ============================================ */
+
+/* 挂机状态指示器 */
+.auto-battle-indicator {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 500;
+  animation: pulse 2s ease-in-out infinite;
+}
+
+.auto-battle-indicator.active {
+  background: linear-gradient(180deg, #d1fae5 0%, #a7f3d0 100%);
+  color: #065f46;
+  border: 1px solid #6ee7b7;
+}
+
+.auto-battle-indicator.paused {
+  background: linear-gradient(180deg, #fef3c7 0%, #fde68a 100%);
+  color: #92400e;
+  border: 1px solid #fcd34d;
+}
+
+.auto-battle-indicator.stopped {
+  background: linear-gradient(180deg, #fee2e2 0%, #fecaca 100%);
+  color: #991b1b;
+  border: 1px solid #f87171;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
+}
+
+/* 怪物卡片 */
+.monster-card {
+  background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.monster-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+  border-color: #94a3b8;
+}
+
+.monster-card.elite {
+  border-color: #60a5fa;
+  background: linear-gradient(180deg, #eff6ff 0%, #dbeafe 100%);
+}
+
+.monster-card.elite:hover {
+  border-color: #3b82f6;
+  box-shadow: 0 8px 24px rgba(59, 130, 246, 0.2);
+}
+
+.monster-card.boss {
+  border-color: #fb923c;
+  background: linear-gradient(180deg, #fff7ed 0%, #ffedd5 100%);
+}
+
+.monster-card.boss:hover {
+  border-color: #f97316;
+  box-shadow: 0 8px 24px rgba(249, 115, 22, 0.2);
+}
+
+/* 挂机统计面板 */
+.auto-battle-stats {
+  background: linear-gradient(180deg, #f0f9ff 0%, #e0f2fe 100%);
+  border: 1px solid #bae6fd;
+  border-radius: 12px;
+  padding: 12px;
+}
+
+.auto-battle-stats .stat-item {
+  display: flex;
+  justify-content: space-between;
+  padding: 4px 0;
+  font-size: 12px;
+}
+
+.auto-battle-stats .stat-label {
+  color: #64748b;
+}
+
+.auto-battle-stats .stat-value {
+  font-weight: 600;
+  color: #0f172a;
+}
+
+.auto-battle-stats .stat-value.exp {
+  color: #22c55e;
+}
+
+.auto-battle-stats .stat-value.gold {
+  color: #eab308;
+}
+
+.auto-battle-stats .stat-value.kills {
+  color: #ef4444;
+}
+
+/* 开关按钮样式 */
+.toggle-switch {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  cursor: pointer;
+  width: 36px;
+  height: 20px;
+}
+
+.toggle-switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.toggle-slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: #cbd5e1;
+  transition: 0.3s;
+  border-radius: 20px;
+}
+
+.toggle-slider:before {
+  position: absolute;
+  content: "";
+  height: 16px;
+  width: 16px;
+  left: 2px;
+  bottom: 2px;
+  background-color: white;
+  transition: 0.3s;
+  border-radius: 50%;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+
+.toggle-switch input:checked + .toggle-slider {
+  background-color: #22c55e;
+}
+
+.toggle-switch input:checked + .toggle-slider:before {
+  transform: translateX(16px);
 }

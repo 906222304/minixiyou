@@ -16,7 +16,10 @@
       "Bash(git:*)",
       "Bash(tsc:*)",
       "Bash(vite:*)",
-      "Bash(timeout:*)"
+      "Bash(timeout:*)",
+      "Bash(python:*)",
+      "Bash(zip:*)",
+      "Bash(curl:*)"
     ]
   },
   "project": {
@@ -39,7 +42,10 @@
     "web-reader": {
       "type": "stdio",
       "command": "npx",
-      "args": ["-y", "@anthropic-ai/web-reader-mcp"]
+      "args": [
+        "-y",
+        "@anthropic-ai/web-reader-mcp"
+      ]
     }
   }
 }
