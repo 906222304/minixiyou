@@ -560,9 +560,10 @@ export function calculateRacePassive(
       }
       break;
 
-    case 'mp_regen':
+    case 'mp_regen': {
       const mpRecovery = Math.floor(context.maxMp * effect.value);
       return { triggered: true, effect: 'mp_regen', value: mpRecovery };
+    }
 
     case 'low_hp_attack':
       if (context.currentHp / context.maxHp < 0.3) {

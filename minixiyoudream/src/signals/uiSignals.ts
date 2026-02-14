@@ -1,6 +1,10 @@
 // UI状态管理
 
 import { signal } from '@preact/signals-react';
+import { TimerManager } from '@/utils/timerManager';
+
+/** Toast定时器管理器 */
+const toastTimerManager = new TimerManager();
 
 /** 当前页面/面板 */
 export type Page =
@@ -75,14 +79,23 @@ export function hideLoading(): void {
   loadingText.value = '';
 }
 
+/** 当前Toast定时器ID */
+let currentToastTimerId: number | null = null;
+
 /** 显示Toast */
 export function showToast(message: string, type: 'success' | 'error' | 'info' = 'info'): void {
   toastMessage.value = message;
   toastType.value = type;
 
+  // 清除之前的定时器
+  if (currentToastTimerId !== null) {
+    toastTimerManager.clearTimeout(currentToastTimerId);
+  }
+
   // 3秒后自动关闭
-  setTimeout(() => {
+  currentToastTimerId = toastTimerManager.setTimeout(() => {
     toastMessage.value = null;
+    currentToastTimerId = null;
   }, 3000);
 }
 

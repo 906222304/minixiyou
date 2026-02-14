@@ -8,6 +8,7 @@ import { getItemTemplate } from '@/constants/items';
 import { updateEquipEvent } from './questSignals';
 import { player, updatePlayerHp, updatePlayerMp, updatePlayerGold } from './playerSignals';
 import { addPlayerExp } from './playerSignals';
+import { randomInt, randomChoice } from '@/utils/prng';
 
 /** 背包物品列表 */
 export const inventoryItems = signal<Item[]>([]);
@@ -193,7 +194,7 @@ export function useItem(itemId: string): { success: boolean; message: string; ef
           const variance = effect.value * 0.5; // 50%浮动
           const minGold = Math.floor(effect.value - variance);
           const maxGold = Math.floor(effect.value + variance);
-          const goldGained = Math.floor(Math.random() * (maxGold - minGold + 1)) + minGold;
+          const goldGained = randomInt(minGold, maxGold);
           updatePlayerGold(goldGained);
           effectMessage += `获得 ${goldGained} 金币 `;
         }
@@ -201,7 +202,7 @@ export function useItem(itemId: string): { success: boolean; message: string; ef
       case 'open_box':
         // 宝箱逻辑：随机选择一个物品
         if (effect.boxItems && effect.boxItems.length > 0) {
-          const randomItem = effect.boxItems[Math.floor(Math.random() * effect.boxItems.length)];
+          const randomItem = randomChoice(effect.boxItems);
           addItem(randomItem, 1);
           const itemTemplate = getItemTemplate(randomItem);
           effectMessage += `开出了 ${itemTemplate?.name || randomItem} `;

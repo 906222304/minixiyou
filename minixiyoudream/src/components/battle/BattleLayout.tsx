@@ -18,6 +18,8 @@ import { player } from '@/signals/playerSignals';
 import { BattleUnit } from './BattleUnit';
 import { BattleLog } from './BattleLog';
 import { BattleActions } from './BattleActions';
+import { random, randomChoice } from '@/utils/prng';
+import { logger } from '@/utils/logger';
 import type { CombatUnit, BattleAction, TargetStrategy, CompanionAIConfig } from '@/types';
 import { generateUUID } from '@/types';
 
@@ -111,14 +113,14 @@ export function BattleLayout() {
   useEffect(() => {
     // 检查是否应该执行自动战斗
     if (!auto || !state || ended || state.result) {
-      console.log('[BattleLayout] 自动战斗条件不满足:', { auto, hasState: !!state, ended, hasResult: !!state?.result });
+      logger.debug('[BattleLayout] 自动战斗条件不满足:', { auto, hasState: !!state, ended, hasResult: !!state?.result });
       return;
     }
 
     // 获取当前行动单位
     const currentActor = getCurrentActor();
 
-    console.log('[BattleLayout] 自动战斗检查:', {
+    logger.debug('[BattleLayout] 自动战斗检查:', {
       currentActorIndex: state.currentActorIndex,
       currentActor: currentActor?.name,
       isPlayerSide: currentActor?.isPlayerSide,
@@ -127,7 +129,7 @@ export function BattleLayout() {
 
     // 如果没有当前行动者或行动者已死亡，尝试推进
     if (!currentActor || currentActor.hp <= 0) {
-      console.log('[BattleLayout] 当前行动者无效或已死亡');
+      logger.debug('[BattleLayout] 当前行动者无效或已死亡');
       return;
     }
 
@@ -137,7 +139,7 @@ export function BattleLayout() {
       const currentState = battleState.value;
 
       if (!actor || actor.hp <= 0 || !currentState || currentState.result) {
-        console.log('[BattleLayout] 延迟执行时条件不满足');
+        logger.debug('[BattleLayout] 延迟执行时条件不满足');
         return;
       }
 
@@ -169,7 +171,7 @@ export function BattleLayout() {
                            currentActor.type === 'pet';   // 宠物
 
     if (!isAIControlled) {
-      console.log('[BattleLayout] 等待玩家操作:', currentActor.name);
+      logger.debug('[BattleLayout] 等待玩家操作:', currentActor.name);
       return;
     }
 
@@ -216,20 +218,20 @@ export function BattleLayout() {
           unit.hp > highest.hp ? unit : highest, enemies[0]);
       case 'random':
       default:
-        return enemies[Math.floor(Math.random() * enemies.length)];
+        return randomChoice(enemies);
     }
   };
 
   // 玩家方AI逻辑 - 使用配置
   const executePlayerSideAI = (actor: CombatUnit, currentState: typeof state) => {
     if (!currentState) {
-      console.log('[BattleLayout] executePlayerSideAI: 无状态');
+      logger.debug('[BattleLayout] executePlayerSideAI: 无状态');
       return;
     }
 
     const aliveEnemies = currentState.enemies.filter(e => e.hp > 0);
     if (aliveEnemies.length === 0) {
-      console.log('[BattleLayout] executePlayerSideAI: 无存活敌人，跳过');
+      logger.debug('[BattleLayout] executePlayerSideAI: 无存活敌人，跳过');
       // 即使没有敌人也执行防御行动以推进回合
       const action: BattleAction = {
         actorId: actor.id,
@@ -281,8 +283,8 @@ export function BattleLayout() {
     }
 
     // 使用其他可用技能
-    if (usableSkills.length > 0 && Math.random() < 0.5) {
-      const skill = usableSkills[Math.floor(Math.random() * usableSkills.length)];
+    if (usableSkills.length > 0 && random() < 0.5) {
+      const skill = randomChoice(usableSkills);
       const target = selectTargetByStrategy(aliveEnemies, autoConfig.targetStrategy);
       const action: BattleAction = {
         actorId: actor.id,
@@ -377,8 +379,8 @@ export function BattleLayout() {
       const skillChance = companionConfig.strategy === 'aggressive' ? 0.7 :
                           companionConfig.strategy === 'defensive' ? 0.3 : 0.5;
 
-      if (Math.random() < skillChance) {
-        const skill = usableSkills[Math.floor(Math.random() * usableSkills.length)];
+      if (random() < skillChance) {
+        const skill = randomChoice(usableSkills);
         const target = selectCompanionTarget(aliveEnemies, companionConfig);
         const action: BattleAction = {
           actorId: actor.id,
@@ -422,14 +424,14 @@ export function BattleLayout() {
           unit.hp < lowest.hp ? unit : lowest, enemies[0]);
       case 'random':
       default:
-        return enemies[Math.floor(Math.random() * enemies.length)];
+        return randomChoice(enemies);
     }
   };
 
   // 敌人AI逻辑
   const executeEnemyAI = (actor: CombatUnit, currentState: typeof state) => {
     if (!currentState) {
-      console.log('[BattleLayout] executeEnemyAI: 无状态');
+      logger.debug('[BattleLayout] executeEnemyAI: 无状态');
       return;
     }
 
@@ -439,7 +441,7 @@ export function BattleLayout() {
     ] as CombatUnit[];
 
     if (aliveAllies.length === 0) {
-      console.log('[BattleLayout] executeEnemyAI: 无存活目标，跳过');
+      logger.debug('[BattleLayout] executeEnemyAI: 无存活目标，跳过');
       // 即使没有目标也执行防御行动以推进回合
       const action: BattleAction = {
         actorId: actor.id,
@@ -451,10 +453,10 @@ export function BattleLayout() {
 
     // 优先使用技能
     const usableSkills = actor.skills.filter(skill => isSkillUsable(actor, skill.id));
-    if (usableSkills.length > 0 && Math.random() < 0.3) {
-      const skill = usableSkills[Math.floor(Math.random() * usableSkills.length)];
+    if (usableSkills.length > 0 && random() < 0.3) {
+      const skill = randomChoice(usableSkills);
       const targetId = skill.targetType === 'single_enemy' || skill.targetType === 'single_ally'
-        ? aliveAllies[Math.floor(Math.random() * aliveAllies.length)].id
+        ? randomChoice(aliveAllies).id
         : undefined;
 
       const action: BattleAction = {

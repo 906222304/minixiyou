@@ -18,6 +18,7 @@ import type {
   AchievementConditionType,
   Title,
 } from '@/types/achievement';
+import { LRUCache } from '@/utils/cache';
 
 /** 默认成就追踪数据 */
 function createDefaultTracker(): AchievementTracker {
@@ -71,7 +72,7 @@ function createDefaultAchievementData(playerId: string): AchievementData {
  * 成就服务类
  */
 class AchievementService {
-  private cache: Map<string, AchievementData> = new Map();
+  private cache: LRUCache<string, AchievementData> = new LRUCache(50);
 
   /**
    * 初始化玩家成就数据
@@ -192,21 +193,23 @@ class AchievementService {
     const trackerUpdates: Partial<AchievementTracker> = {};
 
     switch (event.type) {
-      case 'level_up':
+      case 'level_up': {
         const newLevel = event.data.level as number;
         if (newLevel > data.tracker.maxLevel) {
           trackerUpdates.maxLevel = newLevel;
         }
         break;
+      }
 
-      case 'realm_breakthrough':
+      case 'realm_breakthrough': {
         const newRealm = event.data.realm as number;
         if (newRealm > data.tracker.maxRealm) {
           trackerUpdates.maxRealm = newRealm;
         }
         break;
+      }
 
-      case 'monster_killed':
+      case 'monster_killed': {
         const isBoss = event.data.isBoss as boolean;
         if (isBoss) {
           trackerUpdates.bossesKilled = data.tracker.bossesKilled + 1;
@@ -214,12 +217,13 @@ class AchievementService {
           trackerUpdates.monstersKilled = data.tracker.monstersKilled + 1;
         }
         break;
+      }
 
       case 'boss_killed':
         trackerUpdates.bossesKilled = data.tracker.bossesKilled + 1;
         break;
 
-      case 'dungeon_cleared':
+      case 'dungeon_cleared': {
         const dungeonId = event.data.dungeonId as string;
         const noDamage = event.data.noDamage as boolean;
         trackerUpdates.dungeonsCleared = [dungeonId];
@@ -227,8 +231,9 @@ class AchievementService {
           trackerUpdates.noDamageDungeons = [dungeonId];
         }
         break;
+      }
 
-      case 'equipment_obtained':
+      case 'equipment_obtained': {
         const quality = event.data.quality as string;
         trackerUpdates.equipmentCollected = data.tracker.equipmentCollected + 1;
         if (quality === 'legendary') {
@@ -237,6 +242,7 @@ class AchievementService {
           trackerUpdates.mythicCollected = data.tracker.mythicCollected + 1;
         }
         break;
+      }
 
       case 'pet_obtained':
         trackerUpdates.petsCollected = event.data.count as number;
@@ -246,27 +252,30 @@ class AchievementService {
         trackerUpdates.companionsCollected = event.data.count as number;
         break;
 
-      case 'map_entered':
+      case 'map_entered': {
         const mapId = event.data.mapId as string;
         if (!data.tracker.mapsExplored.includes(mapId)) {
           trackerUpdates.mapsExplored = [mapId];
         }
         break;
+      }
 
-      case 'teleport_unlocked':
+      case 'teleport_unlocked': {
         const teleportId = event.data.teleportId as string;
         if (!data.tracker.teleportsUnlocked.includes(teleportId)) {
           trackerUpdates.teleportsUnlocked = [teleportId];
         }
         break;
+      }
 
-      case 'favorability_increased':
+      case 'favorability_increased': {
         const isMax = event.data.isMax as boolean;
         const companionId = event.data.companionId as string;
         if (isMax && !data.tracker.maxFavorabilityCompanions.includes(companionId)) {
           trackerUpdates.maxFavorabilityCompanions = [companionId];
         }
         break;
+      }
 
       case 'bond_unlocked':
         trackerUpdates.bondsUnlocked = event.data.count as number;

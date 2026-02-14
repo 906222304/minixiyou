@@ -42,22 +42,16 @@ export function BattleActions({ selectedTargetId, onSelectTarget }: BattleAction
   const auto = isAutoBattle.value;
   const items = inventoryItems.value;
 
-  if (!state) return null;
+  // 获取当前行动单位 - 需要在 early return 之前计算
+  const currentActor = state ? getCurrentActor(state.playerFormation, state.enemies, state.currentActorIndex) : null;
 
-  // 获取当前行动单位
-  const currentActor = getCurrentActor(state.playerFormation, state.enemies, state.currentActorIndex);
-  // 玩家或伙伴的回合才可操作
-  const isPlayerTurn = currentActor?.isPlayerSide &&
-    (currentActor.type === 'player' || currentActor.type === 'companion');
-
-  // 获取当前单位可用的技能（考虑冷却和MP）
+  // 获取当前单位可用的技能（考虑冷却和MP）- 必须在顶层调用
   const availableSkills = useMemo(() => {
     if (!currentActor || currentActor.skills.length === 0) return [];
-
     return currentActor.skills.filter(skill => isSkillUsable(currentActor, skill.id));
   }, [currentActor]);
 
-  // 获取所有技能（包括冷却中的）
+  // 获取所有技能（包括冷却中的）- 必须在顶层调用
   const allSkills = useMemo(() => {
     if (!currentActor) return [];
     return currentActor.skills.map(skill => ({
@@ -67,12 +61,18 @@ export function BattleActions({ selectedTargetId, onSelectTarget }: BattleAction
     }));
   }, [currentActor]);
 
-  // 获取可用的道具（消耗品类）
+  // 获取可用的道具（消耗品类）- 必须在顶层调用
   const usableItems = useMemo(() => {
     return items.filter(item =>
       item.type === 'consumable'
     );
   }, [items]);
+
+  if (!state) return null;
+
+  // 玩家或伙伴的回合才可操作
+  const isPlayerTurn = currentActor?.isPlayerSide &&
+    (currentActor.type === 'player' || currentActor.type === 'companion');
 
   // 切换自动战斗
   const toggleAuto = () => {

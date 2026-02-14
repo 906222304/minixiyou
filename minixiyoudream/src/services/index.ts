@@ -45,4 +45,4 @@ export type {
   SynthesizePreview,
 } from './gemService';
 export { dungeonService } from './dungeonService';
-export type { DungeonRunState, DungeonData } from './dungeonService';
+export type { DungeonRunState } from './dungeonService';

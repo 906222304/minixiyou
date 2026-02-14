@@ -16,6 +16,7 @@ import type {
   QuestStatus,
   QuestCondition,
 } from '@/types/quest';
+import { LRUCache } from '@/utils/cache';
 
 /** 任务数据存储结构 */
 export interface QuestData {
@@ -73,7 +74,7 @@ function createDefaultQuestData(playerId: string): QuestData {
  * 任务服务类
  */
 class QuestService {
-  private cache: Map<string, QuestData> = new Map();
+  private cache: LRUCache<string, QuestData> = new LRUCache(50);
 
   /**
    * 初始化玩家任务数据
@@ -321,15 +322,17 @@ class QuestService {
    */
   private updateTracker(tracker: QuestTracker, event: QuestEvent): void {
     switch (event.type) {
-      case 'monster_killed':
+      case 'monster_killed': {
         const monsterId = event.targetId;
         tracker.monstersKilled[monsterId] = (tracker.monstersKilled[monsterId] || 0) + (event.count || 1);
         break;
+      }
 
-      case 'item_collected':
+      case 'item_collected': {
         const itemId = event.targetId;
         tracker.itemsCollected[itemId] = (tracker.itemsCollected[itemId] || 0) + (event.count || 1);
         break;
+      }
 
       case 'npc_talked':
         if (!tracker.npcsTalked.includes(event.targetId)) {
@@ -349,10 +352,11 @@ class QuestService {
         }
         break;
 
-      case 'battle_won':
+      case 'battle_won': {
         const battleTarget = event.targetId || 'any';
         tracker.battlesWon[battleTarget] = (tracker.battlesWon[battleTarget] || 0) + (event.count || 1);
         break;
+      }
     }
   }
 

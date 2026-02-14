@@ -258,7 +258,7 @@ export const cultivationService = {
       };
 
       // 扣除部分修炼经验
-      let newCultivations = { ...data.cultivations };
+      const newCultivations = { ...data.cultivations };
       for (const type of Object.keys(newCultivations) as CultivationType[]) {
         const progress = newCultivations[type];
         const expLoss = Math.floor(progress.exp * BREAKTHROUGH_FAIL_EXP_PENALTY);

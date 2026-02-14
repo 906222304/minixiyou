@@ -113,6 +113,7 @@ export function EquipmentDetail({ item, onClose, onUpdate }: EquipmentDetailProp
   const handleUseItem = () => {
     if (isEquipment) return;
 
+    // eslint-disable-next-line react-hooks/rules-of-hooks -- useItem is not a React Hook, it's a signal function
     const result = useItem(item.id);
     if (result.success) {
       showSuccess(result.message);

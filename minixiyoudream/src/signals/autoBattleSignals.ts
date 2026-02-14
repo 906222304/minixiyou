@@ -6,6 +6,8 @@ import { getEnemyGroup, createEnemy, generateDynamicEnemyGroup, getEnemyGroupPre
 import { player, playerHp, playerMaxHp, updatePlayerHp, updatePlayerMp, addPlayerExp, updatePlayerGold } from './playerSignals';
 import { startBattle, isInBattle, battleState, isBattleEnded, clearBattle } from './battleSignals';
 import { gamePhase } from './gameSignals';
+import { random } from '@/utils/prng';
+import { logger } from '@/utils/logger';
 import type { CombatUnit } from '@/types';
 
 /** 挂机状态类型 */
@@ -274,7 +276,7 @@ function triggerAutoEncounter(): void {
     return;
   }
 
-  console.log('[AutoBattle] triggerAutoEncounter: 开始战斗，敌人数量:', enemyUnits.length);
+  logger.debug('[AutoBattle] triggerAutoEncounter: 开始战斗，敌人数量:', enemyUnits.length);
 
   // 开始战斗
   startBattle(enemyUnits);
@@ -331,11 +333,11 @@ function selectWeightedEnemyGroup(groupIds: string[], playerLevel: number): stri
 
   // 加权随机选择
   const totalWeight = groupInfos.reduce((sum, g) => sum + g.weight, 0);
-  let random = Math.random() * totalWeight;
+  let randomVal = random() * totalWeight;
 
   for (const info of groupInfos) {
-    random -= info.weight;
-    if (random <= 0) {
+    randomVal -= info.weight;
+    if (randomVal <= 0) {
       return info.groupId;
     }
   }
@@ -417,7 +419,7 @@ function handleBattleEnd(): void {
   const state = battleState.value;
   const result = state?.result;
 
-  console.log('[AutoBattle] handleBattleEnd: 战斗结束，胜利:', result?.victory);
+  logger.debug('[AutoBattle] handleBattleEnd: 战斗结束，胜利:', result?.victory);
 
   if (!result) {
     clearBattle();
@@ -476,7 +478,7 @@ function handleBattleEnd(): void {
       clearBattle();
       // 返回游戏界面
       gamePhase.value = 'playing';
-      console.log('[AutoBattle] handleBattleEnd: 玩家死亡，停止挂机，返回游戏界面');
+      logger.debug('[AutoBattle] handleBattleEnd: 玩家死亡，停止挂机，返回游戏界面');
       return;
     }
   }
@@ -499,22 +501,22 @@ function handleBattleEnd(): void {
 /** 手动攻击怪物（立即触发战斗） */
 export function attackMonsterImmediately(groupId: string): void {
   if (isInBattle.value) {
-    console.log('[AutoBattle] attackMonsterImmediately: 已在战斗中，跳过');
+    logger.debug('[AutoBattle] attackMonsterImmediately: 已在战斗中，跳过');
     return;
   }
 
   const enemyUnits = createEnemyUnitsForAutoBattle(groupId);
   if (enemyUnits.length === 0) {
-    console.log('[AutoBattle] attackMonsterImmediately: 无法创建敌人单位，groupId:', groupId);
+    logger.debug('[AutoBattle] attackMonsterImmediately: 无法创建敌人单位，groupId:', groupId);
     return;
   }
 
-  console.log('[AutoBattle] attackMonsterImmediately: 开始战斗，敌人数量:', enemyUnits.length);
+  logger.debug('[AutoBattle] attackMonsterImmediately: 开始战斗，敌人数量:', enemyUnits.length);
   startBattle(enemyUnits);
 
   // 切换到战斗界面
   gamePhase.value = 'battle';
-  console.log('[AutoBattle] attackMonsterImmediately: 已切换到战斗界面');
+  logger.debug('[AutoBattle] attackMonsterImmediately: 已切换到战斗界面');
 }
 
 /** 获取当前地图的怪物信息 */

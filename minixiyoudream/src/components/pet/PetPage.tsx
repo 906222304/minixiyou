@@ -15,6 +15,7 @@ import {
 } from '@/signals/petSignals';
 import { getAllPetTemplates } from '@/constants/pets';
 import { getQualityColor } from '@/utils/helpers';
+import { randomChoice } from '@/utils/prng';
 import type { Pet } from '@/types';
 import { PetDetail } from './PetDetail';
 
@@ -45,7 +46,7 @@ export function PetPage() {
   // 测试：创建一只随机宠物
   const handleCreateTestPet = () => {
     const templates = getAllPetTemplates();
-    const randomTemplate = templates[Math.floor(Math.random() * templates.length)];
+    const randomTemplate = randomChoice(templates);
     const pet = createPet(randomTemplate.id);
 
     if (pet) {

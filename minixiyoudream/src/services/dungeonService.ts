@@ -1,6 +1,6 @@
 // 副本服务 - 管理副本数据持久化和核心逻辑
 
-import { db } from '@/db';
+import { db, type DungeonData } from '@/db';
 import { DUNGEONS, getDungeon } from '@/constants/dungeons';
 import { getEnemyTemplate, createEnemy } from '@/constants/enemies';
 import type {
@@ -13,6 +13,8 @@ import type {
   Enemy,
 } from '@/types';
 import { player } from '@/signals/playerSignals';
+import { LRUCache } from '@/utils/cache';
+import { random, randomInt } from '@/utils/prng';
 
 /** 副本运行时状态 */
 export interface DungeonRunState {
@@ -28,14 +30,6 @@ export interface DungeonRunState {
     enemiesDefeated: number;
   };
   floorClears: number[];
-}
-
-/** 副本进度数据（存储用） */
-export interface DungeonData {
-  id?: number;
-  playerId: string;
-  progress: DungeonProgress[];
-  updatedAt: number;
 }
 
 /** 创建默认副本进度 */
@@ -89,7 +83,7 @@ function checkAndResetProgress(progress: DungeonProgress): DungeonProgress {
  * 副本服务类
  */
 class DungeonService {
-  private cache: Map<string, DungeonData> = new Map();
+  private cache: LRUCache<string, DungeonData> = new LRUCache(50);
   private runState: DungeonRunState | null = null;
 
   /**
@@ -120,11 +114,7 @@ class DungeonService {
    * 从数据库加载副本数据
    */
   private async loadDungeonData(playerId: string): Promise<DungeonData | undefined> {
-    // 使用 any 类型来避免 TypeScript 错误，因为表是动态添加的
-    const dbAny = db as any;
-    if (!dbAny.dungeonProgress) return undefined;
-
-    const data = await dbAny.dungeonProgress
+    const data = await db.dungeonProgress
       .where('playerId')
       .equals(playerId)
       .first();
@@ -140,13 +130,10 @@ class DungeonService {
 
     data.updatedAt = Date.now();
 
-    const dbAny = db as any;
-    if (!dbAny.dungeonProgress) return;
-
     if (data.id) {
-      await dbAny.dungeonProgress.put(data);
+      await db.dungeonProgress.put(data);
     } else {
-      const id = await dbAny.dungeonProgress.add(data);
+      const id = await db.dungeonProgress.add(data);
       data.id = id as number;
     }
   }
@@ -349,7 +336,7 @@ class DungeonService {
     }
 
     // 否则随机选择一个敌人组
-    const groupIndex = Math.floor(Math.random() * floor.enemyGroups.length);
+    const groupIndex = randomInt(0, floor.enemyGroups.length - 1);
     const group = floor.enemyGroups[groupIndex];
 
     if (!group) return [];
@@ -358,9 +345,7 @@ class DungeonService {
     group.enemyIds.forEach((enemyId, index) => {
       const template = getEnemyTemplate(enemyId);
       if (template) {
-        const level =
-          template.levelRange.min +
-          Math.floor(Math.random() * (template.levelRange.max - template.levelRange.min + 1));
+        const level = randomInt(template.levelRange.min, template.levelRange.max);
         const enemy = createEnemy(enemyId, level);
         if (enemy) {
           enemies.push(this.enemyToCombatUnit(enemy, enemyMultiplier, index));
@@ -538,9 +523,8 @@ class DungeonService {
 
     // 掉落池
     dungeon.dropPool.forEach(drop => {
-      if (Math.random() < drop.rate) {
-        const count =
-          Math.floor(Math.random() * (drop.maxCount - drop.minCount + 1)) + drop.minCount;
+      if (random() < drop.rate) {
+        const count = randomInt(drop.minCount, drop.maxCount);
         itemDrops.push({ itemId: drop.itemId, count });
       }
     });

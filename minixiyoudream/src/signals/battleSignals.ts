@@ -2,6 +2,8 @@
 
 import { signal, computed } from '@preact/signals-react';
 import type { BattleState, BattleFormation, CombatUnit, BattleAction, BattleLog, BattleResult, Skill, PetSkill, ActionQueueItem, Enemy, AutoBattleConfig, CompanionAIConfig } from '@/types';
+import { random, randomInt } from '@/utils/prng';
+import { logger } from '@/utils/logger';
 import { generateUUID, DEFAULT_AUTO_BATTLE_CONFIG, DEFAULT_COMPANION_AI_CONFIG } from '@/types';
 import { player, getCaptureSkillLevel, calculateCaptureRate } from './playerSignals';
 import { activePet } from './petSignals';
@@ -334,14 +336,14 @@ export function getSkillCooldown(unitId: string, skillId: string): number {
 export function executeAction(action: BattleAction): void {
   const state = battleState.value;
   if (!state) {
-    console.log('[Battle] executeAction: 无战斗状态');
+    logger.debug('[Battle] executeAction: 无战斗状态');
     return;
   }
 
   // 查找行动者
   const actor = findUnit(action.actorId);
   if (!actor || actor.hp <= 0) {
-    console.log('[Battle] executeAction: 行动者无效或已死亡', { actorId: action.actorId, actor });
+    logger.debug('[Battle] executeAction: 行动者无效或已死亡', { actorId: action.actorId, actor });
     return;
   }
 
@@ -482,7 +484,7 @@ export function executeAction(action: BattleAction): void {
       const avgEnemySpeed = state.enemies.filter(e => e.hp > 0)
         .reduce((sum, e) => sum + e.stats.speed, 0) / Math.max(1, state.enemies.filter(e => e.hp > 0).length);
       const escapeChance = 0.3 + (actor.stats.speed - avgEnemySpeed) * 0.01;
-      const escaped = Math.random() < Math.min(0.8, Math.max(0.1, escapeChance));
+      const escaped = random() < Math.min(0.8, Math.max(0.1, escapeChance));
 
       log.result.isMiss = !escaped;
       log.text = escaped ? `${actor.name} 成功逃脱战斗！` : `${actor.name} 逃跑失败`;
@@ -535,7 +537,7 @@ export function executeAction(action: BattleAction): void {
       const hpBonus = (1 - hpRatio) * 0.3;
       const captureChance = Math.min(0.90, baseCaptureRate + hpBonus);
 
-      const captured = Math.random() < captureChance;
+      const captured = random() < captureChance;
 
       if (captured) {
         // 获取宠物模板ID
@@ -574,7 +576,7 @@ export function executeAction(action: BattleAction): void {
 function advanceToNextActor(): void {
   const state = battleState.value;
   if (!state) {
-    console.log('[Battle] advanceToNextActor: 无战斗状态');
+    logger.debug('[Battle] advanceToNextActor: 无战斗状态');
     return;
   }
 
@@ -583,18 +585,18 @@ function advanceToNextActor(): void {
 
   // 如果战斗已结束，不推进
   if (aliveUnits.length === 0) {
-    console.log('[Battle] advanceToNextActor: 无存活单位');
+    logger.debug('[Battle] advanceToNextActor: 无存活单位');
     return;
   }
 
   // 获取当前索引，跳过死亡单位
-  let nextIndex = state.currentActorIndex + 1;
+  const nextIndex = state.currentActorIndex + 1;
 
   console.log(`[Battle] advanceToNextActor: 当前索引 ${state.currentActorIndex}, 下一个索引 ${nextIndex}, 存活单位数 ${aliveUnits.length}`);
 
   // 如果已经到达队列末尾，开始新回合
   if (nextIndex >= aliveUnits.length) {
-    console.log('[Battle] advanceToNextActor: 到达队列末尾，开始新回合');
+    logger.debug('[Battle] advanceToNextActor: 到达队列末尾，开始新回合');
     startNewRound();
     return;
   }
@@ -617,7 +619,7 @@ function startNewRound(): void {
 
   // 检查是否达到最大回合数
   if (state.round >= state.maxRounds) {
-    console.log('[Battle] startNewRound: 达到最大回合数，战斗结束');
+    logger.debug('[Battle] startNewRound: 达到最大回合数，战斗结束');
     endBattle(false);
     return;
   }
@@ -746,7 +748,7 @@ function processStatusEffects(): void {
 function calculateDamage(attacker: CombatUnit, defender: CombatUnit): { damage: number; isCritical: boolean; isMiss: boolean } {
   // 命中判定
   const hitChance = attacker.stats.hitRate - defender.stats.dodgeRate;
-  if (Math.random() > Math.max(0.1, Math.min(0.99, hitChance))) {
+  if (random() > Math.max(0.1, Math.min(0.99, hitChance))) {
     return { damage: 0, isCritical: false, isMiss: true };
   }
 
@@ -755,13 +757,13 @@ function calculateDamage(attacker: CombatUnit, defender: CombatUnit): { damage: 
   const defense = defender.isDefending ? defender.stats.physicalDefense * 1.5 : defender.stats.physicalDefense;
 
   // 基础伤害 = 攻击 - 防御
-  let baseDamage = Math.max(1, attack - defense);
+  const baseDamage = Math.max(1, attack - defense);
 
   // 随机波动 90%-110%
-  const randomFactor = 0.9 + Math.random() * 0.2;
+  const randomFactor = 0.9 + random() * 0.2;
 
   // 暴击判定
-  const isCritical = Math.random() < attacker.stats.critRate;
+  const isCritical = random() < attacker.stats.critRate;
   // 暴击伤害 = 150% + 暴击伤害加成
   const critMultiplier = isCritical ? (1.5 + attacker.stats.critDamage) : 1;
 
@@ -844,7 +846,7 @@ function applySkillEffect(
     case 'damage': {
       // 命中判定
       const hitChance = actor.stats.hitRate - target.stats.dodgeRate;
-      if (Math.random() > Math.max(0.1, Math.min(0.99, hitChance))) {
+      if (random() > Math.max(0.1, Math.min(0.99, hitChance))) {
         result.text = `${target.name} 闪避了攻击`;
         return result;
       }
@@ -877,13 +879,13 @@ function applySkillEffect(
       }
 
       // 暴击判定
-      const isCritical = Math.random() < actor.stats.critRate;
+      const isCritical = random() < actor.stats.critRate;
       if (isCritical) {
         damage = Math.floor(damage * (1.5 + actor.stats.critDamage));
       }
 
       // 随机因子 90%-110%
-      const randomFactor = 0.9 + Math.random() * 0.2;
+      const randomFactor = 0.9 + random() * 0.2;
       damage = Math.floor(damage * randomFactor * elementBonus);
 
       target.hp = Math.max(0, target.hp - damage);
@@ -1070,9 +1072,9 @@ export function endBattle(victory: boolean): void {
       if (template?.drops && template.drops.length > 0) {
         for (const drop of template.drops) {
           // 根据掉落概率判断是否掉落
-          if (Math.random() < drop.rate) {
+          if (random() < drop.rate) {
             // 随机数量（在minCount和maxCount之间）
-            const count = Math.floor(Math.random() * (drop.maxCount - drop.minCount + 1)) + drop.minCount;
+            const count = randomInt(drop.minCount, drop.maxCount);
             if (count > 0) {
               itemDrops.push({ itemId: drop.itemId, count });
             }
@@ -1103,7 +1105,7 @@ export function endBattle(victory: boolean): void {
         // 优先使用templateId，否则使用ID或名称
         const monsterId = enemyRef?.templateId || enemyUnit.id || `enemy_${enemyUnit.name}`;
 
-        console.log('[Battle] Triggering kill quest event for:', monsterId, 'isBoss:', isBoss);
+        logger.debug('[Battle] Triggering kill quest event for:', monsterId, 'isBoss:', isBoss);
 
         updateKillQuestEvent(currentPlayer.id, monsterId, isBoss).catch(err =>
           console.error('[Battle] Failed to trigger kill event:', err)

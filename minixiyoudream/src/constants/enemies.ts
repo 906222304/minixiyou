@@ -2,6 +2,7 @@
 
 import type { EnemyTemplate, EnemyGroup, Enemy } from '@/types';
 import { generateUUID } from '@/types';
+import { random, randomInt } from '@/utils/prng';
 
 /** 敌人模板列表 */
 export const ENEMY_TEMPLATES: Record<string, EnemyTemplate> = {
@@ -2488,7 +2489,7 @@ export function createEnemy(templateId: string, level: number): Enemy | null {
     goldReward: Math.floor(template.goldReward * levelFactor),
     drops: template.drops.map(d => ({
       itemId: d.itemId,
-      count: Math.floor(Math.random() * (d.maxCount - d.minCount + 1)) + d.minCount,
+      count: randomInt(d.minCount, d.maxCount),
     })),
     capturable: template.capturable,
     petTemplateId: template.petTemplateId,
@@ -2533,7 +2534,7 @@ export function generateDynamicEnemyGroup(groupId: string, playerLevel?: number)
   const result: { templateId: string; level: number; position: number }[] = [];
 
   // 随机决定总数量
-  const totalCount = minTotalCount + Math.floor(Math.random() * (maxTotalCount - minTotalCount + 1));
+  const totalCount = randomInt(minTotalCount, maxTotalCount);
 
   // 计算总权重
   const totalWeight = members.reduce((sum, m) => sum + m.weight, 0);
@@ -2542,12 +2543,12 @@ export function generateDynamicEnemyGroup(groupId: string, playerLevel?: number)
   let position = 0;
   while (result.length < totalCount) {
     // 加权随机选择一个怪物类型
-    let random = Math.random() * totalWeight;
+    let randomVal = random() * totalWeight;
     let selectedMember = members[0];
 
     for (const member of members) {
-      random -= member.weight;
-      if (random <= 0) {
+      randomVal -= member.weight;
+      if (randomVal <= 0) {
         selectedMember = member;
         break;
       }
@@ -2562,7 +2563,7 @@ export function generateDynamicEnemyGroup(groupId: string, playerLevel?: number)
         return count < m.maxCount;
       });
       if (availableMembers.length === 0) break;
-      selectedMember = availableMembers[Math.floor(Math.random() * availableMembers.length)];
+      selectedMember = availableMembers[randomInt(0, availableMembers.length - 1)];
     }
 
     // 确保至少达到最小数量要求
@@ -2581,11 +2582,11 @@ export function generateDynamicEnemyGroup(groupId: string, playerLevel?: number)
     const template = ENEMY_TEMPLATES[selectedMember.templateId];
     let level: number;
     if (selectedMember.minLevel !== undefined && selectedMember.maxLevel !== undefined) {
-      level = selectedMember.minLevel + Math.floor(Math.random() * (selectedMember.maxLevel - selectedMember.minLevel + 1));
+      level = randomInt(selectedMember.minLevel, selectedMember.maxLevel);
     } else if (template) {
       const minLvl = template.levelRange.min;
       const maxLvl = template.levelRange.max;
-      level = minLvl + Math.floor(Math.random() * (maxLvl - minLvl + 1));
+      level = randomInt(minLvl, maxLvl);
     } else {
       level = 1;
     }

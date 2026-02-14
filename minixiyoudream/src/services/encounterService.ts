@@ -5,6 +5,7 @@ import { getMap } from '@/constants/maps';
 import { getEnemyGroup, createEnemy, generateDynamicEnemyGroup, getEnemyGroupPreview } from '@/constants/enemies';
 import { startBattle } from '@/signals/battleSignals';
 import { player, playerLevel } from '@/signals/playerSignals';
+import { random } from '@/utils/prng';
 import type { CombatUnit, Enemy } from '@/types';
 
 /** 步数计数器 */
@@ -39,7 +40,7 @@ export function checkEncounter(mapId: string): boolean {
   }
 
   // 随机判定是否遇敌
-  const roll = Math.random();
+  const roll = random();
   if (roll < rate) {
     lastEncounterStep.value = stepCount.value;
     return true;
@@ -131,11 +132,11 @@ export function selectEnemyGroup(mapId: string): string | null {
 
   // 加权随机选择
   const totalWeight = weightedGroups.reduce((sum, g) => sum + g.weight, 0);
-  let random = Math.random() * totalWeight;
+  let randomVal = random() * totalWeight;
 
   for (const { groupId, weight } of weightedGroups) {
-    random -= weight;
-    if (random <= 0) {
+    randomVal -= weight;
+    if (randomVal <= 0) {
       return groupId;
     }
   }
