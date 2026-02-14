@@ -25,3 +25,10 @@ dist-ssr
 
 # PWA
 dev-dist
+
+# Spec documents (keep structure, ignore contents)
+specs/*
+!specs/.gitkeep
+
+# Build artifacts
+*.tsbuildinfo
