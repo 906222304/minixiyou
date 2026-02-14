@@ -22,11 +22,10 @@ export function BattleUnit({ unit, isEnemy, isPet, isActive, onClick, selectable
   return (
     <div
       className={`
-        relative flex flex-col items-center p-2 rounded-lg transition-all
+        relative flex flex-col items-center p-2 rounded-xl transition-all bg-white/70 shadow-sm
         ${isDead ? 'opacity-50 grayscale' : ''}
-        ${isActive ? 'ring-2 ring-yellow-400 animate-pulse' : ''}
-        ${selectable ? 'cursor-pointer hover:bg-white/10' : ''}
-        ${isEnemy ? 'flex-col' : 'flex-col'}
+        ${isActive ? 'ring-2 ring-[var(--game-gold)] shadow-lg' : ''}
+        ${selectable ? 'cursor-pointer hover:bg-white/90 hover:shadow-md' : ''}
       `}
       onClick={onClick}
     >
@@ -40,10 +39,10 @@ export function BattleUnit({ unit, isEnemy, isPet, isActive, onClick, selectable
       </div>
 
       {/* HP条 */}
-      <div className="w-16 h-2 bg-gray-700 rounded-full overflow-hidden">
+      <div className="w-16 h-2.5 bg-gray-200 rounded-full overflow-hidden">
         <div
-          className={`h-full transition-all duration-300 ${
-            hpPercent > 50 ? 'bg-green-500' : hpPercent > 25 ? 'bg-yellow-500' : 'bg-red-500'
+          className={`h-full transition-all duration-300 rounded-full ${
+            hpPercent > 50 ? 'bg-[#4ade80]' : hpPercent > 25 ? 'bg-[#fbbf24]' : 'bg-[#f87171]'
           }`}
           style={{ width: `${hpPercent}%` }}
         />
@@ -51,21 +50,21 @@ export function BattleUnit({ unit, isEnemy, isPet, isActive, onClick, selectable
 
       {/* MP条（仅非宠物显示） */}
       {!isPet && unit.maxMp > 0 && (
-        <div className="w-16 h-1 bg-gray-700 rounded-full overflow-hidden mt-0.5">
+        <div className="w-16 h-1.5 bg-gray-200 rounded-full overflow-hidden mt-0.5">
           <div
-            className="h-full bg-blue-500 transition-all duration-300"
+            className="h-full bg-[#60a5fa] transition-all duration-300 rounded-full"
             style={{ width: `${mpPercent}%` }}
           />
         </div>
       )}
 
       {/* 名称 */}
-      <div className="text-xs mt-1 text-center truncate w-16">
+      <div className="text-xs mt-1 text-center truncate w-16 font-medium text-[var(--game-text)]">
         {unit.name}
       </div>
 
       {/* HP数值 */}
-      <div className="text-xs text-gray-400">
+      <div className="text-xs text-[var(--game-text-muted)]">
         {unit.hp}/{unit.maxHp}
       </div>
 

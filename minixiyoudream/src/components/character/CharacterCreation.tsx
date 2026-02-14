@@ -40,19 +40,19 @@ const Icons = {
   ),
 };
 
-// 品质颜色映射
+// 品质颜色映射 - 适配小清新风格
 const RARITY_COLORS: Record<string, string> = {
-  legendary: 'text-amber-400',
-  epic: 'text-purple-400',
-  rare: 'text-blue-400',
-  common: 'text-slate-300',
+  legendary: 'text-amber-600',
+  epic: 'text-purple-600',
+  rare: 'text-blue-600',
+  common: 'text-slate-500',
 };
 
 const RARITY_BG: Record<string, string> = {
-  legendary: 'border-amber-500/50 bg-amber-500/10',
-  epic: 'border-purple-500/50 bg-purple-500/10',
-  rare: 'border-blue-500/50 bg-blue-500/10',
-  common: 'border-slate-600/50',
+  legendary: 'border-amber-400/50 bg-amber-100/50',
+  epic: 'border-purple-400/50 bg-purple-100/50',
+  rare: 'border-blue-400/50 bg-blue-100/50',
+  common: 'border-slate-300/50',
 };
 
 const STEPS: CreationStep[] = ['name', 'race', 'faction', 'traits', 'confirm'];
@@ -124,17 +124,17 @@ export function CharacterCreation() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-slate-900 via-slate-800 to-slate-900 text-white">
+    <div className="min-h-screen bg-gradient-to-b from-[#e3f2fd] via-[#f5faff] to-[#fff8f0] text-[var(--game-text)]">
       {/* 背景装饰 */}
       <div className="fixed inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-indigo-500/10 rounded-full blur-3xl" />
-        <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-purple-500/10 rounded-full blur-3xl" />
+        <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-[var(--game-gold)]/10 rounded-full blur-3xl" />
+        <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-[#c084fc]/10 rounded-full blur-3xl" />
       </div>
 
       <div className="relative max-w-md mx-auto p-4 min-h-screen flex flex-col">
         {/* 标题与进度 */}
         <div className="text-center mb-8 pt-8">
-          <h1 className="text-2xl font-bold bg-gradient-to-r from-indigo-400 to-purple-400 bg-clip-text text-transparent">
+          <h1 className="text-2xl font-bold text-[var(--game-gold-dark)]">
             创建角色
           </h1>
 
@@ -145,10 +145,10 @@ export function CharacterCreation() {
                 <div
                   className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-medium transition-all duration-300 ${
                     i < currentStepIndex
-                      ? 'bg-indigo-500 text-white'
+                      ? 'bg-[var(--game-gold)] text-white'
                       : i === currentStepIndex
-                      ? 'bg-indigo-500/20 border-2 border-indigo-500 text-indigo-400'
-                      : 'bg-slate-700/50 text-slate-500'
+                      ? 'bg-[var(--game-gold)]/20 border-2 border-[var(--game-gold)] text-[var(--game-gold-dark)]'
+                      : 'bg-white/50 text-[var(--game-text-dim)] border border-[var(--game-border)]'
                   }`}
                 >
                   {i < currentStepIndex ? (
@@ -162,7 +162,7 @@ export function CharacterCreation() {
                 {i < STEPS.length - 1 && (
                   <div
                     className={`w-6 h-0.5 mx-1 transition-colors duration-300 ${
-                      i < currentStepIndex ? 'bg-indigo-500' : 'bg-slate-700'
+                      i < currentStepIndex ? 'bg-[var(--game-gold)]' : 'bg-[var(--game-border)]'
                     }`}
                   />
                 )}
@@ -171,7 +171,7 @@ export function CharacterCreation() {
           </div>
 
           {/* 当前步骤标签 */}
-          <p className="text-slate-400 text-sm mt-4">
+          <p className="text-[var(--game-text-muted)] text-sm mt-4">
             步骤 {currentStepIndex + 1}/5: {STEP_LABELS[step]}
           </p>
         </div>
@@ -180,20 +180,20 @@ export function CharacterCreation() {
         <div className="flex-1">
           {/* 步骤1：输入名称 */}
           {step === 'name' && (
-            <div className="bg-slate-800/50 backdrop-blur-sm rounded-2xl border border-slate-700/50 p-6">
+            <div className="game-panel p-6">
               <div className="flex items-center gap-3 mb-6">
-                <div className="p-3 bg-indigo-500/20 rounded-xl">
+                <div className="p-3 bg-[var(--game-gold)]/20 rounded-xl">
                   {Icons.user}
                 </div>
                 <div>
-                  <h2 className="text-lg font-semibold text-white">角色名称</h2>
-                  <p className="text-sm text-slate-400">为你的角色取一个响亮的名字</p>
+                  <h2 className="text-lg font-semibold text-[var(--game-text)]">角色名称</h2>
+                  <p className="text-sm text-[var(--game-text-muted)]">为你的角色取一个响亮的名字</p>
                 </div>
               </div>
 
               <div className="space-y-4">
                 <div>
-                  <label htmlFor="character-name" className="block text-sm font-medium text-slate-300 mb-2">
+                  <label htmlFor="character-name" className="block text-sm font-medium text-[var(--game-text)] mb-2">
                     名称
                   </label>
                   <input
@@ -203,11 +203,11 @@ export function CharacterCreation() {
                     onChange={(e) => setName(e.target.value)}
                     onKeyDown={(e) => e.key === 'Enter' && handleNameSubmit()}
                     placeholder="请输入2-12个字符"
-                    className="w-full px-4 py-3.5 bg-slate-700/50 rounded-xl text-white placeholder-slate-500 border border-slate-600/50 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 focus:outline-none transition-all duration-200"
+                    className="game-input w-full"
                     maxLength={12}
                     autoComplete="off"
                   />
-                  <p className="text-xs text-slate-500 mt-2">
+                  <p className="text-xs text-[var(--game-text-dim)] mt-2">
                     {name.length}/12 字符
                   </p>
                 </div>
@@ -215,7 +215,7 @@ export function CharacterCreation() {
                 <button
                   onClick={handleNameSubmit}
                   disabled={name.trim().length < 2}
-                  className="w-full py-4 bg-indigo-600 hover:bg-indigo-500 disabled:bg-slate-700 disabled:text-slate-500 rounded-xl font-medium transition-all duration-200 cursor-pointer touch-manipulation disabled:cursor-not-allowed"
+                  className="game-btn game-btn-primary w-full py-4 font-medium disabled:opacity-50"
                 >
                   下一步
                 </button>
@@ -227,8 +227,8 @@ export function CharacterCreation() {
           {step === 'race' && (
             <div className="space-y-4">
               <div className="text-center mb-4">
-                <h2 className="text-lg font-semibold text-white">选择种族</h2>
-                <p className="text-sm text-slate-400">不同种族拥有独特天赋</p>
+                <h2 className="text-lg font-semibold text-[var(--game-text)]">选择种族</h2>
+                <p className="text-sm text-[var(--game-text-muted)]">不同种族拥有独特天赋</p>
               </div>
 
               <div className="space-y-3">
@@ -236,15 +236,15 @@ export function CharacterCreation() {
                   <button
                     key={race.type}
                     onClick={() => handleRaceSelect(race.type)}
-                    className="w-full bg-slate-800/50 hover:bg-slate-700/50 backdrop-blur-sm rounded-2xl border border-slate-700/50 hover:border-indigo-500/50 p-5 text-left transition-all duration-200 cursor-pointer touch-manipulation"
+                    className="w-full game-card p-5 text-left"
                   >
                     <div className="flex items-start gap-4">
                       <span className="text-3xl">{race.icon}</span>
                       <div className="flex-1">
-                        <h3 className="font-semibold text-white">{race.name}</h3>
-                        <p className="text-sm text-slate-400 mt-1">{race.description}</p>
-                        <div className="mt-2 px-2 py-1 bg-indigo-500/20 rounded-lg inline-block">
-                          <p className="text-xs text-indigo-400">
+                        <h3 className="font-semibold text-[var(--game-text)]">{race.name}</h3>
+                        <p className="text-sm text-[var(--game-text-muted)] mt-1">{race.description}</p>
+                        <div className="mt-2 px-2 py-1 bg-[var(--game-gold)]/20 rounded-lg inline-block">
+                          <p className="text-xs text-[var(--game-gold-dark)]">
                             {race.passiveSkill.name}: {race.passiveSkill.description}
                           </p>
                         </div>
@@ -256,7 +256,7 @@ export function CharacterCreation() {
 
               <button
                 onClick={handleBack}
-                className="w-full py-3 text-slate-400 hover:text-white flex items-center justify-center gap-2 transition-colors duration-200 cursor-pointer touch-manipulation"
+                className="w-full py-3 text-[var(--game-text-muted)] hover:text-[var(--game-text)] flex items-center justify-center gap-2 transition-colors duration-200 cursor-pointer touch-manipulation"
               >
                 {Icons.back}
                 <span>返回上一步</span>
@@ -268,8 +268,8 @@ export function CharacterCreation() {
           {step === 'faction' && (
             <div className="space-y-4">
               <div className="text-center mb-4">
-                <h2 className="text-lg font-semibold text-white">选择门派</h2>
-                <p className="text-sm text-slate-400">学习强大的门派技能</p>
+                <h2 className="text-lg font-semibold text-[var(--game-text)]">选择门派</h2>
+                <p className="text-sm text-[var(--game-text-muted)]">学习强大的门派技能</p>
               </div>
 
               <div className="space-y-3">
@@ -277,15 +277,15 @@ export function CharacterCreation() {
                   <button
                     key={faction.id}
                     onClick={() => handleFactionSelect(faction.id)}
-                    className="w-full bg-slate-800/50 hover:bg-slate-700/50 backdrop-blur-sm rounded-2xl border border-slate-700/50 hover:border-indigo-500/50 p-5 text-left transition-all duration-200 cursor-pointer touch-manipulation"
+                    className="w-full game-card p-5 text-left"
                   >
                     <div className="flex items-start gap-4">
                       <span className="text-3xl">{faction.icon}</span>
                       <div className="flex-1">
-                        <h3 className="font-semibold text-white">{faction.name}</h3>
-                        <p className="text-sm text-slate-400 mt-1">{faction.description}</p>
-                        <div className="mt-2 px-2 py-1 bg-purple-500/20 rounded-lg inline-block">
-                          <p className="text-xs text-purple-400">
+                        <h3 className="font-semibold text-[var(--game-text)]">{faction.name}</h3>
+                        <p className="text-sm text-[var(--game-text-muted)] mt-1">{faction.description}</p>
+                        <div className="mt-2 px-2 py-1 bg-[#c084fc]/20 rounded-lg inline-block">
+                          <p className="text-xs text-[#7c3aed]">
                             特色技能: {faction.signatureSkill.name}
                           </p>
                         </div>
@@ -297,7 +297,7 @@ export function CharacterCreation() {
 
               <button
                 onClick={handleBack}
-                className="w-full py-3 text-slate-400 hover:text-white flex items-center justify-center gap-2 transition-colors duration-200 cursor-pointer touch-manipulation"
+                className="w-full py-3 text-[var(--game-text-muted)] hover:text-[var(--game-text)] flex items-center justify-center gap-2 transition-colors duration-200 cursor-pointer touch-manipulation"
               >
                 {Icons.back}
                 <span>返回上一步</span>
@@ -309,23 +309,23 @@ export function CharacterCreation() {
           {step === 'traits' && (
             <div className="space-y-4">
               <div className="text-center mb-4">
-                <h2 className="text-lg font-semibold text-white">随机特性</h2>
-                <p className="text-sm text-slate-400">获得随机天赋，塑造独特角色</p>
+                <h2 className="text-lg font-semibold text-[var(--game-text)]">随机特性</h2>
+                <p className="text-sm text-[var(--game-text-muted)]">获得随机天赋，塑造独特角色</p>
               </div>
 
               <div className="space-y-3">
                 {rolledTraits.map((trait) => (
                   <div
                     key={trait.id}
-                    className={`bg-slate-800/50 backdrop-blur-sm rounded-2xl border p-4 ${RARITY_BG[trait.rarity] || ''}`}
+                    className={`game-card p-4 ${RARITY_BG[trait.rarity] || ''}`}
                   >
                     <div className="flex items-center gap-4">
                       <span className="text-2xl">{trait.icon}</span>
                       <div className="flex-1">
-                        <h3 className={`font-semibold ${RARITY_COLORS[trait.rarity] || 'text-white'}`}>
+                        <h3 className={`font-semibold ${RARITY_COLORS[trait.rarity] || 'text-[var(--game-text)]'}`}>
                           {trait.name}
                         </h3>
-                        <p className="text-sm text-slate-400 mt-1">{trait.description}</p>
+                        <p className="text-sm text-[var(--game-text-muted)] mt-1">{trait.description}</p>
                       </div>
                     </div>
                   </div>
@@ -335,14 +335,14 @@ export function CharacterCreation() {
               <div className="flex gap-3">
                 <button
                   onClick={handleRerollTraits}
-                  className="flex-1 py-4 bg-slate-700/50 hover:bg-slate-700 rounded-xl font-medium flex items-center justify-center gap-2 transition-colors duration-200 cursor-pointer touch-manipulation"
+                  className="game-btn flex-1 py-4 font-medium flex items-center justify-center gap-2"
                 >
                   {Icons.refresh}
                   <span>重新随机</span>
                 </button>
                 <button
                   onClick={() => setStep('confirm')}
-                  className="flex-1 py-4 bg-indigo-600 hover:bg-indigo-500 rounded-xl font-medium flex items-center justify-center gap-2 transition-colors duration-200 cursor-pointer touch-manipulation"
+                  className="game-btn game-btn-primary flex-1 py-4 font-medium flex items-center justify-center gap-2"
                 >
                   {Icons.check}
                   <span>确认特性</span>
@@ -351,7 +351,7 @@ export function CharacterCreation() {
 
               <button
                 onClick={handleBack}
-                className="w-full py-3 text-slate-400 hover:text-white flex items-center justify-center gap-2 transition-colors duration-200 cursor-pointer touch-manipulation"
+                className="w-full py-3 text-[var(--game-text-muted)] hover:text-[var(--game-text)] flex items-center justify-center gap-2 transition-colors duration-200 cursor-pointer touch-manipulation"
               >
                 {Icons.back}
                 <span>返回上一步</span>
@@ -363,18 +363,18 @@ export function CharacterCreation() {
           {step === 'confirm' && (
             <div className="space-y-4">
               <div className="text-center mb-4">
-                <h2 className="text-lg font-semibold text-white">确认角色信息</h2>
-                <p className="text-sm text-slate-400">检查并确认你的角色</p>
+                <h2 className="text-lg font-semibold text-[var(--game-text)]">确认角色信息</h2>
+                <p className="text-sm text-[var(--game-text-muted)]">检查并确认你的角色</p>
               </div>
 
-              <div className="bg-slate-800/50 backdrop-blur-sm rounded-2xl border border-slate-700/50 p-6">
-                <div className="flex items-center gap-3 mb-6 pb-4 border-b border-slate-700/50">
-                  <div className="p-3 bg-indigo-500/20 rounded-xl">
+              <div className="game-panel p-6">
+                <div className="flex items-center gap-3 mb-6 pb-4 border-b border-[var(--game-border)]">
+                  <div className="p-3 bg-[var(--game-gold)]/20 rounded-xl">
                     {Icons.user}
                   </div>
                   <div>
-                    <h3 className="font-semibold text-white text-lg">{name}</h3>
-                    <p className="text-sm text-slate-400">
+                    <h3 className="font-semibold text-[var(--game-text)] text-lg">{name}</h3>
+                    <p className="text-sm text-[var(--game-text-muted)]">
                       {races.find(r => r.type === selectedRace)?.name} · {availableFactions.find(f => f.id === selectedFaction)?.name}
                     </p>
                   </div>
@@ -382,20 +382,20 @@ export function CharacterCreation() {
 
                 <div className="space-y-4">
                   <div className="flex justify-between items-center">
-                    <span className="text-slate-400">种族</span>
-                    <span className="text-white font-medium">{races.find(r => r.type === selectedRace)?.name}</span>
+                    <span className="text-[var(--game-text-muted)]">种族</span>
+                    <span className="text-[var(--game-text)] font-medium">{races.find(r => r.type === selectedRace)?.name}</span>
                   </div>
                   <div className="flex justify-between items-center">
-                    <span className="text-slate-400">门派</span>
-                    <span className="text-white font-medium">{availableFactions.find(f => f.id === selectedFaction)?.name}</span>
+                    <span className="text-[var(--game-text-muted)]">门派</span>
+                    <span className="text-[var(--game-text)] font-medium">{availableFactions.find(f => f.id === selectedFaction)?.name}</span>
                   </div>
-                  <div className="pt-4 border-t border-slate-700/50">
-                    <p className="text-slate-400 mb-3">特性</p>
+                  <div className="pt-4 border-t border-[var(--game-border)]">
+                    <p className="text-[var(--game-text-muted)] mb-3">特性</p>
                     <div className="flex flex-wrap gap-2">
                       {rolledTraits.map((trait) => (
                         <span
                           key={trait.id}
-                          className={`px-3 py-1.5 rounded-lg text-sm font-medium ${RARITY_COLORS[trait.rarity]} bg-slate-700/50`}
+                          className={`px-3 py-1.5 rounded-lg text-sm font-medium ${RARITY_COLORS[trait.rarity]} bg-white/50`}
                         >
                           {trait.name}
                         </span>
@@ -407,7 +407,7 @@ export function CharacterCreation() {
 
               <button
                 onClick={handleConfirm}
-                className="w-full py-4 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 rounded-xl font-semibold shadow-lg shadow-indigo-500/20 flex items-center justify-center gap-2 transition-all duration-200 cursor-pointer touch-manipulation"
+                className="game-btn game-btn-primary w-full py-4 font-semibold flex items-center justify-center gap-2"
               >
                 {Icons.sparkles}
                 <span>创建角色，开始冒险</span>
@@ -415,7 +415,7 @@ export function CharacterCreation() {
 
               <button
                 onClick={handleBack}
-                className="w-full py-3 text-slate-400 hover:text-white flex items-center justify-center gap-2 transition-colors duration-200 cursor-pointer touch-manipulation"
+                className="w-full py-3 text-[var(--game-text-muted)] hover:text-[var(--game-text)] flex items-center justify-center gap-2 transition-colors duration-200 cursor-pointer touch-manipulation"
               >
                 {Icons.back}
                 <span>返回修改</span>

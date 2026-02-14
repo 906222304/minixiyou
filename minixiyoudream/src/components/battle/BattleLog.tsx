@@ -19,19 +19,19 @@ export function BattleLog() {
   if (!state) return null;
 
   return (
-    <div className="bg-black/30 rounded-lg p-2 h-24 overflow-y-auto text-xs">
+    <div className="bg-white/70 rounded-xl p-3 h-24 overflow-y-auto text-xs shadow-sm border border-[var(--game-border)]">
       {logs.length === 0 ? (
-        <p className="text-gray-500 text-center">战斗开始！</p>
+        <p className="text-[var(--game-text-muted)] text-center">战斗开始！</p>
       ) : (
         <div className="space-y-1">
           {logs.map((log, index) => (
             <div
               key={`${log.timestamp}-${index}`}
               className={`
-                ${log.actor.isPlayer ? 'text-blue-300' : 'text-red-300'}
+                ${log.actor.isPlayer ? 'text-[#2563eb]' : 'text-[#dc2626]'}
               `}
             >
-              <span className="text-gray-500">[回合{log.round}]</span>{' '}
+              <span className="text-[var(--game-text-dim)]">[回合{log.round}]</span>{' '}
               {log.text}
             </div>
           ))}

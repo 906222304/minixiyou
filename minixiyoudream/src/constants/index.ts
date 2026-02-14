@@ -32,3 +32,9 @@ export * from './enemies';
 
 // 副本
 export * from './dungeons';
+
+// 词条
+export * from './affixes';
+
+// 洗练
+export * from './reforge';

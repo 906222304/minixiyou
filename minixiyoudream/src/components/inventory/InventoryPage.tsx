@@ -1,4 +1,4 @@
-// 背包页面组件
+// 背包页面组件 - 专业游戏UI
 
 import { useState } from 'react';
 import { useSignals } from '@preact/signals-react/runtime';
@@ -28,6 +28,18 @@ const SLOT_NAMES: Record<EquipmentSlot, string> = {
   ring2: '戒指2',
 };
 
+const SLOT_ICONS: Record<EquipmentSlot, string> = {
+  weapon: '⚔️',
+  helmet: '🪖',
+  armor: '🛡️',
+  boots: '👢',
+  belt: '🎒',
+  necklace: '📿',
+  charm: '🔮',
+  ring1: '💍',
+  ring2: '💍',
+};
+
 export function InventoryPage() {
   useSignals();
 
@@ -42,35 +54,50 @@ export function InventoryPage() {
     switch (activeTab) {
       case 'equipped':
         return (
-          <div className="space-y-3">
-            <h3 className="text-sm font-medium text-gray-400">已装备</h3>
-            <div className="grid grid-cols-1 gap-2">
+          <div className="space-y-4">
+            <h3 className="text-sm font-semibold text-[var(--game-text-muted)] flex items-center gap-2">
+              <span>⚔️</span>
+              <span>已装备</span>
+            </h3>
+            <div className="space-y-2">
               {(Object.keys(equipped) as EquipmentSlot[]).map((slot) => {
                 const equip = equipped[slot];
+                const qualityColor = equip ? getQualityColor(equip.quality) : undefined;
+
                 return (
-                  <button
+                  <div
                     key={slot}
                     onClick={() => equip && setSelectedItem(equip)}
-                    className={`card flex items-center gap-3 text-left ${
-                      equip ? 'hover:border-primary-500' : 'opacity-50'
-                    }`}
+                    className={`
+                      game-card p-3 flex items-center gap-3 cursor-pointer
+                      ${equip ? '' : 'opacity-50'}
+                    `}
+                    style={equip ? {
+                      borderColor: qualityColor,
+                      boxShadow: `0 0 15px ${qualityColor}20`,
+                    } : undefined}
                   >
-                    <span className="text-2xl w-10 text-center">
-                      {equip ? '⚔️' : '➕'}
-                    </span>
-                    <div className="flex-1">
-                      <div className="text-xs text-gray-400">{SLOT_NAMES[slot]}</div>
+                    <div className="game-icon game-icon-sm">
+                      {equip ? SLOT_ICONS[slot] : '➕'}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="text-xs text-[var(--game-text-dim)] mb-1">
+                        {SLOT_NAMES[slot]}
+                      </div>
                       {equip ? (
-                        <>
-                          <div style={{ color: getQualityColor(equip.quality) }}>
+                        <div className="flex items-center gap-2">
+                          <span
+                            className="font-semibold truncate"
+                            style={{ color: qualityColor }}
+                          >
                             {equip.name}
-                            {equip.enhanceLevel > 0 && (
-                              <span className="text-yellow-400 ml-1">+{equip.enhanceLevel}</span>
-                            )}
-                          </div>
-                        </>
+                          </span>
+                          {equip.enhanceLevel > 0 && (
+                            <span className="text-[var(--game-gold)] text-sm">+{equip.enhanceLevel}</span>
+                          )}
+                        </div>
                       ) : (
-                        <div className="text-gray-500 text-sm">空</div>
+                        <div className="text-[var(--game-text-dim)] text-sm">空</div>
                       )}
                     </div>
                     {equip && (
@@ -79,12 +106,12 @@ export function InventoryPage() {
                           e.stopPropagation();
                           unequipItem(slot);
                         }}
-                        className="text-xs px-2 py-1 bg-gray-700 hover:bg-gray-600 rounded touch-btn"
+                        className="game-btn game-btn-sm text-xs px-3 py-1"
                       >
                         卸下
                       </button>
                     )}
-                  </button>
+                  </div>
                 );
               })}
             </div>
@@ -93,34 +120,58 @@ export function InventoryPage() {
 
       case 'equipment':
         return (
-          <div className="space-y-3">
-            <h3 className="text-sm font-medium text-gray-400">
-              装备 ({equipmentCount.value})
+          <div className="space-y-4">
+            <h3 className="text-sm font-semibold text-[var(--game-text-muted)] flex items-center gap-2">
+              <span>🎒</span>
+              <span>装备 ({equipmentCount.value})</span>
             </h3>
             {equipments.length === 0 ? (
-              <p className="text-gray-500 text-center py-4">没有装备</p>
+              <div className="game-panel p-8 text-center">
+                <div className="text-4xl mb-3">📦</div>
+                <p className="text-[var(--game-text-muted)]">没有装备</p>
+              </div>
             ) : (
-              <div className="grid grid-cols-1 gap-2">
-                {equipments.map((equip) => (
-                  <button
-                    key={equip.id}
-                    onClick={() => setSelectedItem(equip)}
-                    className="card flex items-center gap-3 text-left hover:border-primary-500"
-                  >
-                    <span className="text-2xl w-10 text-center">⚔️</span>
-                    <div className="flex-1">
-                      <div style={{ color: getQualityColor(equip.quality) }}>
-                        {equip.name}
-                        {equip.enhanceLevel > 0 && (
-                          <span className="text-yellow-400 ml-1">+{equip.enhanceLevel}</span>
-                        )}
+              <div className="space-y-2">
+                {equipments.map((equip) => {
+                  const qualityColor = getQualityColor(equip.quality);
+                  return (
+                    <div
+                      key={equip.id}
+                      onClick={() => setSelectedItem(equip)}
+                      className="game-card p-3 flex items-center gap-3 cursor-pointer"
+                      style={{
+                        borderColor: qualityColor,
+                        boxShadow: `0 0 15px ${qualityColor}20`,
+                      }}
+                    >
+                      <div
+                        className="game-icon game-icon-sm"
+                        style={{
+                          background: `linear-gradient(135deg, ${qualityColor}20 0%, ${qualityColor}05 100%)`,
+                          border: `1px solid ${qualityColor}40`,
+                        }}
+                      >
+                        ⚔️
                       </div>
-                      <div className="text-xs text-gray-400">
-                        {getQualityName(equip.quality)}
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <span
+                            className="font-semibold truncate"
+                            style={{ color: qualityColor }}
+                          >
+                            {equip.name}
+                          </span>
+                          {equip.enhanceLevel > 0 && (
+                            <span className="text-[var(--game-gold)] text-sm">+{equip.enhanceLevel}</span>
+                          )}
+                        </div>
+                        <span className="game-tag game-tag-gold text-xs mt-1">
+                          {getQualityName(equip.quality)}
+                        </span>
                       </div>
                     </div>
-                  </button>
-                ))}
+                  );
+                })}
               </div>
             )}
           </div>
@@ -128,31 +179,51 @@ export function InventoryPage() {
 
       case 'items':
         return (
-          <div className="space-y-3">
-            <h3 className="text-sm font-medium text-gray-400">
-              物品 ({itemCount.value})
+          <div className="space-y-4">
+            <h3 className="text-sm font-semibold text-[var(--game-text-muted)] flex items-center gap-2">
+              <span>🧪</span>
+              <span>物品 ({itemCount.value})</span>
             </h3>
             {items.length === 0 ? (
-              <p className="text-gray-500 text-center py-4">没有物品</p>
+              <div className="game-panel p-8 text-center">
+                <div className="text-4xl mb-3">📭</div>
+                <p className="text-[var(--game-text-muted)]">没有物品</p>
+              </div>
             ) : (
-              <div className="grid grid-cols-1 gap-2">
-                {items.map((item) => (
-                  <button
-                    key={item.id}
-                    onClick={() => setSelectedItem(item)}
-                    className="card flex items-center gap-3 text-left hover:border-primary-500"
-                  >
-                    <span className="text-2xl w-10 text-center">🧪</span>
-                    <div className="flex-1">
-                      <div style={{ color: getQualityColor(item.quality) }}>
-                        {item.name}
+              <div className="space-y-2">
+                {items.map((item) => {
+                  const qualityColor = getQualityColor(item.quality);
+                  return (
+                    <div
+                      key={item.id}
+                      onClick={() => setSelectedItem(item)}
+                      className="game-card p-3 flex items-center gap-3 cursor-pointer"
+                      style={{
+                        borderColor: qualityColor,
+                      }}
+                    >
+                      <div className="game-icon game-icon-sm">
+                        🧪
                       </div>
-                      <div className="text-xs text-gray-400">
-                        {getQualityName(item.quality)} × {item.count}
+                      <div className="flex-1 min-w-0">
+                        <span
+                          className="font-semibold truncate block"
+                          style={{ color: qualityColor }}
+                        >
+                          {item.name}
+                        </span>
+                        <div className="flex items-center gap-2 mt-1">
+                          <span className="game-tag game-tag-gold text-xs">
+                            {getQualityName(item.quality)}
+                          </span>
+                          <span className="text-[var(--game-text-dim)] text-xs">
+                            × {item.count}
+                          </span>
+                        </div>
                       </div>
                     </div>
-                  </button>
-                ))}
+                  );
+                })}
               </div>
             )}
           </div>
@@ -161,20 +232,28 @@ export function InventoryPage() {
   };
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-5">
+      {/* 标题 */}
+      <div className="flex items-center gap-3">
+        <span className="text-2xl">🎒</span>
+        <h2 className="text-xl font-bold text-[var(--game-gold)]">背包</h2>
+      </div>
+
       {/* 标签页切换 */}
-      <div className="flex gap-2">
+      <div className="flex gap-2 p-1 bg-black/30 rounded-lg">
         {(['equipped', 'equipment', 'items'] as TabType[]).map((tab) => (
           <button
             key={tab}
             onClick={() => setActiveTab(tab)}
-            className={`flex-1 py-2 px-3 rounded-lg text-sm font-medium transition-colors touch-btn ${
-              activeTab === tab
-                ? 'bg-primary-600 text-white'
-                : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
-            }`}
+            className={`
+              flex-1 py-2.5 px-3 rounded-md text-sm font-semibold transition-all duration-200
+              ${activeTab === tab
+                ? 'bg-[var(--game-gold)] text-[var(--game-bg-dark)] shadow-lg'
+                : 'text-[var(--game-text-muted)] hover:text-white hover:bg-white/5'
+              }
+            `}
           >
-            {tab === 'equipped' ? '装备中' : tab === 'equipment' ? '装备' : '物品'}
+            {tab === 'equipped' ? '⚔️ 装备中' : tab === 'equipment' ? '🎒 装备' : '🧪 物品'}
           </button>
         ))}
       </div>

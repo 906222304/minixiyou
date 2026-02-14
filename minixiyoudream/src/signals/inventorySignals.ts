@@ -1,7 +1,7 @@
 // 背包状态管理
 
 import { signal, computed } from '@preact/signals-react';
-import type { Item, Equipment, EquipmentSlots } from '@/types';
+import type { Item, Equipment, EquipmentSlots, AffixLockState } from '@/types';
 import { generateUUID } from '@/types';
 import { createEmptyEquipmentSlots } from '@/types/equipment';
 
@@ -225,4 +225,137 @@ export function clearInventory(): void {
   inventoryItems.value = [];
   inventoryEquipments.value = [];
   equippedSlots.value = createEmptyEquipmentSlots();
+  affixLockStates.value = new Map();
+}
+
+// ============================================
+// 词条锁定状态管理
+// ============================================
+
+/** 词条锁定状态（key: equipmentId, value: 锁定的词条索引数组） */
+export const affixLockStates = signal<Map<string, AffixLockState>>(new Map());
+
+/** 当前选中的装备（用于洗练界面） */
+export const selectedEquipmentForReforge = signal<Equipment | null>(null);
+
+/** 获取装备的锁定词条索引 */
+export function getLockedAffixIndices(equipmentId: string): number[] {
+  const state = affixLockStates.value.get(equipmentId);
+  return state?.lockedIndices ?? [];
+}
+
+/** 切换词条锁定状态 */
+export function toggleAffixLock(equipmentId: string, affixIndex: number): void {
+  const states = new Map(affixLockStates.value);
+  const current = states.get(equipmentId);
+
+  if (current) {
+    const isLocked = current.lockedIndices.includes(affixIndex);
+
+    if (isLocked) {
+      // 解锁
+      const newIndices = current.lockedIndices.filter(i => i !== affixIndex);
+      if (newIndices.length === 0) {
+        states.delete(equipmentId);
+      } else {
+        states.set(equipmentId, {
+          ...current,
+          lockedIndices: newIndices,
+        });
+      }
+    } else {
+      // 锁定（最多3条）
+      if (current.lockedIndices.length < 3) {
+        states.set(equipmentId, {
+          ...current,
+          lockedIndices: [...current.lockedIndices, affixIndex].sort((a, b) => a - b),
+        });
+      }
+    }
+  } else {
+    // 首次锁定
+    states.set(equipmentId, {
+      equipmentId,
+      lockedIndices: [affixIndex],
+    });
+  }
+
+  affixLockStates.value = states;
+}
+
+/** 锁定词条 */
+export function lockAffix(equipmentId: string, affixIndex: number): boolean {
+  const states = new Map(affixLockStates.value);
+  const current = states.get(equipmentId);
+
+  if (current) {
+    if (current.lockedIndices.includes(affixIndex)) {
+      return true; // 已经锁定
+    }
+    if (current.lockedIndices.length >= 3) {
+      return false; // 已达上限
+    }
+    states.set(equipmentId, {
+      ...current,
+      lockedIndices: [...current.lockedIndices, affixIndex].sort((a, b) => a - b),
+    });
+  } else {
+    states.set(equipmentId, {
+      equipmentId,
+      lockedIndices: [affixIndex],
+    });
+  }
+
+  affixLockStates.value = states;
+  return true;
+}
+
+/** 解锁词条 */
+export function unlockAffix(equipmentId: string, affixIndex: number): void {
+  const states = new Map(affixLockStates.value);
+  const current = states.get(equipmentId);
+
+  if (current) {
+    const newIndices = current.lockedIndices.filter(i => i !== affixIndex);
+    if (newIndices.length === 0) {
+      states.delete(equipmentId);
+    } else {
+      states.set(equipmentId, {
+        ...current,
+        lockedIndices: newIndices,
+      });
+    }
+    affixLockStates.value = states;
+  }
+}
+
+/** 解锁所有词条 */
+export function unlockAllAffixes(equipmentId: string): void {
+  const states = new Map(affixLockStates.value);
+  states.delete(equipmentId);
+  affixLockStates.value = states;
+}
+
+/** 清除装备的锁定状态（洗练后调用） */
+export function clearAffixLockState(equipmentId: string): void {
+  const states = new Map(affixLockStates.value);
+  states.delete(equipmentId);
+  affixLockStates.value = states;
+}
+
+/** 检查词条是否被锁定 */
+export function isAffixLocked(equipmentId: string, affixIndex: number): boolean {
+  const state = affixLockStates.value.get(equipmentId);
+  return state?.lockedIndices.includes(affixIndex) ?? false;
+}
+
+/** 获取锁定词条数量 */
+export function getLockedAffixCount(equipmentId: string): number {
+  const state = affixLockStates.value.get(equipmentId);
+  return state?.lockedIndices.length ?? 0;
+}
+
+/** 设置选中装备（用于洗练） */
+export function setSelectedEquipmentForReforge(equipment: Equipment | null): void {
+  selectedEquipmentForReforge.value = equipment;
 }

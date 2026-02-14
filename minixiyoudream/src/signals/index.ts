@@ -21,6 +21,7 @@ export {
   playerHpPercent,
   playerMpPercent,
   playerGold,
+  playerExp,
   playerPosition,
   createPlayer,
   updatePlayerHp,
@@ -105,6 +106,18 @@ export {
   unequipItem,
   getEquipmentStats,
   clearInventory,
+  // 词条锁定状态
+  affixLockStates,
+  selectedEquipmentForReforge,
+  getLockedAffixIndices,
+  toggleAffixLock,
+  lockAffix,
+  unlockAffix,
+  unlockAllAffixes,
+  clearAffixLockState,
+  isAffixLocked,
+  getLockedAffixCount,
+  setSelectedEquipmentForReforge,
 } from './inventorySignals';
 
 // 宠物状态

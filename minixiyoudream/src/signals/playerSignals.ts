@@ -37,6 +37,9 @@ export const playerMpPercent = computed(() =>
 /** 玩家金币 */
 export const playerGold = computed(() => player.value?.gold ?? 0);
 
+/** 玩家经验值 */
+export const playerExp = computed(() => player.value?.exp ?? 0);
+
 /** 玩家当前位置 */
 export const playerPosition = computed(() => player.value?.currentMapId ?? 'map_changan');
 

@@ -1,4 +1,3 @@
 // 服务统一导出
-// Phase 4-5 将在这里添加所有服务
 
-export {};
+export { affixService } from './affixService';

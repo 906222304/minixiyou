@@ -157,7 +157,7 @@ export function BattleLayout() {
 
   if (!state) {
     return (
-      <div className="min-h-screen bg-[#1a1a2e] text-white flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-b from-[#e3f2fd] to-[#fff8f0] text-[var(--game-text)] flex items-center justify-center">
         <p>加载战斗中...</p>
       </div>
     );
@@ -169,23 +169,23 @@ export function BattleLayout() {
   const isPlayerTurn = currentActor?.isPlayerSide && !auto;
 
   return (
-    <div className="min-h-screen bg-[#1a1a2e] text-white flex flex-col">
+    <div className="min-h-screen bg-gradient-to-b from-[#e3f2fd] via-[#f5faff] to-[#fff8f0] text-[var(--game-text)] flex flex-col">
       {/* 顶部信息栏 */}
-      <header className="bg-[#252540] px-4 py-2 flex justify-between items-center">
+      <header className="game-panel mx-4 mt-4 px-4 py-2 flex justify-between items-center">
         <div className="text-sm">
-          <span className="text-gray-400">回合:</span>{' '}
+          <span className="text-[var(--game-text-muted)]">回合:</span>{' '}
           <span className="font-medium">{state.round}</span>/{state.maxRounds}
         </div>
         <button
           onClick={handleReturn}
-          className="text-sm text-gray-400 hover:text-white touch-btn"
+          className="game-btn game-btn-sm text-sm"
         >
           返回
         </button>
       </header>
 
       {/* 敌方区域 */}
-      <div className="bg-gradient-to-b from-[#2a2a4e] to-[#1a1a2e] p-4">
+      <div className="bg-gradient-to-b from-transparent to-[var(--game-bg-panel)]/30 p-4">
         <div className="flex justify-center gap-4 flex-wrap">
           {state.enemies.map((enemy) => (
             <BattleUnit
@@ -206,7 +206,7 @@ export function BattleLayout() {
       </div>
 
       {/* 我方区域 - 人物 */}
-      <div className="bg-gradient-to-t from-[#252540] to-[#1a1a2e] p-4">
+      <div className="bg-gradient-to-t from-[var(--game-bg-panel)]/50 to-transparent p-4">
         <div className="flex justify-center gap-4 flex-wrap mb-2">
           {state.playerFormation.characters.map((char, index) =>
             char ? (
@@ -218,7 +218,7 @@ export function BattleLayout() {
             ) : (
               <div
                 key={`empty-char-${index}`}
-                className="w-20 h-24 border border-dashed border-gray-600 rounded-lg flex items-center justify-center text-gray-600"
+                className="w-20 h-24 border border-dashed border-[var(--game-border)] rounded-lg flex items-center justify-center text-[var(--game-text-dim)] bg-white/50"
               >
                 空
               </div>
@@ -239,7 +239,7 @@ export function BattleLayout() {
             ) : (
               <div
                 key={`empty-pet-${index}`}
-                className="w-20 h-20 border border-dashed border-gray-600 rounded-lg flex items-center justify-center text-gray-600 text-xs"
+                className="w-20 h-20 border border-dashed border-[var(--game-border)] rounded-lg flex items-center justify-center text-[var(--game-text-dim)] text-xs bg-white/50"
               >
                 空
               </div>
@@ -249,7 +249,7 @@ export function BattleLayout() {
       </div>
 
       {/* 操作区域 */}
-      <div className="bg-[#252540] p-4 border-t border-gray-700">
+      <div className="game-panel mx-4 mb-4 p-4">
         <BattleActions
           selectedTargetId={selectedTargetId ?? undefined}
         />

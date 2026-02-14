@@ -15,6 +15,23 @@ export function generateUUID(): UUID {
 /** 品质枚举 */
 export type Quality = 'common' | 'rare' | 'epic' | 'legendary' | 'mythic';
 
+/** 属性类型（用于词条系统） */
+export type StatType =
+  // 基础属性
+  | 'strength' | 'intelligence' | 'vitality' | 'agility' | 'willpower'
+  // 战斗属性
+  | 'physicalAttack' | 'physicalDefense'
+  | 'magicAttack' | 'magicDefense'
+  | 'speed' | 'maxHp' | 'maxMp'
+  | 'critRate' | 'critDamage'
+  | 'hitRate' | 'dodgeRate'
+  // 扩展属性
+  | 'lifesteal' | 'spellVamp'
+  | 'damageBonus' | 'damageReduction'
+  | 'healBonus' | 'healReceived'
+  | 'physicalPenetration' | 'magicPenetration'
+  | 'fireResistance' | 'iceResistance' | 'thunderResistance';
+
 /** 品质配置 */
 export const QUALITY_CONFIG: Record<Quality, { name: string; color: string; multiplier: number }> = {
   common: { name: '普通', color: '#FFFFFF', multiplier: 1.0 },
