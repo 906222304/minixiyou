@@ -44,3 +44,12 @@ export * from './enemy';
 
 // 物品
 export * from './item';
+
+// 修炼
+export * from './cultivation';
+
+// 阵法
+export * from './formation';
+
+// 成就
+export * from './achievement';

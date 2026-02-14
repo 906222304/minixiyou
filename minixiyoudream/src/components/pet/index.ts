@@ -2,3 +2,4 @@
 
 export { PetPage } from './PetPage';
 export { PetDetail } from './PetDetail';
+export { PetFusionModal } from './PetFusionModal';

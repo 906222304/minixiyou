@@ -13,6 +13,8 @@ export type Page =
   | 'pet'
   | 'companion'
   | 'dungeon'
+  | 'cultivation'
+  | 'achievement'
   | 'settings';
 
 /** 当前页面 */

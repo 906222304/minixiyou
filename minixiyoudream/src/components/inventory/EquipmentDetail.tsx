@@ -2,10 +2,12 @@
 
 import { useState } from 'react';
 import { useSignals } from '@preact/signals-react/runtime';
-import { equipItem } from '@/signals';
+import { equipItem, playerGold } from '@/signals';
 import { getQualityColor, getQualityName } from '@/utils/helpers';
+import { getStatBonus } from '@/constants/enhancement';
 import { AffixList } from './AffixDisplay';
 import { AffixReforgeModal } from './AffixReforgeModal';
+import { EnhancementModal } from './EnhancementModal';
 import type { Item, Equipment } from '@/types';
 
 interface EquipmentDetailProps {
@@ -48,12 +50,16 @@ export function EquipmentDetail({ item, onClose, onUpdate }: EquipmentDetailProp
   useSignals();
 
   const [showReforgeModal, setShowReforgeModal] = useState(false);
+  const [showEnhanceModal, setShowEnhanceModal] = useState(false);
   const [currentEquipment, setCurrentEquipment] = useState<Equipment | null>(
     'baseStats' in item ? item as Equipment : null
   );
 
   const isEquipment = 'baseStats' in item;
   const isEquipped = isEquipment && 'slot' in item;
+
+  // 获取玩家金币
+  const currentGold = playerGold.value;
 
   const handleEquip = () => {
     if (isEquipment) {
@@ -70,7 +76,16 @@ export function EquipmentDetail({ item, onClose, onUpdate }: EquipmentDetailProp
     setShowReforgeModal(true);
   };
 
+  const handleOpenEnhance = () => {
+    setShowEnhanceModal(true);
+  };
+
   const handleReforgeSuccess = (newEquipment: Equipment) => {
+    setCurrentEquipment(newEquipment);
+    onUpdate?.(newEquipment);
+  };
+
+  const handleEnhanceSuccess = (newEquipment: Equipment) => {
     setCurrentEquipment(newEquipment);
     onUpdate?.(newEquipment);
   };
@@ -84,6 +99,7 @@ export function EquipmentDetail({ item, onClose, onUpdate }: EquipmentDetailProp
     if (!equipment) return null;
 
     const stats = equipment.baseStats;
+    const enhanceBonus = getStatBonus(equipment.enhanceLevel);
     const statEntries = Object.entries(stats).filter(([_, value]) => value);
 
     if (statEntries.length === 0) return null;
@@ -93,14 +109,23 @@ export function EquipmentDetail({ item, onClose, onUpdate }: EquipmentDetailProp
         <h4 className="text-sm font-semibold text-[var(--game-text-muted)] mb-3 flex items-center gap-2">
           <span className="text-base">📊</span>
           <span>基础属性</span>
+          {enhanceBonus > 0 && (
+            <span className="text-[var(--game-gold)] text-xs ml-auto">
+              强化加成: +{(enhanceBonus * 100).toFixed(0)}%
+            </span>
+          )}
         </h4>
         <div className="grid grid-cols-2 gap-2">
           {statEntries.map(([key, value]) => {
             const statKey = key as keyof typeof STAT_NAMES;
             const isPercent = ['critRate', 'critDamage', 'hitRate', 'dodgeRate'].includes(key);
+
+            // 计算强化后的值
+            const baseValue = value as number;
+            const enhancedValue = isPercent ? baseValue : Math.floor(baseValue * (1 + enhanceBonus));
             const displayValue = isPercent
-              ? `${((value as number) * 100).toFixed(1)}%`
-              : `+${value}`;
+              ? `${(enhancedValue * 100).toFixed(1)}%`
+              : `+${enhancedValue}`;
 
             return (
               <div
@@ -252,6 +277,22 @@ export function EquipmentDetail({ item, onClose, onUpdate }: EquipmentDetailProp
 
           {/* 操作按钮 */}
           <div className="p-5 border-t border-[var(--game-border)] space-y-3">
+            {/* 强化按钮 */}
+            {equipment && (
+              <button
+                onClick={handleOpenEnhance}
+                className="game-btn game-btn-primary w-full"
+              >
+                <span className="flex items-center justify-center gap-2">
+                  <span>⬆️</span>
+                  <span>强化装备</span>
+                  {equipment.enhanceLevel > 0 && (
+                    <span className="text-[var(--game-gold)]">+{equipment.enhanceLevel}</span>
+                  )}
+                </span>
+              </button>
+            )}
+
             {/* 洗练按钮 */}
             {equipment && equipment.affixes && equipment.affixes.length > 0 && (
               <button
@@ -269,7 +310,7 @@ export function EquipmentDetail({ item, onClose, onUpdate }: EquipmentDetailProp
             {isEquipment && !isEquipped && (
               <button
                 onClick={handleEquip}
-                className="game-btn game-btn-primary w-full"
+                className="game-btn w-full"
               >
                 <span className="flex items-center justify-center gap-2">
                   <span>⚔️</span>
@@ -306,6 +347,17 @@ export function EquipmentDetail({ item, onClose, onUpdate }: EquipmentDetailProp
           equipment={currentEquipment}
           onClose={() => setShowReforgeModal(false)}
           onReforgeSuccess={handleReforgeSuccess}
+        />
+      )}
+
+      {/* 强化弹窗 */}
+      {showEnhanceModal && currentEquipment && (
+        <EnhancementModal
+          equipment={currentEquipment}
+          playerGold={currentGold}
+          protectionStones={0}
+          onClose={() => setShowEnhanceModal(false)}
+          onEnhanceSuccess={handleEnhanceSuccess}
         />
       )}
     </>

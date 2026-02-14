@@ -23,6 +23,8 @@ import { CompanionPage } from '@/components/companion';
 import { MapPage } from '@/components/map';
 import { DungeonPage } from '@/components/dungeon';
 import { CharacterPage } from '@/components/character/CharacterPage';
+import { CultivationPage } from '@/components/cultivation';
+import { AchievementPage } from '@/components/achievement';
 
 // 梦幻西游风格图标
 const Icons = {
@@ -91,6 +93,8 @@ const NAV_ITEMS: { page: Page; icon: React.ReactNode; label: string; emoji: stri
   { page: 'map', icon: Icons.map, label: '地图', emoji: '🗺️' },
   { page: 'companion', icon: Icons.companion, label: '伙伴', emoji: '👥' },
   { page: 'dungeon', icon: Icons.dungeon, label: '副本', emoji: '🏰' },
+  { page: 'cultivation', icon: Icons.settings, label: '修炼', emoji: '🧘' },
+  { page: 'achievement', icon: Icons.settings, label: '成就', emoji: '🏆' },
 ];
 
 export function GameLayout() {
@@ -308,6 +312,10 @@ export function GameLayout() {
         {page === 'companion' && <CompanionPage />}
 
         {page === 'dungeon' && <DungeonPage />}
+
+        {page === 'cultivation' && <CultivationPage />}
+
+        {page === 'achievement' && <AchievementPage />}
       </main>
 
       {/* 底部导航 */}
