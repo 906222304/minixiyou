@@ -9,6 +9,7 @@ import type { ReforgeCost, Quality } from '@/types';
 /** 按品质的基础洗练消耗 */
 export const BASE_REFORGE_COST: Record<Quality, ReforgeCost> = {
   common: { reforgeStones: 1, lockStones: 0, gold: 500 },
+  uncommon: { reforgeStones: 1, lockStones: 0, gold: 750 },
   rare: { reforgeStones: 2, lockStones: 0, gold: 1000 },
   epic: { reforgeStones: 3, lockStones: 0, gold: 2000 },
   legendary: { reforgeStones: 5, lockStones: 0, gold: 5000 },

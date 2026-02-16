@@ -34,6 +34,15 @@ export { saveService } from './saveService';
 export type { SaveResult, LoadResult, SaveInfo } from './saveService';
 export { companionEquipService } from './companionEquipService';
 export type { EquipResult } from './companionEquipService';
+export { beastScrollService } from './beastScrollService';
+export type {
+  LearnBeastScrollResult,
+  LockSkillResult,
+  UnlockSkillResult,
+  UnlockSlotResult,
+  ForgetSkillResult,
+  RestrictionCheckResult,
+} from './beastScrollService';
 export { questService } from './questService';
 export type { QuestData } from './questService';
 export { gemService } from './gemService';
@@ -46,3 +55,50 @@ export type {
 } from './gemService';
 export { dungeonService } from './dungeonService';
 export type { DungeonRunState } from './dungeonService';
+export { petService } from './petService';
+export type { PRNG } from './petService';
+export { skillBookService } from './skillBookService';
+export {
+  equipmentService,
+  // 分解系统
+  decomposeEquipment,
+  calculateDecomposeResult,
+  // 重铸系统
+  reforgeEquipment,
+  calculateReforgeCost,
+  // 传承系统
+  transferEnhancement,
+  calculateTransferCost,
+  // 强化检查
+  canEnhanceWithProtection,
+} from './equipmentService';
+export type {
+  DecomposeResult,
+  DecomposeMaterial,
+  ReforgeResult,
+  TransferResult,
+} from './equipmentService';
+export {
+  // 商店功能
+  currentShopId,
+  isShopOpen,
+  openShop,
+  closeShop,
+  getCurrentShopItems,
+  buyItem,
+  sellItem,
+  // 治疗功能
+  healPlayer,
+  calculateHealCost,
+  // 传送功能
+  teleportToMap,
+  getTeleportDestinationInfo,
+} from './npcService';
+export type { BuyResult, SellResult, HealResult, TeleportResult } from './npcService';
+export {
+  applyTraitBonuses,
+  applyTraitElementResistances,
+  getTraitSpecialEffects,
+  hasTraitEffect,
+  getTraitEffectValue,
+} from './traitService';

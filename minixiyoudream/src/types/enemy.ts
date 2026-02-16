@@ -1,6 +1,6 @@
 // 敌人类型定义
 
-import type { UUID, Quality, CombatStats, Element, ItemDrop } from './common';
+import type { UUID, Quality, CombatStats, Element, ItemDrop, ElementResistances } from './common';
 import type { PetSkill } from './pet';
 
 /** 敌人类型 */
@@ -27,16 +27,12 @@ export interface EnemyTemplate {
   // 类型
   type: EnemyType;
 
-  // 属性
-  baseStats: CombatStats;
+  // 属性 - 使用 Partial 以允许省略扩展属性
+  baseStats: Partial<CombatStats>;
 
   // 元素
   element?: Element;
-  elementResistances: {
-    fire: number;
-    ice: number;
-    thunder: number;
-  };
+  elementResistances: ElementResistances;
 
   // 技能
   skills: PetSkill[];
@@ -89,11 +85,7 @@ export interface Enemy {
 
   // 属性（应用等级缩放后）
   stats: CombatStats;
-  elementResistances: {
-    fire: number;
-    ice: number;
-    thunder: number;
-  };
+  elementResistances: ElementResistances;
   element?: Element;
 
   // 技能

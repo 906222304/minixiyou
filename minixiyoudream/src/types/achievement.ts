@@ -11,6 +11,7 @@ export type AchievementConditionType =
   | 'accumulate_playtime' // 累计游戏时长
   | 'accumulate_gold' // 累计获得金币
   | 'accumulate_exp' // 累计获得经验
+  | 'spend_gold' // 累计消费金币
   // 战斗类
   | 'defeat_monsters' // 击败怪物数量
   | 'defeat_bosses' // 击败Boss数量
@@ -19,6 +20,10 @@ export type AchievementConditionType =
   | 'win_pvp_battles' // PVP胜利次数
   | 'total_damage_dealt' // 累计造成伤害
   | 'win_battles' // 战斗胜利次数
+  | 'clear_dungeon_easy' // 通关简单难度副本
+  | 'clear_dungeon_normal' // 通关普通难度副本
+  | 'clear_dungeon_hard' // 通关困难难度副本
+  | 'clear_dungeon_hell' // 通关地狱难度副本
   // 收集类
   | 'collect_equipment' // 收集装备数量
   | 'collect_legendary' // 收集传说装备
@@ -26,15 +31,24 @@ export type AchievementConditionType =
   | 'collect_pets' // 收集宠物
   | 'collect_companions' // 收集伙伴
   | 'collect_items' // 收集物品
+  | 'pet_capture' // 捕捉宠物
+  | 'pet_evolve' // 宠物进化
+  | 'pet_level_max' // 宠物达到满级
+  | 'socket_gems' // 镶嵌宝石
+  | 'collect_gems' // 收集宝石
   // 探索类
   | 'explore_maps' // 探索地图数量
   | 'discover_secrets' // 发现秘密
   | 'unlock_teleports' // 解锁传送点
   | 'visit_all_maps' // 访问所有地图
+  | 'explore_region' // 探索特定区域
   // 社交类
   | 'max_favorability' // 好感度达到满级
   | 'unlock_bonds' // 解锁羁绊数量
-  | 'max_bond_level' // 羁绊达到满级;
+  | 'max_bond_level' // 羁绊达到满级
+  | 'friend_count' // 好友数量
+  | 'send_gifts' // 送礼次数
+  | 'receive_gifts'; // 收到礼物次数
 
 /** 成就条件 */
 export interface AchievementCondition {
@@ -180,6 +194,7 @@ export interface AchievementTracker {
   totalPlayTime: number;
   totalGoldEarned: number;
   totalExpEarned: number;
+  totalGoldSpent: number;
 
   // 战斗类追踪
   monstersKilled: number;
@@ -189,6 +204,10 @@ export interface AchievementTracker {
   pvpWins: number;
   totalDamageDealt: number;
   battlesWon: number;
+  dungeonsClearedEasy: number;
+  dungeonsClearedNormal: number;
+  dungeonsClearedHard: number;
+  dungeonsClearedHell: number;
 
   // 收集类追踪
   equipmentCollected: number;
@@ -197,16 +216,25 @@ export interface AchievementTracker {
   petsCollected: number;
   companionsCollected: number;
   itemsCollected: number;
+  petsCaptured: number;
+  petsEvolved: number;
+  petsMaxLevel: number;
+  gemsSocketed: number;
+  gemsCollected: number;
 
   // 探索类追踪
   mapsExplored: string[];
   secretsDiscovered: number;
   teleportsUnlocked: string[];
+  regionsExplored: string[];
 
   // 社交类追踪
   maxFavorabilityCompanions: string[];
   bondsUnlocked: number;
   maxLevelBonds: number;
+  friendCount: number;
+  giftsSent: number;
+  giftsReceived: number;
 }
 
 /** 成就事件类型（用于触发成就检查） */
@@ -224,9 +252,16 @@ export type AchievementEventType =
   | 'favorability_increased'
   | 'bond_unlocked'
   | 'gold_earned'
+  | 'gold_spent'
   | 'exp_earned'
   | 'damage_dealt'
-  | 'battle_won';
+  | 'battle_won'
+  | 'pet_captured'
+  | 'pet_evolved'
+  | 'gem_socketed'
+  | 'gift_sent'
+  | 'gift_received'
+  | 'friend_added';
 
 /** 成就事件 */
 export interface AchievementEvent {

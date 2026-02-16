@@ -18,7 +18,7 @@ import {
   resetAttributePoints,
   calculateResetCost,
 } from '@/signals/playerSignals';
-import { showToast, showConfirm } from '@/signals';
+import { showToast, showConfirm, returnToExplore } from '@/signals';
 import { activePet } from '@/signals/petSignals';
 import { activeCompanions } from '@/signals/companionSignals';
 import { getRace } from '@/constants/races';
@@ -119,6 +119,15 @@ export function CharacterPage() {
 
   return (
     <div className="space-y-4">
+      {/* 返回按钮 */}
+      <button
+        onClick={returnToExplore}
+        className="flex items-center gap-2 px-4 py-3 text-sm text-[var(--game-text-muted)] hover:text-[var(--game-text)] active:bg-white/10 rounded-lg transition-colors touch-manipulation"
+      >
+        <span className="text-lg">←</span>
+        <span>返回西游</span>
+      </button>
+
       {/* 角色基本信息卡片 */}
       <div className="game-panel p-4">
         <div className="flex items-start gap-4">
@@ -198,7 +207,7 @@ export function CharacterPage() {
             className={`
               flex-1 py-2 px-3 rounded-md text-sm font-semibold transition-all duration-200
               ${activeTab === tab
-                ? 'bg-[var(--game-gold)] text-[var(--game-bg-dark)]'
+                ? 'bg-[var(--game-gold)] text-white'
                 : 'text-[var(--game-text-muted)] hover:text-[var(--game-text)] hover:bg-white/20'
               }
             `}
@@ -240,10 +249,10 @@ export function CharacterPage() {
         </h3>
 
         {/* 出战宠物 */}
-        <div className="mb-3">
-          <div className="text-xs text-[var(--game-text-dim)] mb-2">出战宠物</div>
+        <div className="mb-4">
+          <div className="text-xs text-slate-600 mb-2">出战宠物</div>
           {currentPet ? (
-            <div className="game-card p-3 flex items-center gap-3">
+            <div className="game-card p-4 flex items-center gap-3">
               <span className="text-2xl">{currentPet.icon}</span>
               <div className="flex-1">
                 <div className="font-medium text-[var(--game-text)]">
@@ -255,7 +264,7 @@ export function CharacterPage() {
               </div>
             </div>
           ) : (
-            <div className="text-sm text-[var(--game-text-dim)] p-3 bg-[var(--game-bg-hover)]/30 rounded-lg text-center">
+            <div className="text-sm text-slate-500 p-4 bg-[var(--game-bg-hover)]/30 rounded-lg text-center">
               未设置出战宠物
             </div>
           )}
@@ -263,11 +272,11 @@ export function CharacterPage() {
 
         {/* 出战伙伴 */}
         <div>
-          <div className="text-xs text-[var(--game-text-dim)] mb-2">出战伙伴</div>
+          <div className="text-xs text-slate-600 mb-2">出战伙伴</div>
           {currentCompanions.length > 0 ? (
-            <div className="space-y-2">
+            <div className="space-y-3">
               {currentCompanions.map((companion) => (
-                <div key={companion.id} className="game-card p-3 flex items-center gap-3">
+                <div key={companion.id} className="game-card p-4 flex items-center gap-3">
                   <span className="text-2xl">{companion.avatar}</span>
                   <div className="flex-1">
                     <div className="font-medium text-[var(--game-text)]">
@@ -281,7 +290,7 @@ export function CharacterPage() {
               ))}
             </div>
           ) : (
-            <div className="text-sm text-[var(--game-text-dim)] p-3 bg-[var(--game-bg-hover)]/30 rounded-lg text-center">
+            <div className="text-sm text-slate-500 p-4 bg-[var(--game-bg-hover)]/30 rounded-lg text-center">
               未设置出战伙伴
             </div>
           )}
@@ -479,7 +488,7 @@ function AttributeItem({
                 </span>
               )}
             </div>
-            <span className="text-xs text-[var(--game-text-dim)]">{attr.description}</span>
+            <span className="text-xs text-slate-500">{attr.description}</span>
           </div>
         </div>
 
@@ -567,7 +576,7 @@ function EquipmentPanel({
   return (
     <div className="game-panel p-4">
       <h4 className="text-sm font-semibold text-[var(--game-text-muted)] mb-3">装备槽位</h4>
-      <div className="space-y-2">
+      <div className="space-y-3">
         {SLOT_ORDER.map((slot) => {
           const equip = equipment[slot];
           return (
@@ -575,7 +584,7 @@ function EquipmentPanel({
               key={slot}
               onClick={() => equip && onSelectItem(equip)}
               className={`
-                game-card p-3 flex items-center gap-3
+                game-card p-4 flex items-center gap-3
                 ${equip ? 'cursor-pointer' : 'opacity-60'}
               `}
             >
@@ -583,7 +592,7 @@ function EquipmentPanel({
                 {SLOT_ICONS[slot]}
               </div>
               <div className="flex-1 min-w-0">
-                <div className="text-xs text-[var(--game-text-dim)] mb-1">
+                <div className="text-xs text-slate-600 mb-1">
                   {SLOT_NAMES[slot]}
                 </div>
                 {equip ? (
@@ -594,7 +603,7 @@ function EquipmentPanel({
                     )}
                   </div>
                 ) : (
-                  <div className="text-[var(--game-text-dim)] text-sm">空</div>
+                  <div className="text-slate-500 text-sm">空</div>
                 )}
               </div>
               {equip && (
@@ -621,7 +630,7 @@ function SkillsPanel({
       <div className="game-panel p-8 text-center">
         <span className="text-4xl block mb-3">⚡</span>
         <p className="text-[var(--game-text-muted)]">尚未学习技能</p>
-        <p className="text-sm text-[var(--game-text-dim)] mt-1">
+        <p className="text-sm text-slate-500 mt-1">
           升级后可获得技能点
         </p>
       </div>
@@ -633,7 +642,7 @@ function SkillsPanel({
       <div className="flex items-center justify-between mb-3">
         <h4 className="text-sm font-semibold text-[var(--game-text-muted)]">已学技能</h4>
         {faction && (
-          <span className="text-xs text-[var(--game-text-dim)]">
+          <span className="text-xs text-slate-500">
             {faction.shortName}门派
           </span>
         )}
@@ -661,7 +670,7 @@ function SkillsPanel({
                   </p>
                 </div>
               </div>
-              <div className="mt-2 pt-2 border-t border-[var(--game-border)] flex items-center gap-4 text-xs text-[var(--game-text-dim)]">
+              <div className="mt-2 pt-2 border-t border-[var(--game-border)] flex items-center gap-4 text-xs text-slate-600">
                 <span>消耗: {skillData.mpCost} MP</span>
                 <span>冷却: {skillData.cooldown} 回合</span>
               </div>

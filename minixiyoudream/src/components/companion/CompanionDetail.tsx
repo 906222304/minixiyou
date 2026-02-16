@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useSignals } from '@preact/signals-react/runtime';
 import type { Companion } from '@/types';
+import { getSkill } from '@/constants/skills';
 import { CompanionAIConfig } from './CompanionAIConfig';
 
 interface CompanionDetailProps {
@@ -121,11 +122,14 @@ export function CompanionDetail({ companion, onClose, onToggleActive }: Companio
         <div className="mb-4">
           <h4 className="text-sm font-medium text-gray-400 mb-2">技能</h4>
           <div className="space-y-1">
-            {companion.skills.map((skill) => (
-              <div key={skill.skillId} className="text-sm bg-gray-700/50 rounded px-2 py-1">
-                <span className="text-white">{skill.skillId}</span>
-              </div>
-            ))}
+            {companion.skills.map((skill) => {
+              const skillData = getSkill(skill.skillId);
+              return (
+                <div key={skill.skillId} className="text-sm bg-gray-700/50 rounded px-2 py-1">
+                  <span className="text-white">{skillData?.name || skill.skillId}</span>
+                </div>
+              );
+            })}
           </div>
         </div>
 

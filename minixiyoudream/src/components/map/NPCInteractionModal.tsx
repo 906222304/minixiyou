@@ -2,14 +2,28 @@
 
 import { useState, useEffect } from 'react';
 import { useSignals } from '@preact/signals-react/runtime';
-import { player } from '@/signals/playerSignals';
+import { player, playerGold } from '@/signals/playerSignals';
 import {
   triggerQuestEvent,
   questProgress,
   showQuestDialog,
   acceptQuest,
+  claimQuestReward,
 } from '@/signals/questSignals';
 import { showSuccess, showError } from '@/signals/uiSignals';
+import {
+  openShop,
+  closeShop,
+  isShopOpen,
+  getCurrentShopItems,
+  buyItem,
+  sellItem,
+  healPlayer,
+  teleportToMap,
+} from '@/services/npcService';
+import { getShopConfig } from '@/constants/shops';
+import { inventoryItems } from '@/signals/inventorySignals';
+import { getItemTemplate } from '@/constants/items';
 import type { NPC, NPCType } from '@/types';
 
 /** NPC类型的中文名称 */
@@ -75,6 +89,16 @@ export function NPCInteractionModal({ npc, onClose }: NPCInteractionModalProps) 
   // 可领取的任务
   const claimableQuests = npcQuests.filter((p) => p.canClaim);
 
+  // 判断是否有可用的服务/任务选项
+  const hasServices =
+    claimableQuests.length > 0 ||
+    availableQuests.length > 0 ||
+    inProgressQuests.length > 0 ||
+    (npc.type === 'merchant' && npc.shopId) ||
+    npc.type === 'healer' ||
+    (npc.type === 'teleporter' && npc.teleportDestinations) ||
+    (npc.services && npc.services.length > 0);
+
   useEffect(() => {
     // 重置对话索引
     setCurrentDialogueIndex(0);
@@ -94,8 +118,12 @@ export function NPCInteractionModal({ npc, onClose }: NPCInteractionModalProps) 
           targetId: npc.id,
         });
       }
-      // 显示服务选项
-      setShowServices(true);
+      // 如果有服务选项则显示，否则直接关闭
+      if (hasServices) {
+        setShowServices(true);
+      } else {
+        onClose();
+      }
     }
   };
 
@@ -121,28 +149,41 @@ export function NPCInteractionModal({ npc, onClose }: NPCInteractionModalProps) 
 
   const handleServiceClick = (service: string) => {
     console.log(`NPC服务: ${service}`);
-    alert(`功能「${service}」开发中...`);
+    showError(`功能「${service}」开发中...`);
   };
 
   const handleShopClick = () => {
     if (npc.shopId) {
-      alert(`商店「${npc.shopId}」功能开发中...`);
+      const success = openShop(npc.shopId);
+      if (!success) {
+        showError('无法打开商店');
+      }
     }
   };
 
   const handleHealClick = () => {
     if (npc.healCost) {
-      alert(`治疗功能开发中...（费用: ${npc.healCost}金币）`);
+      const result = healPlayer(npc.healCost);
+      if (!result.success) {
+        showError(result.message);
+      }
     }
   };
 
   const handleTeleportClick = (destination: { mapId: string; name: string; cost: number }) => {
-    alert(`传送到「${destination.name}」功能开发中...（费用: ${destination.cost}金币）`);
+    const result = teleportToMap(destination.mapId, destination.cost);
+    if (result.success) {
+      onClose();
+    } else {
+      showError(result.message);
+    }
   };
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full max-h-[80vh] overflow-hidden">
+    <>
+      {/* NPC交互弹窗 */}
+      <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+        <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full max-h-[80vh] overflow-hidden">
         {/* NPC头部信息 */}
         <div className="bg-gradient-to-r from-[var(--game-primary)] to-[var(--game-secondary)] p-4 text-white">
           <div className="flex items-center gap-3">
@@ -181,7 +222,7 @@ export function NPCInteractionModal({ npc, onClose }: NPCInteractionModalProps) 
                 onClick={handleNextDialogue}
                 className="w-full py-3 bg-[var(--game-primary)] text-white rounded-xl font-medium hover:opacity-90 transition-opacity"
               >
-                {hasMoreDialogue ? '继续' : '查看服务'}
+                {hasMoreDialogue ? '继续' : hasServices ? '查看服务' : '结束对话'}
               </button>
             </div>
           ) : (
@@ -196,16 +237,21 @@ export function NPCInteractionModal({ npc, onClose }: NPCInteractionModalProps) 
                   {claimableQuests.map((p) => (
                     <button
                       key={p.quest.id}
-                      onClick={() => {
-                        showSuccess(`请前往任务页面领取「${p.quest.name}」的奖励`);
-                        onClose();
+                      onClick={async () => {
+                        if (!currentPlayer) return;
+                        const result = await claimQuestReward(currentPlayer.id, p.quest.id);
+                        if (result.success) {
+                          showSuccess(`成功领取「${p.quest.name}」的奖励！`);
+                        } else {
+                          showError(result.message);
+                        }
                       }}
                       className="w-full p-3 bg-green-50 text-green-700 rounded-xl flex items-center gap-3 hover:bg-green-100 transition-colors border-2 border-green-300"
                     >
                       <span className="text-2xl">{p.quest.icon}</span>
                       <div className="text-left flex-1">
                         <div className="font-medium">{p.quest.name}</div>
-                        <div className="text-xs opacity-70">任务已完成，点击领取奖励</div>
+                        <div className="text-xs text-green-600">任务已完成，点击领取奖励</div>
                       </div>
                       <span className="text-green-500 animate-pulse">领取</span>
                     </button>
@@ -229,7 +275,7 @@ export function NPCInteractionModal({ npc, onClose }: NPCInteractionModalProps) 
                         <span className="text-2xl">{p.quest.icon}</span>
                         <div className="flex-1">
                           <div className="font-medium">{p.quest.name}</div>
-                          <div className="text-xs opacity-70">
+                          <div className="text-xs text-blue-600">
                             {p.conditionDetails.find((cd) => !cd.completed)?.condition.description || '已完成条件'}
                           </div>
                         </div>
@@ -263,7 +309,7 @@ export function NPCInteractionModal({ npc, onClose }: NPCInteractionModalProps) 
                       <span className="text-2xl">{p.quest.icon}</span>
                       <div className="text-left flex-1">
                         <div className="font-medium">{p.quest.name}</div>
-                        <div className="text-xs opacity-70 line-clamp-1">{p.quest.description}</div>
+                        <div className="text-xs text-yellow-600 line-clamp-1">{p.quest.description}</div>
                       </div>
                       <span className="px-2 py-1 bg-yellow-200 text-yellow-800 rounded text-xs font-medium">
                         接取
@@ -282,7 +328,7 @@ export function NPCInteractionModal({ npc, onClose }: NPCInteractionModalProps) 
                   <span className="text-2xl">🛒</span>
                   <div className="text-left">
                     <div className="font-medium">打开商店</div>
-                    <div className="text-xs opacity-70">购买物品和装备</div>
+                    <div className="text-xs text-green-600">购买物品和装备</div>
                   </div>
                 </button>
               )}
@@ -296,7 +342,7 @@ export function NPCInteractionModal({ npc, onClose }: NPCInteractionModalProps) 
                   <span className="text-2xl">💊</span>
                   <div className="text-left flex-1">
                     <div className="font-medium">治疗</div>
-                    <div className="text-xs opacity-70">恢复HP和MP，消除负面状态</div>
+                    <div className="text-xs text-red-600">恢复HP和MP，消除负面状态</div>
                   </div>
                   {npc.healCost && (
                     <div className="text-sm font-medium">{npc.healCost} 金币</div>
@@ -307,7 +353,7 @@ export function NPCInteractionModal({ npc, onClose }: NPCInteractionModalProps) 
               {/* 传送服务 */}
               {npc.type === 'teleporter' && npc.teleportDestinations && (
                 <div className="space-y-2">
-                  <div className="text-sm font-medium text-[var(--game-text-muted)] mb-2">
+                  <div className="text-sm font-medium text-indigo-700 mb-2">
                     选择传送目的地：
                   </div>
                   {npc.teleportDestinations.map((dest, index) => (
@@ -329,7 +375,7 @@ export function NPCInteractionModal({ npc, onClose }: NPCInteractionModalProps) 
               {/* 其他服务 */}
               {npc.services && npc.services.length > 0 && !['merchant', 'healer', 'teleporter', 'quest'].includes(npc.type) && (
                 <div className="space-y-2">
-                  <div className="text-sm font-medium text-[var(--game-text-muted)] mb-2">
+                  <div className="text-sm font-medium text-blue-700 mb-2">
                     可用服务：
                   </div>
                   {npc.services.map((service, index) => (
@@ -376,6 +422,290 @@ export function NPCInteractionModal({ npc, onClose }: NPCInteractionModalProps) 
             </div>
           </div>
         )}
+      </div>
+    </div>
+
+    {/* 商店弹窗 */}
+    {isShopOpen.value && (
+      <ShopModal shopId={npc.shopId!} onClose={() => closeShop()} />
+    )}
+  </>
+  );
+}
+
+/** 品质颜色映射 */
+const QUALITY_COLORS: Record<string, string> = {
+  common: 'text-gray-600',
+  rare: 'text-blue-600',
+  epic: 'text-purple-600',
+  legendary: 'text-orange-500',
+};
+
+/** 品质背景颜色映射 */
+const QUALITY_BG_COLORS: Record<string, string> = {
+  common: 'bg-gray-50 hover:bg-gray-100',
+  rare: 'bg-blue-50 hover:bg-blue-100',
+  epic: 'bg-purple-50 hover:bg-purple-100',
+  legendary: 'bg-orange-50 hover:bg-orange-100',
+};
+
+/** 商店弹窗组件 */
+function ShopModal({ shopId, onClose }: { shopId: string; onClose: () => void }) {
+  useSignals();
+
+  const [buyQuantity, setBuyQuantity] = useState<Record<string, number>>({});
+  const [sellQuantity, setSellQuantity] = useState<Record<string, number>>({});
+  const [activeTab, setActiveTab] = useState<'buy' | 'sell'>('buy');
+
+  const shop = getShopConfig(shopId);
+  const shopItems = getCurrentShopItems();
+  const items = inventoryItems.value;
+  const gold = playerGold.value;
+
+  // 初始化购买数量
+  useEffect(() => {
+    const quantities: Record<string, number> = {};
+    shopItems.forEach(item => {
+      quantities[item.itemTemplateId] = 1;
+    });
+    setBuyQuantity(quantities);
+  }, [shopItems]);
+
+  // 初始化出售数量
+  useEffect(() => {
+    const quantities: Record<string, number> = {};
+    items.forEach(item => {
+      quantities[item.id] = 1;
+    });
+    setSellQuantity(quantities);
+  }, [items]);
+
+  if (!shop) return null;
+
+  const handleBuy = (itemTemplateId: string) => {
+    const quantity = buyQuantity[itemTemplateId] || 1;
+    buyItem(itemTemplateId, quantity);
+  };
+
+  const handleSell = (itemId: string) => {
+    const quantity = sellQuantity[itemId] || 1;
+    sellItem(itemId, quantity);
+  };
+
+  // 可出售的背包物品（有sellPrice的物品）
+  const sellableItems = items.filter(item => {
+    const template = getItemTemplate(item.templateId);
+    return template && template.sellPrice && template.sellPrice > 0;
+  });
+
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[60] p-4">
+      <div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full max-h-[85vh] overflow-hidden">
+        {/* 商店头部 */}
+        <div className="bg-gradient-to-r from-green-500 to-green-600 p-4 text-white">
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="text-lg font-bold">{shop.name}</h3>
+              <p className="text-sm opacity-90">{shop.description}</p>
+            </div>
+            <div className="flex items-center gap-4">
+              <div className="flex items-center gap-1 bg-white/20 px-3 py-1 rounded-full">
+                <span>💰</span>
+                <span className="font-bold">{gold}</span>
+              </div>
+              <button
+                onClick={onClose}
+                className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center hover:bg-white/30 transition-colors"
+              >
+                ✕
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* 标签切换 */}
+        <div className="flex border-b">
+          <button
+            onClick={() => setActiveTab('buy')}
+            className={`flex-1 py-3 font-medium transition-colors ${
+              activeTab === 'buy'
+                ? 'text-green-600 border-b-2 border-green-600 bg-green-50'
+                : 'text-gray-500 hover:bg-gray-50'
+            }`}
+          >
+            购买
+          </button>
+          <button
+            onClick={() => setActiveTab('sell')}
+            className={`flex-1 py-3 font-medium transition-colors ${
+              activeTab === 'sell'
+                ? 'text-green-600 border-b-2 border-green-600 bg-green-50'
+                : 'text-gray-500 hover:bg-gray-50'
+            }`}
+          >
+            出售
+          </button>
+        </div>
+
+        {/* 商品列表 */}
+        <div className="p-4 overflow-y-auto max-h-[50vh]">
+          {activeTab === 'buy' ? (
+            <div className="space-y-2">
+              {shopItems.map((shopItem) => {
+                const { template } = shopItem;
+                const discount = shopItem.discount ?? 1;
+                const finalPrice = Math.floor((template.buyPrice ?? 0) * discount);
+                const quantity = buyQuantity[shopItem.itemTemplateId] || 1;
+                const totalPrice = finalPrice * quantity;
+                const canAfford = gold >= totalPrice;
+                const meetsLevelReq = !shopItem.levelRequirement || (player.value && player.value.level >= shopItem.levelRequirement);
+
+                return (
+                  <div
+                    key={shopItem.itemTemplateId}
+                    className={`p-3 rounded-xl flex items-center gap-3 ${QUALITY_BG_COLORS[template.quality] || 'bg-gray-50'}`}
+                  >
+                    <span className="text-2xl">{template.icon}</span>
+                    <div className="flex-1 min-w-0">
+                      <div className={`font-medium ${QUALITY_COLORS[template.quality] || 'text-gray-700'}`}>
+                        {template.name}
+                      </div>
+                      <div className="text-xs text-gray-500 line-clamp-1">{template.description}</div>
+                      {shopItem.levelRequirement && (
+                        <div className="text-xs text-red-500">需要等级 {shopItem.levelRequirement}</div>
+                      )}
+                    </div>
+
+                    {/* 数量选择 */}
+                    <div className="flex items-center gap-1">
+                      <button
+                        onClick={() => setBuyQuantity(prev => ({
+                          ...prev,
+                          [shopItem.itemTemplateId]: Math.max(1, (prev[shopItem.itemTemplateId] || 1) - 1)
+                        }))}
+                        className="w-6 h-6 rounded bg-gray-200 hover:bg-gray-300 text-sm"
+                      >
+                        -
+                      </button>
+                      <span className="w-8 text-center text-sm">{quantity}</span>
+                      <button
+                        onClick={() => setBuyQuantity(prev => ({
+                          ...prev,
+                          [shopItem.itemTemplateId]: Math.min(99, (prev[shopItem.itemTemplateId] || 1) + 1)
+                        }))}
+                        className="w-6 h-6 rounded bg-gray-200 hover:bg-gray-300 text-sm"
+                      >
+                        +
+                      </button>
+                    </div>
+
+                    {/* 价格和购买按钮 */}
+                    <div className="text-right">
+                      <div className="text-sm font-medium text-yellow-600">{totalPrice} 金币</div>
+                      {shopItem.discount && shopItem.discount < 1 && (
+                        <div className="text-xs text-gray-400 line-through">
+                          {Math.floor((template.buyPrice ?? 0) * quantity)} 金币
+                        </div>
+                      )}
+                      <button
+                        onClick={() => handleBuy(shopItem.itemTemplateId)}
+                        disabled={!canAfford || !meetsLevelReq}
+                        className={`mt-1 px-3 py-1 rounded text-xs font-medium ${
+                          canAfford && meetsLevelReq
+                            ? 'bg-green-500 text-white hover:bg-green-600'
+                            : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                        }`}
+                      >
+                        购买
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {sellableItems.length === 0 ? (
+                <div className="text-center text-gray-500 py-8">
+                  没有可出售的物品
+                </div>
+              ) : (
+                sellableItems.map((item) => {
+                  const template = getItemTemplate(item.templateId);
+                  if (!template) return null;
+
+                  const buyMultiplier = shop.buyMultiplier ?? 0.5;
+                  const unitPrice = Math.floor((template.sellPrice ?? 0) * buyMultiplier);
+                  const quantity = sellQuantity[item.id] || 1;
+                  const totalPrice = unitPrice * quantity;
+
+                  return (
+                    <div
+                      key={item.id}
+                      className={`p-3 rounded-xl flex items-center gap-3 ${QUALITY_BG_COLORS[template.quality] || 'bg-gray-50'}`}
+                    >
+                      <span className="text-2xl">{template.icon}</span>
+                      <div className="flex-1 min-w-0">
+                        <div className={`font-medium ${QUALITY_COLORS[template.quality] || 'text-gray-700'}`}>
+                          {template.name}
+                        </div>
+                        <div className="text-xs text-gray-500">
+                          持有: {item.count}
+                        </div>
+                      </div>
+
+                      {/* 数量选择 */}
+                      <div className="flex items-center gap-1">
+                        <button
+                          onClick={() => setSellQuantity(prev => ({
+                            ...prev,
+                            [item.id]: Math.max(1, (prev[item.id] || 1) - 1)
+                          }))}
+                          className="w-6 h-6 rounded bg-gray-200 hover:bg-gray-300 text-sm"
+                        >
+                          -
+                        </button>
+                        <span className="w-8 text-center text-sm">{quantity}</span>
+                        <button
+                          onClick={() => setSellQuantity(prev => ({
+                            ...prev,
+                            [item.id]: Math.min(item.count, (prev[item.id] || 1) + 1)
+                          }))}
+                          className="w-6 h-6 rounded bg-gray-200 hover:bg-gray-300 text-sm"
+                        >
+                          +
+                        </button>
+                      </div>
+
+                      {/* 价格和出售按钮 */}
+                      <div className="text-right">
+                        <div className="text-sm font-medium text-yellow-600">+{totalPrice} 金币</div>
+                        <button
+                          onClick={() => handleSell(item.id)}
+                          disabled={quantity > item.count}
+                          className={`mt-1 px-3 py-1 rounded text-xs font-medium ${
+                            quantity <= item.count
+                              ? 'bg-blue-500 text-white hover:bg-blue-600'
+                              : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                          }`}
+                        >
+                          出售
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* 底部提示 */}
+        <div className="p-4 border-t bg-gray-50 text-center text-xs text-gray-500">
+          {shop.buyMultiplier && (
+            <span>本店收购价格: {Math.floor(shop.buyMultiplier * 100)}%</span>
+          )}
+        </div>
       </div>
     </div>
   );

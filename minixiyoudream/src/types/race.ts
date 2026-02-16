@@ -3,7 +3,7 @@
 import type { UUID, BaseStats } from './common';
 
 /** 种族枚举 */
-export type RaceType = 'human' | 'celestial' | 'demon';
+export type RaceType = 'human' | 'celestial' | 'demon' | 'spirit';
 
 /** 种族特性 */
 export interface RaceTrait {
@@ -11,7 +11,7 @@ export interface RaceTrait {
   name: string;
   description: string;
   effect: {
-    type: 'physical_attack' | 'magic_attack' | 'hp_bonus' | 'mp_bonus' | 'balanced' | 'crit_rate' | 'speed' | 'defense';
+    type: 'physical_attack' | 'magic_attack' | 'hp_bonus' | 'mp_bonus' | 'balanced' | 'crit_rate' | 'speed' | 'defense' | 'dodge' | 'all_stats' | 'physical_defense' | 'magic_defense';
     value: number; // 百分比加成，如 0.1 表示 10%
   };
 }

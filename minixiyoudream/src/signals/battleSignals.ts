@@ -202,7 +202,7 @@ export function startBattle(enemyUnits: CombatUnit[]): void {
       type: 'pet',
       isPlayerSide: true,
       stats: pet.stats,
-      elementResistances: { fire: 0, ice: 0, thunder: 0 },
+      elementResistances: { metal: 0, wood: 0, water: 0, fire: 0, earth: 0 },
       hp: pet.hp,
       maxHp: pet.maxHp,
       mp: pet.mp,
@@ -237,7 +237,7 @@ export function startBattle(enemyUnits: CombatUnit[]): void {
           type: 'pet',
           isPlayerSide: true,
           stats: companionPet.stats,
-          elementResistances: { fire: 0, ice: 0, thunder: 0 },
+          elementResistances: { metal: 0, wood: 0, water: 0, fire: 0, earth: 0 },
           hp: companionPet.hp,
           maxHp: companionPet.maxHp,
           mp: companionPet.mp,
@@ -274,6 +274,13 @@ export function startBattle(enemyUnits: CombatUnit[]): void {
   };
 
   // 创建战斗状态
+  // 根据敌人类型决定最大回合数：Boss战50回合，普通战斗30回合
+  const hasBoss = enemyUnits.some(e => {
+    const enemyRef = e.ref as Enemy | undefined;
+    return enemyRef?.type === 'boss';
+  });
+  const maxRounds = hasBoss ? 50 : 30;
+
   const newBattleState: BattleState = {
     id: generateUUID(),
     playerFormation: formation,
@@ -281,7 +288,7 @@ export function startBattle(enemyUnits: CombatUnit[]): void {
     actionQueue: [],
     currentActorIndex: 0,
     round: 1,
-    maxRounds: 30,
+    maxRounds,
     logs: [],
     isAuto: false,
     speed: 1,
@@ -344,6 +351,37 @@ export function executeAction(action: BattleAction): void {
   const actor = findUnit(action.actorId);
   if (!actor || actor.hp <= 0) {
     logger.debug('[Battle] executeAction: 行动者无效或已死亡', { actorId: action.actorId, actor });
+    return;
+  }
+
+  // 检查眩晕状态 - 跳过该单位回合
+  if (actor.statusEffects.some(e => e.stun)) {
+    const log: BattleLog = {
+      round: state.round,
+      timestamp: Date.now(),
+      actor: { id: actor.id, name: actor.name, isPlayer: actor.isPlayerSide },
+      action: 'defend',
+      result: {},
+      text: `${actor.name} 处于眩晕状态，无法行动！`,
+    };
+    state.logs.push(log);
+    advanceToNextActor();
+    checkBattleEnd();
+    return;
+  }
+
+  // 检查沉默状态 - 只能使用普攻或防御
+  if (action.type === 'skill' && actor.statusEffects.some(e => e.silence)) {
+    const log: BattleLog = {
+      round: state.round,
+      timestamp: Date.now(),
+      actor: { id: actor.id, name: actor.name, isPlayer: actor.isPlayerSide },
+      action: action.type,
+      skillId: action.skillId,
+      result: {},
+      text: `${actor.name} 处于沉默状态，无法使用技能！`,
+    };
+    state.logs.push(log);
     return;
   }
 
@@ -427,16 +465,24 @@ export function executeAction(action: BattleAction): void {
 
       // 执行技能效果
       const effectTexts: string[] = [];
-      for (const effect of skill.effects) {
-        for (const target of targets) {
-          const result = applySkillEffect(effect, actor, target, skill);
-          if (result.damage) {
-            log.result.damage = (log.result.damage || 0) + result.damage;
+      const hitCount = skill.hitCount || 1; // 获取连击次数，默认为1
+
+      for (let hit = 0; hit < hitCount; hit++) {
+        for (const effect of skill.effects) {
+          for (const target of targets) {
+            // 检查目标是否还活着（连击过程中可能已经死亡）
+            if (target.hp <= 0 && effect.type === 'damage') {
+              continue;
+            }
+            const result = applySkillEffect(effect, actor, target, skill);
+            if (result.damage) {
+              log.result.damage = (log.result.damage || 0) + result.damage;
+            }
+            if (result.heal) {
+              log.result.heal = (log.result.heal || 0) + result.heal;
+            }
+            effectTexts.push(result.text);
           }
-          if (result.heal) {
-            log.result.heal = (log.result.heal || 0) + result.heal;
-          }
-          effectTexts.push(result.text);
         }
       }
 
@@ -835,7 +881,7 @@ function getSkillTargets(skill: Skill, actor: CombatUnit, targetId?: string): Co
 
 /** 应用技能效果 */
 function applySkillEffect(
-  effect: { type: string; damageType?: string; element?: string; baseValue?: number; multiplier?: number; statScale?: { stat: string; ratio: number }; duration?: number },
+  effect: { type: string; damageType?: string; element?: string; baseValue?: number; multiplier?: number; statScale?: { stat: string; ratio: number }; duration?: number; statusEffect?: string; stat?: string; value?: number },
   actor: CombatUnit,
   target: CombatUnit,
   skill: Skill
@@ -873,7 +919,7 @@ function applySkillEffect(
       // 元素克制加成
       let elementBonus = 1;
       if (effect.element && effect.element !== 'none' && effect.element !== 'physical') {
-        const elementResistance = target.elementResistances[effect.element as 'fire' | 'ice' | 'thunder'] || 0;
+        const elementResistance = target.elementResistances[effect.element as 'metal' | 'wood' | 'water' | 'fire' | 'earth'] || 0;
         // 抗性减少伤害，负抗性增加伤害
         elementBonus = 1 - elementResistance * 0.01;
       }
@@ -915,18 +961,72 @@ function applySkillEffect(
     case 'debuff': {
       // 添加状态效果
       if (effect.duration && effect.duration > 0) {
+        // 根据 statusEffect 类型设置具体效果
+        let dotDamage = 0;
+        let hotHeal = 0;
+        let stun = false;
+        let silence = false;
+        let effectName = skill.name;
+
+        if (effect.statusEffect) {
+          effectName = effect.statusEffect;
+
+          switch (effect.statusEffect) {
+            case 'burn':
+              // 灼烧：每回合造成魔法攻击20%的伤害
+              dotDamage = Math.floor(actor.stats.magicAttack * 0.2);
+              break;
+            case 'poison':
+              // 中毒：每回合造成最大生命5%的伤害
+              dotDamage = Math.floor(target.maxHp * 0.05);
+              break;
+            case 'bleed':
+              // 流血：每回合造成物理攻击15%的伤害
+              dotDamage = Math.floor(actor.stats.physicalAttack * 0.15);
+              break;
+            case 'stun':
+              // 眩晕：无法行动
+              stun = true;
+              break;
+            case 'silence':
+              // 沉默：无法使用技能
+              silence = true;
+              break;
+            case 'regen':
+              // 再生：每回合恢复最大生命5%
+              hotHeal = Math.floor(target.maxHp * 0.05);
+              break;
+            case 'haste':
+              // 加速：提升速度（通过statModifiers处理）
+              break;
+          }
+        }
+
         const statusEffect = {
           id: `${skill.id}_${target.id}_${Date.now()}`,
-          name: skill.name,
+          name: effectName,
           type: effect.type as 'buff' | 'debuff' | 'control',
           icon: skill.icon,
           statModifiers: effect.statScale ? { [effect.statScale.stat]: effect.statScale.ratio } : undefined,
+          dotDamage,
+          hotHeal,
+          stun,
+          silence,
           duration: effect.duration,
           remaining: effect.duration,
           sourceId: actor.id,
         };
         target.statusEffects.push(statusEffect);
-        result.text = `${target.name} 获得 ${skill.name} 效果（${effect.duration}回合）`;
+
+        // 构建效果描述
+        const effectDesc: string[] = [];
+        if (dotDamage > 0) effectDesc.push(`每回合${dotDamage}伤害`);
+        if (hotHeal > 0) effectDesc.push(`每回合恢复${hotHeal}`);
+        if (stun) effectDesc.push('眩晕');
+        if (silence) effectDesc.push('沉默');
+        if (effect.statScale) effectDesc.push(`${effect.statScale.stat}变化`);
+
+        result.text = `${target.name} 获得 ${effectName} 效果（${effect.duration}回合）${effectDesc.length > 0 ? '：' + effectDesc.join('、') : ''}`;
       } else {
         result.text = `对 ${target.name} 产生效果`;
       }

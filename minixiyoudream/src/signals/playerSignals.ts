@@ -6,6 +6,9 @@ import { generateUUID } from '@/types';
 import { getRace } from '@/constants/races';
 import { getFaction } from '@/constants/factions';
 import { calculateCombatStats, calculateBaseStats } from '@/constants/formulas';
+import { getSkill, getFactionSkills } from '@/constants/skills';
+import type { LearnedSkill } from '@/types';
+import { applyTraitBonuses, applyTraitElementResistances } from '@/services/traitService';
 
 /** 每级获得的属性点数 */
 const POINTS_PER_LEVEL = 5;
@@ -87,6 +90,12 @@ export function createPlayer(options: CreatePlayerOptions): Player {
     critDamage: 0.5,
     hitRate: 0.9,
     dodgeRate: 0.02,
+    antiCritRate: 0,
+    penetration: 0,
+    lifeSteal: 0,
+    reflect: 0,
+    healBonus: 0,
+    cooldownReduction: 0,
   };
 
   // 计算战斗属性（内部会应用种族加成）
@@ -102,18 +111,49 @@ export function createPlayer(options: CreatePlayerOptions): Player {
     1
   );
 
-  // 合并属性
-  const finalStats: FullStats = {
-    ...baseStats,
-    ...combatStats,
-  };
-
   // 处理特性
   const traits: CharacterTrait[] = options.traitIds.map(traitId => ({
     traitId,
     acquiredAt: Date.now(),
     source: 'creation' as const,
   }));
+
+  // 合并基础属性和战斗属性
+  let finalStats: FullStats = {
+    ...baseStats,
+    ...combatStats,
+  };
+
+  // 应用特性加成到属性
+  if (traits.length > 0) {
+    finalStats = applyTraitBonuses(finalStats, traits);
+  }
+
+  // 计算元素抗性（含特性加成）
+  const baseElementResistances = {
+    metal: 0,
+    wood: 0,
+    water: 0,
+    fire: 0,
+    earth: 0,
+  };
+  const elementResistances = traits.length > 0
+    ? applyTraitElementResistances(baseElementResistances, traits)
+    : baseElementResistances;
+
+  // 自动学习门派基础技能
+  const initialSkills: LearnedSkill[] = [];
+  const factionSkills = getFactionSkills(options.factionId);
+  // 学习门派的1级基础技能（levelRequirement为1的技能）
+  for (const skill of factionSkills) {
+    if (skill.levelRequirement === 1) {
+      initialSkills.push({
+        skillId: skill.id,
+        level: 1,
+        cooldownRemaining: 0,
+      });
+    }
+  }
 
   // 创建玩家
   const newPlayer: Player = {
@@ -131,11 +171,7 @@ export function createPlayer(options: CreatePlayerOptions): Player {
     equipmentStats: {},
     bondStats: {},
     finalStats: finalStats,
-    elementResistances: {
-      fire: 0,
-      ice: 0,
-      thunder: 0,
-    },
+    elementResistances,
     equipment: {
       weapon: null,
       helmet: null,
@@ -147,8 +183,8 @@ export function createPlayer(options: CreatePlayerOptions): Player {
       ring1: null,
       ring2: null,
     },
-    skills: [],
-    skillPoints: 0,
+    skills: initialSkills,
+    skillPoints: 1, // 初始给1点技能点
     traits,
     hp: finalStats.maxHp,
     maxHp: finalStats.maxHp,
@@ -243,6 +279,8 @@ export function calculateCaptureRate(skillLevel: number, enemyType: string): num
 export function updatePlayerPosition(mapId: string, x?: number, y?: number): void {
   if (!player.value) return;
 
+  const previousMapId = player.value.currentMapId;
+
   player.value = {
     ...player.value,
     currentMapId: mapId,
@@ -252,6 +290,14 @@ export function updatePlayerPosition(mapId: string, x?: number, y?: number): voi
     },
     updatedAt: Date.now(),
   };
+
+  // 如果地图发生变化，触发地图访问任务事件
+  if (previousMapId !== mapId) {
+    // 异步触发任务事件，不阻塞当前位置更新
+    import('./questSignals').then(({ updateMapVisitEvent }) => {
+      updateMapVisitEvent(player.value!.id, mapId);
+    });
+  }
 }
 
 /** 计算包含已分配属性点的基础属性 */
@@ -278,7 +324,8 @@ function calculateStatsWithAllocatedPoints(
 function recalculatePlayerStats(
   raceType: RaceType,
   allocatedPoints: AllocatedPoints,
-  level: number
+  level: number,
+  traits: CharacterTrait[] = []
 ): FullStats {
   const race = getRace(raceType);
   if (!race) {
@@ -305,11 +352,18 @@ function recalculatePlayerStats(
   // 计算战斗属性
   const newCombatStats = calculateCombatStats(newBaseStats, raceType, level);
 
-  // 合并属性
-  return {
+  // 合并基础属性和战斗属性
+  let finalStats: FullStats = {
     ...newBaseStats,
     ...newCombatStats,
   };
+
+  // 应用特性加成
+  if (traits.length > 0) {
+    finalStats = applyTraitBonuses(finalStats, traits);
+  }
+
+  return finalStats;
 }
 
 /** 增加经验值 */
@@ -333,11 +387,12 @@ export function addPlayerExp(exp: number): boolean {
     // 获得新的属性点（每级5点）
     const newAttributePoints = player.value.attributePoints + levelsGained * POINTS_PER_LEVEL;
 
-    // 重新计算属性（包含已分配的属性点）
+    // 重新计算属性（包含已分配的属性点和特性加成）
     const finalStats = recalculatePlayerStats(
       player.value.race,
       player.value.allocatedPoints,
-      currentLevel
+      currentLevel,
+      player.value.traits
     );
 
     player.value = {
@@ -376,11 +431,12 @@ export function allocateAttributePoint(stat: keyof BaseStats): boolean {
     [stat]: player.value.allocatedPoints[stat] + 1,
   };
 
-  // 重新计算最终属性
+  // 重新计算最终属性（含特性加成）
   const finalStats = recalculatePlayerStats(
     player.value.race,
     newAllocatedPoints,
-    player.value.level
+    player.value.level,
+    player.value.traits
   );
 
   player.value = {
@@ -411,11 +467,12 @@ export function deallocateAttributePoint(stat: keyof BaseStats): boolean {
     [stat]: player.value.allocatedPoints[stat] - 1,
   };
 
-  // 重新计算最终属性
+  // 重新计算最终属性（含特性加成）
   const finalStats = recalculatePlayerStats(
     player.value.race,
     newAllocatedPoints,
-    player.value.level
+    player.value.level,
+    player.value.traits
   );
 
   player.value = {
@@ -443,11 +500,12 @@ export function resetAttributePoints(goldCost: number): boolean {
   // 计算总已分配点数
   const totalAllocated = Object.values(player.value.allocatedPoints).reduce((sum, v) => sum + v, 0);
 
-  // 重新计算最终属性（不含分配的点数）
+  // 重新计算最终属性（不含分配的点数，但含特性加成）
   const finalStats = recalculatePlayerStats(
     player.value.race,
     createEmptyAllocatedPoints(),
-    player.value.level
+    player.value.level,
+    player.value.traits
   );
 
   player.value = {
@@ -479,3 +537,146 @@ export const playerAttributePoints = computed(() => player.value?.attributePoint
 
 /** 获取已分配属性点 */
 export const playerAllocatedPoints = computed(() => player.value?.allocatedPoints ?? createEmptyAllocatedPoints());
+
+// ============================================
+// 技能学习系统
+// ============================================
+
+/** 学习技能 */
+export function learnSkill(skillId: string): { success: boolean; message: string } {
+  if (!player.value) {
+    return { success: false, message: '玩家不存在' };
+  }
+
+  // 检查技能是否存在
+  const skill = getSkill(skillId);
+  if (!skill) {
+    return { success: false, message: '技能不存在' };
+  }
+
+  // 检查是否已学习该技能
+  if (player.value.skills.some(s => s.skillId === skillId)) {
+    return { success: false, message: '已经学习了该技能' };
+  }
+
+  // 检查等级要求
+  if (player.value.level < skill.levelRequirement) {
+    return { success: false, message: `需要等级 ${skill.levelRequirement}` };
+  }
+
+  // 检查门派限制
+  if (skill.factionId && skill.factionId !== player.value.factionId) {
+    return { success: false, message: '不是本门派技能' };
+  }
+
+  // 检查技能点
+  if (player.value.skillPoints <= 0) {
+    return { success: false, message: '技能点不足' };
+  }
+
+  // 学习技能
+  const newSkill: LearnedSkill = {
+    skillId,
+    level: 1,
+    cooldownRemaining: 0,
+  };
+
+  player.value = {
+    ...player.value,
+    skills: [...player.value.skills, newSkill],
+    skillPoints: player.value.skillPoints - 1,
+    updatedAt: Date.now(),
+  };
+
+  return { success: true, message: `成功学习「${skill.name}」` };
+}
+
+/** 升级技能 */
+export function upgradeSkill(skillId: string): { success: boolean; message: string } {
+  if (!player.value) {
+    return { success: false, message: '玩家不存在' };
+  }
+
+  // 检查是否已学习该技能
+  const learnedSkill = player.value.skills.find(s => s.skillId === skillId);
+  if (!learnedSkill) {
+    return { success: false, message: '未学习该技能' };
+  }
+
+  // 检查技能点
+  if (player.value.skillPoints <= 0) {
+    return { success: false, message: '技能点不足' };
+  }
+
+  // 检查技能等级上限
+  if (learnedSkill.level >= 10) {
+    return { success: false, message: '技能已达到最高等级' };
+  }
+
+  // 升级技能
+  const updatedSkills = player.value.skills.map(s =>
+    s.skillId === skillId ? { ...s, level: s.level + 1 } : s
+  );
+
+  player.value = {
+    ...player.value,
+    skills: updatedSkills,
+    skillPoints: player.value.skillPoints - 1,
+    updatedAt: Date.now(),
+  };
+
+  const skill = getSkill(skillId);
+  return { success: true, message: `「${skill?.name}」升级到 ${learnedSkill.level + 1} 级` };
+}
+
+/** 获取可学习的技能列表 */
+export function getAvailableSkillsToLearn(): { id: string; name: string; levelRequirement: number; canLearn: boolean; reason: string }[] {
+  if (!player.value) return [];
+
+  const factionSkills = getFactionSkills(player.value.factionId);
+  const commonSkills = Object.values(getSkill('skill_attack') ? [getSkill('skill_attack')!] : []);
+
+  // 合并门派技能和通用技能（排除已学习的）
+  const allSkills = [...factionSkills, ...commonSkills];
+  const learnedIds = new Set(player.value.skills.map(s => s.skillId));
+
+  return allSkills
+    .filter(skill => !learnedIds.has(skill.id))
+    .map(skill => {
+      let canLearn = true;
+      let reason = '';
+
+      if (player.value!.level < skill.levelRequirement) {
+        canLearn = false;
+        reason = `需要等级 ${skill.levelRequirement}`;
+      } else if (player.value!.skillPoints <= 0) {
+        canLearn = false;
+        reason = '技能点不足';
+      }
+
+      return {
+        id: skill.id,
+        name: skill.name,
+        levelRequirement: skill.levelRequirement,
+        canLearn,
+        reason,
+      };
+    });
+}
+
+/** 获取当前技能点数 */
+export const playerSkillPoints = computed(() => player.value?.skillPoints ?? 0);
+
+/** 获取已学习技能列表（带详情） */
+export const playerLearnedSkills = computed(() => {
+  if (!player.value) return [];
+  return player.value.skills.map(ls => ({
+    ...ls,
+    skill: getSkill(ls.skillId),
+  }));
+});
+
+/** 清除玩家数据（退出游戏时使用） */
+export function clearPlayer(): void {
+  player.value = null;
+}

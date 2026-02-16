@@ -35,12 +35,12 @@ function ProgressSegment({
   return (
     <div className="w-full">
       {showLabel && (
-        <div className="flex justify-between text-xs text-[var(--game-text-muted)] mb-1">
+        <div className="flex justify-between text-xs text-slate-500 mb-1">
           <span>{label || `${current} / ${total}`}</span>
           <span>{percent.toFixed(1)}%</span>
         </div>
       )}
-      <div className={`${height} bg-black/40 rounded-full overflow-hidden`}>
+      <div className={`${height} bg-slate-300 rounded-full overflow-hidden`}>
         <div
           className="h-full transition-all duration-500 ease-out rounded-full"
           style={{
@@ -74,31 +74,31 @@ function CategoryProgressCard({
       className={`
         p-3 rounded-lg cursor-pointer transition-all duration-200
         ${isActive
-          ? 'bg-[var(--game-gold)]/20 border border-[var(--game-gold)]/50'
-          : 'bg-black/20 border border-[var(--game-border)] hover:bg-black/30'
+          ? 'bg-amber-100 border border-amber-300'
+          : 'bg-slate-100 border border-[var(--game-border)] hover:bg-slate-200'
         }
       `}
     >
       <div className="flex items-center gap-2 mb-2">
         <span className="text-lg">{config.icon}</span>
-        <span className="text-sm font-semibold text-white">{config.name}</span>
+        <span className="text-sm font-semibold text-[var(--game-text)]">{config.name}</span>
       </div>
 
       <div className="space-y-1">
         <div className="flex justify-between text-xs">
-          <span className="text-[var(--game-text-dim)]">完成度</span>
-          <span className="text-[var(--game-text-muted)]">
+          <span className="text-slate-500">完成度</span>
+          <span className="text-slate-600">
             {stats.unlocked}/{stats.total}
           </span>
         </div>
-        <div className="h-1.5 bg-black/40 rounded-full overflow-hidden">
+        <div className="h-1.5 bg-slate-300 rounded-full overflow-hidden">
           <div
             className="h-full bg-[var(--game-gold)] transition-all duration-500"
             style={{ width: `${percent}%` }}
           />
         </div>
         <div className="flex justify-between text-xs">
-          <span className="text-[var(--game-text-dim)]">点数</span>
+          <span className="text-slate-500">点数</span>
           <span className="text-[var(--game-gold)]">
             {stats.earnedPoints}/{stats.points}
           </span>
@@ -137,7 +137,7 @@ export function AchievementProgressOverview({ compact = false }: AchievementProg
           height="h-2"
           showLabel={false}
         />
-        <div className="flex items-center justify-between mt-2 text-xs text-[var(--game-text-dim)]">
+        <div className="flex items-center justify-between mt-2 text-xs text-slate-500">
           <span>成就点数</span>
           <span className="text-[var(--game-gold)]">
             {stats.earnedPoints}/{stats.totalPoints}
@@ -159,19 +159,19 @@ export function AchievementProgressOverview({ compact = false }: AchievementProg
 
       {/* 总体进度 */}
       <div className="grid grid-cols-2 gap-4">
-        <div className="text-center p-3 bg-black/30 rounded-lg">
+        <div className="text-center p-3 bg-slate-100 rounded-lg">
           <div className="text-2xl font-bold text-[var(--game-gold)]">
             {stats.unlockedAchievements}
           </div>
-          <div className="text-xs text-[var(--game-text-muted)]">
+          <div className="text-xs text-slate-600">
             / {stats.totalAchievements} 成就
           </div>
         </div>
-        <div className="text-center p-3 bg-black/30 rounded-lg">
+        <div className="text-center p-3 bg-slate-100 rounded-lg">
           <div className="text-2xl font-bold text-[var(--game-gold)]">
             {stats.earnedPoints}
           </div>
-          <div className="text-xs text-[var(--game-text-muted)]">
+          <div className="text-xs text-slate-600">
             / {stats.totalPoints} 点数
           </div>
         </div>
@@ -223,8 +223,8 @@ export function AchievementCategoryFilter({ compact = false }: AchievementProgre
           className={`
             flex-shrink-0 px-3 py-1.5 rounded text-xs font-medium transition-all
             ${currentCategory === 'all'
-              ? 'bg-[var(--game-gold)] text-[var(--game-bg-dark)]'
-              : 'bg-black/30 text-[var(--game-text-muted)] hover:text-white'
+              ? 'bg-[var(--game-gold)] text-white'
+              : 'bg-slate-200 text-[var(--game-text)] hover:bg-slate-300'
             }
           `}
         >
@@ -243,10 +243,10 @@ export function AchievementCategoryFilter({ compact = false }: AchievementProgre
               className={`
                 flex-shrink-0 px-3 py-1.5 rounded text-xs font-medium transition-all flex items-center gap-1
                 ${currentCategory === category
-                  ? 'bg-[var(--game-gold)] text-[var(--game-bg-dark)]'
+                  ? 'bg-[var(--game-gold)] text-white'
                   : completed
-                  ? 'bg-green-900/30 text-green-400 border border-green-600/30'
-                  : 'bg-black/30 text-[var(--game-text-muted)] hover:text-white'
+                  ? 'bg-green-100 text-green-700 border border-green-300'
+                  : 'bg-slate-200 text-[var(--game-text)] hover:bg-slate-300'
                 }
               `}
             >
@@ -270,13 +270,13 @@ export function AchievementCategoryFilter({ compact = false }: AchievementProgre
           p-3 rounded-lg transition-all text-center
           ${currentCategory === 'all'
             ? 'bg-[var(--game-gold)]/20 border border-[var(--game-gold)]/50'
-            : 'bg-black/20 border border-[var(--game-border)] hover:bg-black/30'
+            : 'bg-slate-100 border border-[var(--game-border)] hover:bg-slate-200'
           }
         `}
       >
         <div className="text-lg mb-1">🏆</div>
-        <div className="text-xs font-semibold text-white">全部</div>
-        <div className="text-xs text-[var(--game-text-dim)]">
+        <div className="text-xs font-semibold text-[var(--game-text)]">全部</div>
+        <div className="text-xs text-slate-500">
           {stats.unlockedAchievements}/{stats.totalAchievements}
         </div>
       </button>
@@ -298,19 +298,19 @@ export function AchievementCategoryFilter({ compact = false }: AchievementProgre
               ${currentCategory === category
                 ? 'bg-[var(--game-gold)]/20 border border-[var(--game-gold)]/50'
                 : completed
-                ? 'bg-green-900/20 border border-green-600/30'
-                : 'bg-black/20 border border-[var(--game-border)] hover:bg-black/30'
+                ? 'bg-green-50 border border-green-300'
+                : 'bg-slate-100 border border-[var(--game-border)] hover:bg-slate-200'
               }
             `}
           >
             <div className="text-lg mb-1">{config.icon}</div>
-            <div className="text-xs font-semibold text-white">{config.name}</div>
-            <div className="text-xs text-[var(--game-text-dim)]">
+            <div className="text-xs font-semibold text-[var(--game-text)]">{config.name}</div>
+            <div className="text-xs text-slate-500">
               {catStats.unlocked}/{catStats.total}
             </div>
-            <div className="mt-1 h-1 bg-black/40 rounded-full overflow-hidden">
+            <div className="mt-1 h-1 bg-slate-300 rounded-full overflow-hidden">
               <div
-                className={`h-full transition-all duration-500 ${completed ? 'bg-green-500' : 'bg-[var(--game-gold)]'}`}
+                className={`h-full transition-all duration-500 ${completed ? 'bg-emerald-500' : 'bg-[var(--game-gold)]'}`}
                 style={{ width: `${percent}%` }}
               />
             </div>
@@ -343,7 +343,7 @@ export function AchievementMiniProgress() {
             {stats.unlockedAchievements}/{stats.totalAchievements}
           </span>
         </div>
-        <div className="h-1.5 bg-black/40 rounded-full overflow-hidden">
+        <div className="h-1.5 bg-slate-300 rounded-full overflow-hidden">
           <div
             className="h-full bg-[var(--game-gold)] transition-all duration-500"
             style={{ width: `${percent}%` }}
@@ -352,7 +352,7 @@ export function AchievementMiniProgress() {
       </div>
       <div className="text-right">
         <div className="text-xs text-[var(--game-gold)] font-bold">{stats.earnedPoints}</div>
-        <div className="text-xs text-[var(--game-text-dim)]">点数</div>
+        <div className="text-xs text-slate-500">点数</div>
       </div>
     </div>
   );

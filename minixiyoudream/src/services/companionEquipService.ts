@@ -250,6 +250,12 @@ export function calculateFinalStats(
     critDamage: (baseStats.critDamage + (equipmentStats.critDamage || 0) + getBondBonus('critDamage')) * favorabilityMult,
     hitRate: Math.min(1, (baseStats.hitRate + (equipmentStats.hitRate || 0) + getBondBonus('hitRate')) * favorabilityMult),
     dodgeRate: Math.min(0.5, (baseStats.dodgeRate + (equipmentStats.dodgeRate || 0) + getBondBonus('dodgeRate')) * favorabilityMult),
+    antiCritRate: (baseStats.antiCritRate || 0) + (equipmentStats.antiCritRate || 0) + getBondBonus('antiCritRate'),
+    penetration: (baseStats.penetration || 0) + (equipmentStats.penetration || 0) + getBondBonus('penetration'),
+    lifeSteal: (baseStats.lifeSteal || 0) + (equipmentStats.lifeSteal || 0) + getBondBonus('lifeSteal'),
+    reflect: (baseStats.reflect || 0) + (equipmentStats.reflect || 0) + getBondBonus('reflect'),
+    healBonus: (baseStats.healBonus || 0) + (equipmentStats.healBonus || 0) + getBondBonus('healBonus'),
+    cooldownReduction: (baseStats.cooldownReduction || 0) + (equipmentStats.cooldownReduction || 0) + getBondBonus('cooldownReduction'),
   };
 
   return finalStats;

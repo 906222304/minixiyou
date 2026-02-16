@@ -1,6 +1,6 @@
 // 合宠服务逻辑
 
-import type { Pet, PetAptitude, PetSkill, FusionResult, Quality } from '@/types';
+import type { Pet, PetAptitude, PetSkill, FusionResult, Quality, GrowthRate } from '@/types';
 import type { CombatStats } from '@/types/common';
 import { generateUUID } from '@/types';
 import { getPetTemplate } from '@/constants/pets';
@@ -323,6 +323,17 @@ export const petFusionService = {
     // 限制技能数量不超过技能槽
     const finalSkills = skills.slice(0, maxSkills);
 
+    // 生成新的成长率 (合宠后品质提升)
+    const newQuality = mainPet.quality;
+    const newGrowthRate: GrowthRate = {
+      physical: mainPet.growthRate.physical * 1.05,
+      magic: mainPet.growthRate.magic * 1.05,
+      defense: mainPet.growthRate.defense * 1.05,
+      speed: mainPet.growthRate.speed * 1.05,
+      hp: mainPet.growthRate.hp * 1.05,
+      mp: mainPet.growthRate.mp * 1.05,
+    };
+
     const newPet: Pet = {
       id: generateUUID(),
       baseId: mainPet.baseId,
@@ -332,6 +343,8 @@ export const petFusionService = {
       type: mainPet.type,
       rarity,
       element: mainPet.element,
+      quality: newQuality,
+      growthRate: newGrowthRate,
       level,
       exp: 0, // 经验重置
       maxLevel: mainPet.maxLevel,
@@ -349,6 +362,7 @@ export const petFusionService = {
       maxHp: stats.maxHp,
       mp: stats.maxMp,
       maxMp: stats.maxMp,
+      variantAppearance: mainPet.variantAppearance,
     };
 
     return newPet;

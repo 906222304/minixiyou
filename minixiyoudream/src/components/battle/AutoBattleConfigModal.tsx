@@ -302,13 +302,13 @@ export function AutoBattleConfigModal({ isOpen, onClose }: AutoBattleConfigModal
         <div className="game-modal-footer">
           <button
             onClick={handleReset}
-            className="game-btn px-4 py-2 text-sm"
+            className="game-btn px-3 py-2 text-sm"
           >
             恢复默认
           </button>
           <button
             onClick={onClose}
-            className="game-btn game-btn-primary px-6 py-2 text-sm"
+            className="game-btn game-btn-primary px-3 py-2 text-sm"
           >
             确定
           </button>

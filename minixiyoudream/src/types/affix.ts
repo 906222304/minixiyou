@@ -1,6 +1,6 @@
 // 词条类型定义
 
-import type { Quality, StatType } from './common';
+import type { Quality, StatType, Element } from './common';
 
 // ============================================
 // 基础词条类型
@@ -84,7 +84,7 @@ export interface SpecialEffect {
   skillId?: string;        // 触发的技能ID
   damageValue?: number;    // 固定伤害值
   damagePercent?: number;  // 百分比伤害（基于攻击力）
-  element?: 'fire' | 'ice' | 'thunder';
+  element?: Element;       // 元素类型
   statusEffect?: StatusEffectType;
   statusDuration?: number; // 状态持续回合
   healPercent?: number;    // 治疗百分比（基于最大HP）
@@ -189,6 +189,7 @@ export const AFFIX_TYPE_DISTRIBUTION: Record<AffixType, number> = {
 /** 按品质的数值范围倍率 */
 export const QUALITY_AFFIX_MULTIPLIER: Record<Quality, number> = {
   common: 0.6,
+  uncommon: 0.7,
   rare: 0.8,
   epic: 1.0,
   legendary: 1.3,

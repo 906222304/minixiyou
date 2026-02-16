@@ -58,15 +58,15 @@ export function PetPage() {
     <div className="space-y-4">
       {/* 宠物栏信息 */}
       <div className="flex justify-between items-center">
-        <h2 className="text-lg font-medium">我的宠物</h2>
-        <span className="text-sm text-gray-400">
+        <h2 className="text-lg font-medium text-[var(--game-text)]">我的宠物</h2>
+        <span className="text-sm text-[var(--game-text-muted)]">
           {count}/{maxPets}
         </span>
       </div>
 
       {/* 当前出战宠物 */}
       {currentPet && (
-        <div className="card bg-primary-900/30 border-primary-500">
+        <div className="game-card bg-amber-50 border-amber-300">
           <div className="flex items-center gap-3">
             <span className="text-4xl">{currentPet.icon}</span>
             <div className="flex-1">
@@ -77,22 +77,22 @@ export function PetPage() {
                 >
                   {currentPet.nickname || currentPet.name}
                 </span>
-                <span className="text-xs bg-primary-600 px-2 py-0.5 rounded">出战中</span>
+                <span className="text-xs bg-amber-500 text-white px-2 py-0.5 rounded">出战中</span>
               </div>
-              <div className="text-sm text-gray-400">
+              <div className="text-sm text-[var(--game-text-muted)]">
                 Lv.{currentPet.level} · {getTypeName(currentPet.type)}
               </div>
               {/* HP/MP条 */}
               <div className="mt-2 space-y-1">
                 <div className="flex items-center gap-2">
-                  <span className="text-xs text-red-400 w-6">HP</span>
-                  <div className="flex-1 h-2 bg-gray-700 rounded-full overflow-hidden">
+                  <span className="text-xs text-red-500 w-6">HP</span>
+                  <div className="flex-1 h-2 bg-slate-200 rounded-full overflow-hidden">
                     <div
                       className="h-full bg-red-500"
                       style={{ width: `${(currentPet.hp / currentPet.maxHp) * 100}%` }}
                     />
                   </div>
-                  <span className="text-xs text-gray-400">
+                  <span className="text-xs text-[var(--game-text-muted)]">
                     {currentPet.hp}/{currentPet.maxHp}
                   </span>
                 </div>
@@ -100,7 +100,7 @@ export function PetPage() {
             </div>
             <button
               onClick={handleUnsetActive}
-              className="text-sm px-3 py-1 bg-gray-700 hover:bg-gray-600 rounded touch-btn"
+              className="text-sm px-3 py-1.5 bg-slate-200 hover:bg-slate-300 active:bg-slate-400 text-[var(--game-text)] rounded touch-btn transition-colors"
             >
               休息
             </button>
@@ -110,10 +110,10 @@ export function PetPage() {
 
       {/* 宠物列表 */}
       {pets.length === 0 ? (
-        <div className="card text-center py-8">
+        <div className="game-card text-center py-8">
           <span className="text-4xl mb-2 block">🐾</span>
-          <p className="text-gray-400">还没有宠物</p>
-          <p className="text-sm text-gray-500 mt-1">在野外战斗可以捕捉宠物</p>
+          <p className="text-[var(--game-text-muted)]">还没有宠物</p>
+          <p className="text-sm text-[var(--game-text-dim)] mt-1">在野外战斗可以捕捉宠物</p>
         </div>
       ) : (
         <div className="grid grid-cols-2 gap-3">
@@ -121,8 +121,8 @@ export function PetPage() {
             <button
               key={pet.id}
               onClick={() => setSelectedPet(pet)}
-              className={`card text-left hover:border-primary-500 transition-colors ${
-                pet.isActive ? 'border-primary-500' : ''
+              className={`game-card text-left hover:border-amber-400 transition-colors ${
+                pet.isActive ? 'border-amber-400' : ''
               }`}
             >
               <div className="flex items-center gap-2">
@@ -134,7 +134,7 @@ export function PetPage() {
                   >
                     {pet.nickname || pet.name}
                   </div>
-                  <div className="text-xs text-gray-400">
+                  <div className="text-xs text-[var(--game-text-muted)]">
                     Lv.{pet.level}
                   </div>
                 </div>
@@ -148,7 +148,7 @@ export function PetPage() {
       {/* 测试按钮：创建随机宠物 */}
       <button
         onClick={handleCreateTestPet}
-        className="w-full py-2 bg-gray-700 hover:bg-gray-600 rounded-lg text-sm touch-btn"
+        className="w-full py-3 bg-slate-200 hover:bg-slate-300 active:bg-slate-400 rounded-lg text-sm touch-btn text-[var(--game-text)] font-medium transition-colors"
       >
         🎲 获得随机宠物（测试）
       </button>

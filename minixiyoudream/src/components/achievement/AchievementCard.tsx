@@ -16,7 +16,7 @@ function AchievementBadge({ progressInfo }: { progressInfo: AchievementProgressI
 
   if (playerData.claimed) {
     return (
-      <span className="px-2 py-1 text-xs rounded bg-green-900/50 text-green-400 border border-green-600/30">
+      <span className="px-2 py-1 text-xs rounded bg-emerald-100 text-emerald-700 border border-emerald-300">
         已领取
       </span>
     );
@@ -24,7 +24,7 @@ function AchievementBadge({ progressInfo }: { progressInfo: AchievementProgressI
 
   if (canClaim) {
     return (
-      <span className="px-2 py-1 text-xs rounded bg-yellow-900/50 text-yellow-400 border border-yellow-600/30 animate-pulse">
+      <span className="px-2 py-1 text-xs rounded bg-amber-100 text-amber-700 border border-amber-300 animate-pulse">
         可领取
       </span>
     );
@@ -32,7 +32,7 @@ function AchievementBadge({ progressInfo }: { progressInfo: AchievementProgressI
 
   if (playerData.unlocked) {
     return (
-      <span className="px-2 py-1 text-xs rounded bg-blue-900/50 text-blue-400 border border-blue-600/30">
+      <span className="px-2 py-1 text-xs rounded bg-blue-100 text-blue-700 border border-blue-300">
         已解锁
       </span>
     );
@@ -63,11 +63,11 @@ function ProgressBar({
 
   return (
     <div className="mt-2">
-      <div className="flex justify-between text-xs text-[var(--game-text-dim)] mb-1">
+      <div className="flex justify-between text-xs text-slate-500 mb-1">
         <span>{current.toLocaleString()} / {target.toLocaleString()}</span>
         <span>{percent.toFixed(1)}%</span>
       </div>
-      <div className="h-2 bg-black/40 rounded-full overflow-hidden">
+      <div className="h-2 bg-slate-300 rounded-full overflow-hidden">
         <div
           className={`h-full ${barColor} transition-all duration-500 ease-out`}
           style={{ width: `${Math.min(100, percent)}%` }}
@@ -85,23 +85,23 @@ function RewardDisplay({ progressInfo }: { progressInfo: AchievementProgressInfo
   if (!reward) return null;
 
   return (
-    <div className="mt-3 p-2 bg-black/30 rounded border border-[var(--game-border)]">
-      <div className="text-xs text-[var(--game-text-muted)] mb-1">奖励:</div>
+    <div className="mt-3 p-2 bg-slate-100 rounded border border-[var(--game-border)]">
+      <div className="text-xs text-slate-500 mb-1">奖励:</div>
       <div className="flex flex-wrap gap-2 text-xs">
         {reward.gold && (
-          <span className="flex items-center gap-1 text-yellow-400">
+          <span className="flex items-center gap-1 text-amber-500">
             <span>💰</span>
             <span>{reward.gold.toLocaleString()} 金币</span>
           </span>
         )}
         {reward.exp && (
-          <span className="flex items-center gap-1 text-green-400">
+          <span className="flex items-center gap-1 text-emerald-500">
             <span>✨</span>
             <span>{reward.exp.toLocaleString()} 经验</span>
           </span>
         )}
         {reward.titleId && (
-          <span className="flex items-center gap-1 text-purple-400">
+          <span className="flex items-center gap-1 text-purple-500">
             <span>👑</span>
             <span>称号</span>
           </span>
@@ -123,12 +123,12 @@ export function AchievementCard({ progressInfo, onClaim }: AchievementCardProps)
     return (
       <div className="game-card p-4 opacity-70">
         <div className="flex items-center gap-3">
-          <div className="game-icon game-icon-sm bg-gray-800/50">
+          <div className="game-icon game-icon-sm bg-slate-100">
             <span>❓</span>
           </div>
           <div className="flex-1">
-            <div className="text-[var(--game-text-muted)]">???</div>
-            <div className="text-xs text-[var(--game-text-dim)]">
+            <div className="text-slate-600">???</div>
+            <div className="text-xs text-slate-500">
               隐藏成就 - 继续探索以解锁
             </div>
           </div>
@@ -165,7 +165,7 @@ export function AchievementCard({ progressInfo, onClaim }: AchievementCardProps)
       <div className="flex items-start gap-3">
         {/* 图标 */}
         <div
-          className={`game-icon game-icon-md ${playerData.unlocked ? 'bg-yellow-900/30' : 'bg-black/30'}`}
+          className={`game-icon game-icon-md ${playerData.unlocked ? 'bg-amber-100' : 'bg-slate-100'}`}
           style={playerData.unlocked ? { borderColor: '#FFD700' } : {}}
         >
           <span className="text-xl">{achievement.icon}</span>
@@ -211,7 +211,7 @@ export function AchievementCard({ progressInfo, onClaim }: AchievementCardProps)
         </div>
 
         {/* 展开指示器 */}
-        <div className={`text-[var(--game-text-dim)] transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`}>
+        <div className={`text-slate-500 transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`}>
           ▼
         </div>
       </div>
@@ -224,7 +224,7 @@ export function AchievementCard({ progressInfo, onClaim }: AchievementCardProps)
 
           {/* 解锁时间 */}
           {playerData.unlocked && playerData.unlockedAt && (
-            <div className="mt-2 text-xs text-[var(--game-text-dim)]">
+            <div className="mt-2 text-xs text-slate-500">
               解锁于: {new Date(playerData.unlockedAt).toLocaleString('zh-CN')}
             </div>
           )}

@@ -2,7 +2,7 @@
 
 import type { BaseStats, CombatStats, ExtendedCombatStats, FullStats, RaceType, Element, DamageResult } from '@/types';
 import { RACES } from './races';
-import { ELEMENT_ADVANTAGE } from '@/types/common';
+import { ELEMENT_ADVANTAGE, ELEMENT_ADVANTAGE_MULTIPLIER, ELEMENT_DISADVANTAGE_MULTIPLIER } from '@/types/common';
 
 // ============== 基础属性计算 ==============
 
@@ -41,6 +41,10 @@ export function calculateCombatStats(
   const agi = stats.agility * raceBonus.agility;
   const wil = stats.willpower * raceBonus.willpower;
 
+  // 妖族额外敏捷加成
+  const isSpirit = race === 'spirit';
+  const dodgeBonus = isSpirit ? 0.1 : 0;
+
   return {
     // 攻防属性
     physicalAttack: Math.floor(str * 2 + agi * 0.5 + level * 2),
@@ -59,9 +63,17 @@ export function calculateCombatStats(
     critRate: Math.min(0.05 + agi * 0.002, 0.5),
     critDamage: 0.5 + agi * 0.01,
 
-    // 命中/闪避 - 命中上限99%，闪避上限30%
+    // 命中/闪避 - 命中上限99%，闪避上限30%（妖族额外+10%）
     hitRate: Math.min(0.9 + agi * 0.001, 0.99),
-    dodgeRate: Math.min(0.02 + agi * 0.002, 0.3),
+    dodgeRate: Math.min(0.02 + agi * 0.002 + dodgeBonus, 0.4),
+
+    // 新增扩展属性 - 初始值
+    antiCritRate: Math.min(0.05 + vit * 0.001, 0.3),  // 抗暴率基础5%，上限30%
+    penetration: Math.floor(agi * 0.5),                // 穿透基于敏捷
+    lifeSteal: 0,                                       // 吸血需要装备提供
+    reflect: 0,                                         // 反弹需要装备提供
+    healBonus: 0,                                       // 治疗加成需要装备提供
+    cooldownReduction: 0,                              // 冷却缩减需要装备提供
   };
 }
 
@@ -150,24 +162,32 @@ export function checkCritical(
 
 /**
  * 计算元素克制倍率
+ * 五行相克：金克木，木克土，土克水，水克火，火克金
  * @param attackElement 攻击元素
  * @param defenderElement 防御者元素属性
+ * @returns 倍率和克制类型
  */
 export function calculateElementMultiplier(
   attackElement: Element,
   defenderElement?: Element
-): number {
+): { multiplier: number; advantage: 'strong' | 'weak' | 'neutral' } {
+  // 无属性或物理不参与克制
+  if (attackElement === 'none' || attackElement === 'physical' ||
+      defenderElement === 'none' || defenderElement === 'physical' || !defenderElement) {
+    return { multiplier: 1.0, advantage: 'neutral' };
+  }
+
   // 克制：+30%伤害
   if (ELEMENT_ADVANTAGE[attackElement] === defenderElement) {
-    return 1.3;
+    return { multiplier: ELEMENT_ADVANTAGE_MULTIPLIER, advantage: 'strong' };
   }
 
-  // 被克：-30%伤害
-  if (defenderElement && ELEMENT_ADVANTAGE[defenderElement] === attackElement) {
-    return 0.7;
+  // 被克：-20%伤害
+  if (ELEMENT_ADVANTAGE[defenderElement] === attackElement) {
+    return { multiplier: ELEMENT_DISADVANTAGE_MULTIPLIER, advantage: 'weak' };
   }
 
-  return 1.0;
+  return { multiplier: 1.0, advantage: 'neutral' };
 }
 
 /**
@@ -237,16 +257,18 @@ export function calculatePhysicalDamage(
  * @param attacker 攻击者属性
  * @param defender 防御者属性
  * @param skill 技能信息
+ * @param defenderElement 防御者元素属性（用于计算克制）
  * @param prng 随机数生成器
  */
 export function calculateMagicDamage(
   attacker: ExtendedCombatStats,
   defender: ExtendedCombatStats,
   skill: { multiplier: number; element: Element; critBonus?: number },
+  defenderElement: Element | undefined,
   prng: () => number
 ): DamageResult {
-  // 1. 应用穿透后的防御力
-  const penetration = attacker.magicPenetration || 0;
+  // 1. 应用穿透后的防御力（优先使用新穿透属性）
+  const penetration = attacker.magicPenetration || attacker.penetration || 0;
   const penDefense = Math.max(0, defender.magicDefense - penetration);
 
   // 2. 基础伤害 = 法攻 - 穿透后法防（最小为1）
@@ -255,10 +277,10 @@ export function calculateMagicDamage(
   // 3. 技能倍率
   const skillDamage = baseDamage * skill.multiplier;
 
-  // 4. 元素克制
-  const elementMultiplier = calculateElementMultiplier(skill.element, undefined);
+  // 4. 元素克制（使用五行克制系统）
+  const elementResult = calculateElementMultiplier(skill.element, defenderElement);
 
-  // 5. 元素抗性
+  // 5. 元素抗性（五行抗性）
   const resistanceKey = `${skill.element}Resistance` as keyof ExtendedCombatStats;
   const resistance = (defender[resistanceKey] as number) || 0;
   const resistanceMultiplier = calculateResistanceMultiplier(resistance);
@@ -269,8 +291,10 @@ export function calculateMagicDamage(
   // 7. 伤害加成
   const bonusMultiplier = 1 + (attacker.damageBonus || 0);
 
-  // 8. 暴击判定
-  const critResult = checkCritical(attacker, skill.critBonus || 0, prng);
+  // 8. 暴击判定（考虑抗暴率）
+  const effectiveCritRate = Math.max(0, (attacker.critRate + (skill.critBonus || 0)) - (defender.antiCritRate || 0));
+  const isCritical = prng() < Math.min(0.75, effectiveCritRate);
+  const critMultiplier = isCritical ? (1 + attacker.critDamage) : 1;
 
   // 9. 伤害减免（上限75%）
   const reductionMultiplier = 1 - Math.min(0.75, defender.damageReduction || 0);
@@ -278,23 +302,23 @@ export function calculateMagicDamage(
   // 10. 最终伤害
   const finalDamage = Math.floor(
     skillDamage *
-    elementMultiplier *
+    elementResult.multiplier *
     resistanceMultiplier *
     randomMultiplier *
     bonusMultiplier *
-    critResult.critMultiplier *
+    critMultiplier *
     reductionMultiplier
   );
 
   // 11. 法术吸血
-  const vampAmount = Math.floor(finalDamage * (attacker.spellVamp || 0));
+  const vampAmount = Math.floor(finalDamage * (attacker.spellVamp || attacker.lifeSteal || 0));
 
   return {
     damage: Math.max(1, finalDamage),
-    isCritical: critResult.isCritical,
+    isCritical,
     lifestealAmount: vampAmount,
     element: skill.element,
-    elementalAdvantage: elementMultiplier > 1,
+    elementalAdvantage: elementResult.advantage === 'strong',
   };
 }
 
@@ -466,24 +490,31 @@ export function calculateFinalStats(
 
 /** 宠物资质计算 */
 export function calculatePetStats(
-  baseStats: CombatStats,
+  baseStats: Partial<CombatStats>,
   aptitude: Record<string, number>,
   level: number
 ): CombatStats {
   const levelFactor = 1 + (level - 1) * 0.05;
 
   return {
-    physicalAttack: Math.floor(baseStats.physicalAttack * aptitude.attack * levelFactor),
-    physicalDefense: Math.floor(baseStats.physicalDefense * aptitude.defense * levelFactor),
-    magicAttack: Math.floor(baseStats.magicAttack * aptitude.magic * levelFactor),
-    magicDefense: Math.floor(baseStats.magicDefense * aptitude.magic * levelFactor),
-    speed: Math.floor(baseStats.speed * aptitude.speed * levelFactor),
-    maxHp: Math.floor(baseStats.maxHp * aptitude.hp * levelFactor),
-    maxMp: Math.floor(baseStats.maxMp * aptitude.mp * levelFactor),
-    critRate: baseStats.critRate,
-    critDamage: baseStats.critDamage,
-    hitRate: baseStats.hitRate,
-    dodgeRate: baseStats.dodgeRate,
+    physicalAttack: Math.floor((baseStats.physicalAttack ?? 0) * aptitude.attack * levelFactor),
+    physicalDefense: Math.floor((baseStats.physicalDefense ?? 0) * aptitude.defense * levelFactor),
+    magicAttack: Math.floor((baseStats.magicAttack ?? 0) * aptitude.magic * levelFactor),
+    magicDefense: Math.floor((baseStats.magicDefense ?? 0) * aptitude.magic * levelFactor),
+    speed: Math.floor((baseStats.speed ?? 0) * aptitude.speed * levelFactor),
+    maxHp: Math.floor((baseStats.maxHp ?? 0) * aptitude.hp * levelFactor),
+    maxMp: Math.floor((baseStats.maxMp ?? 0) * aptitude.mp * levelFactor),
+    critRate: baseStats.critRate ?? 0,
+    critDamage: baseStats.critDamage ?? 0,
+    hitRate: baseStats.hitRate ?? 0,
+    dodgeRate: baseStats.dodgeRate ?? 0,
+    // 新增属性
+    antiCritRate: baseStats.antiCritRate ?? 0,
+    penetration: Math.floor((baseStats.penetration ?? 0) * levelFactor),
+    lifeSteal: baseStats.lifeSteal ?? 0,
+    reflect: baseStats.reflect ?? 0,
+    healBonus: baseStats.healBonus ?? 0,
+    cooldownReduction: baseStats.cooldownReduction ?? 0,
   };
 }
 
@@ -491,7 +522,7 @@ export function calculatePetStats(
 
 /** 种族被动效果类型 */
 export interface RacePassiveEffect {
-  type: 'survive_fatal' | 'mp_regen' | 'low_hp_attack';
+  type: 'survive_fatal' | 'mp_regen' | 'low_hp_attack' | 'dodge_fatal';
   trigger: 'on_fatal_damage' | 'on_turn_end' | 'on_attack';
   value: number;
   description: string;
@@ -523,6 +554,13 @@ export function getRacePassiveEffect(race: RaceType): RacePassiveEffect {
         trigger: 'on_attack',
         value: 0.2, // +20%攻击
         description: '当HP低于30%时，物理攻击+20%',
+      };
+    case 'spirit':
+      return {
+        type: 'dodge_fatal',
+        trigger: 'on_fatal_damage',
+        value: 0.15, // 15%概率
+        description: '受到致命伤害时，有15%概率闪避此次伤害',
       };
     default:
       return {
@@ -568,6 +606,13 @@ export function calculateRacePassive(
     case 'low_hp_attack':
       if (context.currentHp / context.maxHp < 0.3) {
         return { triggered: true, effect: 'attack_bonus', value: effect.value };
+      }
+      break;
+
+    case 'dodge_fatal':
+      // 妖族：闪避致命伤害
+      if (context.isFatalDamage && prng() < effect.value) {
+        return { triggered: true, effect: 'dodge', value: 0 };
       }
       break;
   }

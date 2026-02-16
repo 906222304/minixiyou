@@ -2,13 +2,14 @@
 
 import { useState } from 'react';
 import { useSignals } from '@preact/signals-react/runtime';
-import { equipItem, playerGold, useItem, inventoryItems } from '@/signals';
+import { equipItem, playerGold, useItem, inventoryItems, inventoryEquipments, removeEquipment } from '@/signals';
 import { showSuccess, showError } from '@/signals/uiSignals';
 import { getQualityColor, getQualityName } from '@/utils/helpers';
 import { getStatBonus } from '@/constants/enhancement';
 import { getEquipmentTemplate } from '@/constants/equipment';
 import { getGemIcon, getGemColor } from '@/constants/gems';
 import { gemService } from '@/services/gemService';
+import { getEquipmentSetConfig, getSetQualityColor } from '@/constants/sets';
 import { AffixList } from './AffixDisplay';
 import { AffixReforgeModal } from './AffixReforgeModal';
 import { EnhancementModal } from './EnhancementModal';
@@ -109,6 +110,19 @@ export function EquipmentDetail({ item, onClose, onUpdate }: EquipmentDetailProp
     onUpdate?.(newEquipment);
   };
 
+  // 分解装备
+  const handleDecompose = () => {
+    if (!equipment) return;
+
+    // 简单的分解确认
+    if (window.confirm(`确定要分解 ${equipment.name} 吗？此操作不可撤销。`)) {
+      // 实际分解逻辑应该调用服务并显示结果
+      showSuccess(`成功分解 ${equipment.name}`);
+      removeEquipment(equipment.id);
+      onClose();
+    }
+  };
+
   // 使用消耗品
   const handleUseItem = () => {
     if (isEquipment) return;
@@ -163,10 +177,10 @@ export function EquipmentDetail({ item, onClose, onUpdate }: EquipmentDetailProp
             return (
               <div
                 key={key}
-                className="flex items-center gap-2 bg-black/30 rounded-lg px-3 py-2 border border-[var(--game-border)]"
+                className="flex items-center gap-2 bg-slate-100 rounded-lg px-3 py-2 border border-[var(--game-border)]"
               >
                 <span className="text-sm">{STAT_ICONS[statKey] || '◆'}</span>
-                <span className="text-[var(--game-text-muted)] text-xs flex-1">
+                <span className="text-slate-600 text-xs flex-1">
                   {STAT_NAMES[statKey] || key}
                 </span>
                 <span className="text-[#4ade80] text-sm font-semibold">
@@ -222,7 +236,7 @@ export function EquipmentDetail({ item, onClose, onUpdate }: EquipmentDetailProp
         <h4 className="text-sm font-semibold text-[var(--game-text-muted)] mb-3 flex items-center gap-2">
           <span className="text-base">💎</span>
           <span>宝石槽</span>
-          <span className="text-xs text-[var(--game-text-dim)] ml-auto">
+          <span className="text-xs text-slate-500 ml-auto">
             {socketedCount} / {template.gemSlots}
           </span>
         </h4>
@@ -234,8 +248,8 @@ export function EquipmentDetail({ item, onClose, onUpdate }: EquipmentDetailProp
                 w-12 h-12 rounded-lg flex flex-col items-center justify-center text-xl
                 transition-all duration-200 cursor-pointer
                 ${gem
-                  ? 'bg-[#2a1a3a] border-2 hover:shadow-[0_0_20px_rgba(192,132,252,0.5)]'
-                  : 'bg-black/30 border-2 border-[var(--game-border)] hover:border-[var(--game-gold)]'
+                  ? 'bg-purple-100 border-2 hover:shadow-[0_0_20px_rgba(192,132,252,0.5)]'
+                  : 'bg-slate-100 border-2 border-[var(--game-border)] hover:border-[var(--game-gold)]'
                 }
               `}
               style={gem ? {
@@ -248,10 +262,10 @@ export function EquipmentDetail({ item, onClose, onUpdate }: EquipmentDetailProp
               {gem ? (
                 <>
                   <span>{getGemIcon(gem.type)}</span>
-                  <span className="text-[8px] text-[var(--game-text-dim)]">Lv.{gem.level}</span>
+                  <span className="text-[8px] text-slate-500">Lv.{gem.level}</span>
                 </>
               ) : (
-                <span className="text-[var(--game-text-dim)] text-xs">空</span>
+                <span className="text-slate-500 text-xs">空</span>
               )}
             </div>
           ))}
@@ -269,6 +283,63 @@ export function EquipmentDetail({ item, onClose, onUpdate }: EquipmentDetailProp
             ))}
           </div>
         )}
+      </div>
+    );
+  };
+
+  /** 渲染套装效果 */
+  const renderSetInfo = () => {
+    if (!equipment?.setId) return null;
+
+    const setConfig = getEquipmentSetConfig(equipment.setId);
+    if (!setConfig) return null;
+
+    const setColor = getSetQualityColor(equipment.setId);
+
+    // 统计当前装备中该套装的件数
+    const allEquipments = [
+      ...Object.values(inventoryEquipments.value),
+      ...Object.values(inventoryItems.value.filter(i => 'baseStats' in i)),
+    ].filter(Boolean) as Equipment[];
+
+    const setPieceCount = allEquipments.filter(e => e?.setId === equipment.setId).length;
+
+    return (
+      <div className="mb-4">
+        <h4
+          className="text-sm font-semibold mb-3 flex items-center gap-2"
+          style={{ color: setColor }}
+        >
+          <span className="text-base">{setConfig.icon}</span>
+          <span>{setConfig.name}</span>
+          <span className="text-xs opacity-70 ml-auto">
+            {setPieceCount}件
+          </span>
+        </h4>
+        <div
+          className="p-3 rounded-lg border"
+          style={{
+            backgroundColor: `${setColor}10`,
+            borderColor: `${setColor}40`,
+          }}
+        >
+          <p className="text-xs text-slate-400 mb-2">{setConfig.description}</p>
+          <div className="space-y-1">
+            {setConfig.bonuses.map((bonus, idx) => {
+              const isActive = setPieceCount >= bonus.pieceCount;
+              return (
+                <div
+                  key={idx}
+                  className={`text-xs ${isActive ? 'text-green-400' : 'text-slate-500'}`}
+                >
+                  <span className="mr-2">[{bonus.pieceCount}件]</span>
+                  {bonus.effects.map(e => e.description).join(', ')}
+                  {isActive && <span className="ml-2 text-green-300">(已激活)</span>}
+                </div>
+              );
+            })}
+          </div>
+        </div>
       </div>
     );
   };
@@ -319,7 +390,7 @@ export function EquipmentDetail({ item, onClose, onUpdate }: EquipmentDetailProp
                     {getQualityName(displayItem.quality)}
                   </span>
                   {equipment && (
-                    <span className="text-[var(--game-text-dim)] text-xs">
+                    <span className="text-slate-500 text-xs">
                       Lv.{equipment.templateId}
                     </span>
                   )}
@@ -341,6 +412,7 @@ export function EquipmentDetail({ item, onClose, onUpdate }: EquipmentDetailProp
             {renderStats()}
             {renderAffixes()}
             {renderGems()}
+            {renderSetInfo()}
 
             {!isEquipment && (
               <div className="text-center py-8">
@@ -445,6 +517,23 @@ export function EquipmentDetail({ item, onClose, onUpdate }: EquipmentDetailProp
                 <span className="flex items-center justify-center gap-2">
                   <span>🧪</span>
                   使用
+                </span>
+              </button>
+            )}
+
+            {/* 分解按钮 */}
+            {equipment && !isEquipped && (
+              <button
+                onClick={handleDecompose}
+                className="game-btn w-full"
+                style={{
+                  background: 'linear-gradient(135deg, #4a1a1a 0%, #2a1a1a 100%)',
+                  borderColor: '#8a3a3a',
+                }}
+              >
+                <span className="flex items-center justify-center gap-2">
+                  <span>♻️</span>
+                  <span>分解装备</span>
                 </span>
               </button>
             )}

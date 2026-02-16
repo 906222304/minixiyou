@@ -57,7 +57,7 @@ export function CurrentMapInfo() {
 
   if (!map) {
     return (
-      <div className="game-panel p-4 text-center text-[var(--game-text-muted)]">
+      <div className="game-panel p-4 text-center text-slate-500">
         地图数据加载中...
       </div>
     );
@@ -87,7 +87,7 @@ export function CurrentMapInfo() {
         <div className="flex-1">
           <h3 className="text-lg font-bold text-[var(--game-gold-dark)]">{map.name}</h3>
           <div className="flex items-center gap-2 mt-1">
-            <span className="text-xs px-2 py-0.5 rounded bg-[var(--game-primary)]/20 text-[var(--game-primary)]">
+            <span className="text-xs px-2 py-0.5 rounded bg-blue-100 text-blue-700">
               {getMapTypeName(map.type)}
             </span>
             <span className={`text-xs ${getMapDangerStyle(suitability)}`}>
@@ -98,18 +98,18 @@ export function CurrentMapInfo() {
       </div>
 
       {/* 地图描述 */}
-      <p className="text-sm text-[var(--game-text-muted)] mb-3">{map.description}</p>
+      <p className="text-sm text-slate-600 mb-3">{map.description}</p>
 
       {/* 地图信息 */}
       <div className="grid grid-cols-2 gap-2 text-sm">
-        <div className="bg-white/50 rounded-lg p-2">
-          <span className="text-[var(--game-text-muted)]">等级范围：</span>
+        <div className="bg-[var(--game-bg-subtle)] rounded-lg p-2">
+          <span className="text-slate-500">等级范围：</span>
           <span className="font-medium text-[var(--game-text)]">
             Lv.{map.levelRange.min} - Lv.{map.levelRange.max}
           </span>
         </div>
-        <div className="bg-white/50 rounded-lg p-2">
-          <span className="text-[var(--game-text-muted)]">区域：</span>
+        <div className="bg-[var(--game-bg-subtle)] rounded-lg p-2">
+          <span className="text-slate-500">区域：</span>
           <span className="font-medium text-[var(--game-text)]">
             {map.region === 'newbie' ? '新手村' : '东土大唐'}
           </span>
@@ -170,12 +170,12 @@ export function CurrentMapInfo() {
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
                     <span className="font-medium text-sm truncate">{npc.name}</span>
-                    <span className="text-xs opacity-60">
+                    <span className="text-xs text-slate-600">
                       [{NPC_TYPE_NAMES[npc.type] || npc.type}]
                     </span>
                   </div>
                   {npc.dialogues.greeting && (
-                    <p className="text-xs opacity-70 truncate mt-0.5">
+                    <p className="text-xs text-slate-500 truncate mt-0.5">
                       "{npc.dialogues.greeting}"
                     </p>
                   )}

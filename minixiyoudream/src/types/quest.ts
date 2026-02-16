@@ -88,6 +88,8 @@ export interface QuestChapter {
   icon: string;
   /** 包含的任务ID列表 */
   questIds: string[];
+  /** 章节最低等级要求 */
+  levelRequired?: number;
 }
 
 /** 任务定义 */
@@ -209,7 +211,14 @@ export type QuestEventType =
   | 'map_reached'
   | 'item_equipped'
   | 'level_reached'
-  | 'battle_won';
+  | 'battle_won'
+  | 'pet_captured'
+  | 'dungeon_completed'
+  | 'skill_used'
+  | 'equipment_enhanced'
+  | 'arena_battle'
+  | 'gift_given'
+  | 'fish_caught';
 
 /** 任务事件 */
 export interface QuestEvent {

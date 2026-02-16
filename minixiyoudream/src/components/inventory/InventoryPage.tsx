@@ -59,7 +59,7 @@ export function InventoryPage() {
               <span>⚔️</span>
               <span>已装备</span>
             </h3>
-            <div className="space-y-2">
+            <div className="space-y-3">
               {(Object.keys(equipped) as EquipmentSlot[]).map((slot) => {
                 const equip = equipped[slot];
                 const qualityColor = equip ? getQualityColor(equip.quality) : undefined;
@@ -69,7 +69,7 @@ export function InventoryPage() {
                     key={slot}
                     onClick={() => equip && setSelectedItem(equip)}
                     className={`
-                      game-card p-3 flex items-center gap-3 cursor-pointer
+                      game-card p-4 flex items-center gap-3 cursor-pointer
                       ${equip ? '' : 'opacity-50'}
                     `}
                     style={equip ? {
@@ -81,7 +81,7 @@ export function InventoryPage() {
                       {equip ? SLOT_ICONS[slot] : '➕'}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <div className="text-xs text-[var(--game-text-dim)] mb-1">
+                      <div className="text-xs text-slate-600 mb-1">
                         {SLOT_NAMES[slot]}
                       </div>
                       {equip ? (
@@ -97,7 +97,7 @@ export function InventoryPage() {
                           )}
                         </div>
                       ) : (
-                        <div className="text-[var(--game-text-dim)] text-sm">空</div>
+                        <div className="text-slate-500 text-sm">空</div>
                       )}
                     </div>
                     {equip && (
@@ -131,14 +131,14 @@ export function InventoryPage() {
                 <p className="text-[var(--game-text-muted)]">没有装备</p>
               </div>
             ) : (
-              <div className="space-y-2">
+              <div className="space-y-3">
                 {equipments.map((equip) => {
                   const qualityColor = getQualityColor(equip.quality);
                   return (
                     <div
                       key={equip.id}
                       onClick={() => setSelectedItem(equip)}
-                      className="game-card p-3 flex items-center gap-3 cursor-pointer"
+                      className="game-card p-4 flex items-center gap-3 cursor-pointer"
                       style={{
                         borderColor: qualityColor,
                         boxShadow: `0 0 15px ${qualityColor}20`,
@@ -190,14 +190,14 @@ export function InventoryPage() {
                 <p className="text-[var(--game-text-muted)]">没有物品</p>
               </div>
             ) : (
-              <div className="space-y-2">
+              <div className="space-y-3">
                 {items.map((item) => {
                   const qualityColor = getQualityColor(item.quality);
                   return (
                     <div
                       key={item.id}
                       onClick={() => setSelectedItem(item)}
-                      className="game-card p-3 flex items-center gap-3 cursor-pointer"
+                      className="game-card p-4 flex items-center gap-3 cursor-pointer"
                       style={{
                         borderColor: qualityColor,
                       }}
@@ -216,7 +216,7 @@ export function InventoryPage() {
                           <span className="game-tag game-tag-gold text-xs">
                             {getQualityName(item.quality)}
                           </span>
-                          <span className="text-[var(--game-text-dim)] text-xs">
+                          <span className="text-slate-500 text-xs">
                             × {item.count}
                           </span>
                         </div>
@@ -240,7 +240,7 @@ export function InventoryPage() {
       </div>
 
       {/* 标签页切换 */}
-      <div className="flex gap-2 p-1 bg-black/30 rounded-lg">
+      <div className="flex gap-2 p-1 bg-slate-200 rounded-lg">
         {(['equipped', 'equipment', 'items'] as TabType[]).map((tab) => (
           <button
             key={tab}
@@ -248,8 +248,8 @@ export function InventoryPage() {
             className={`
               flex-1 py-2.5 px-3 rounded-md text-sm font-semibold transition-all duration-200
               ${activeTab === tab
-                ? 'bg-[var(--game-gold)] text-[var(--game-bg-dark)] shadow-lg'
-                : 'text-[var(--game-text-muted)] hover:text-white hover:bg-white/5'
+                ? 'bg-[var(--game-gold)] text-white shadow-lg'
+                : 'text-[var(--game-text)] hover:text-[var(--game-gold)] hover:bg-slate-300 active:bg-slate-400'
               }
             `}
           >

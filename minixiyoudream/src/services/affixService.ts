@@ -48,6 +48,7 @@ export function generateConditionalAffix(
   // 根据品质确定稀有度范围
   const rarityByQuality: Record<Quality, AffixRarity[]> = {
     common: ['common'],
+    uncommon: ['common', 'rare'],
     rare: ['common', 'rare'],
     epic: ['common', 'rare', 'epic'],
     legendary: ['rare', 'epic', 'legendary'],
@@ -106,6 +107,7 @@ export function generateSpecialAffix(
 ): SpecialAffix {
   const rarityByQuality: Record<Quality, AffixRarity[]> = {
     common: ['common'],
+    uncommon: ['common', 'rare'],
     rare: ['common', 'rare'],
     epic: ['common', 'rare', 'epic'],
     legendary: ['rare', 'epic', 'legendary'],
@@ -256,6 +258,7 @@ function regenerateAffixValue(
 ): number {
   const multipliers: Record<Quality, number> = {
     common: 0.6,
+    uncommon: 0.7,
     rare: 0.8,
     epic: 1.0,
     legendary: 1.3,
@@ -286,6 +289,7 @@ function generateBaseAffix(quality: Quality, prng: PRNG): BaseAffix {
   const isPercent = prng.next() > 0.5;
   const multipliers: Record<Quality, number> = {
     common: 0.6,
+    uncommon: 0.7,
     rare: 0.8,
     epic: 1.0,
     legendary: 1.3,
@@ -327,17 +331,24 @@ function getStatDisplayName(stat: StatType): string {
     critDamage: '暴击伤害',
     hitRate: '命中率',
     dodgeRate: '闪避率',
+    antiCritRate: '抗暴率',
+    penetration: '穿透',
+    lifeSteal: '吸血',
+    reflect: '反弹',
+    healBonus: '治疗加成',
+    cooldownReduction: '冷却缩减',
     lifesteal: '吸血',
     spellVamp: '法术吸血',
     damageBonus: '伤害加成',
     damageReduction: '伤害减免',
-    healBonus: '治疗加成',
     healReceived: '被治疗',
     physicalPenetration: '物穿',
     magicPenetration: '法穿',
+    metalResistance: '金抗',
+    woodResistance: '木抗',
+    waterResistance: '水抗',
     fireResistance: '火抗',
-    iceResistance: '冰抗',
-    thunderResistance: '雷抗',
+    earthResistance: '土抗',
   };
   return names[stat] || stat;
 }

@@ -49,6 +49,7 @@
 | 状态 | Preact Signals | 2.x |
 | 存储 | Dexie.js | 4.x |
 | 样式 | Tailwind CSS | 4.x |
+| 移动端 | Capacitor | 7.x |
 
 ## 目录规范
 
@@ -62,6 +63,25 @@ src/
 ├── db/             # Dexie.js 数据库
 └── styles/         # 全局样式
 ```
+
+## 五行系统
+
+### 相克关系
+```
+金克木 → 木克土 → 土克水 → 水克火 → 火克金
+```
+
+### 元素类型
+- `metal` 金系
+- `wood` 木系
+- `water` 水系
+- `fire` 火系
+- `earth` 土系
+
+### 抗性规则
+- 本系技能抗性 +20%
+- 被克系技能抗性 -20%
+- 其他系技能抗性 0%
 
 ## 开发工作流
 
@@ -112,8 +132,15 @@ src/
 ### ID 命名
 - 物品: `item_` 前缀 (如 `item_potion_hp`)
 - 敌人: `enemy_` 前缀 (如 `enemy_bandit`)
+- 可捕捉宠物敌人: `enemy_pet_` 前缀 (如 `enemy_pet_firespirit`)
+- 宠物: `pet_` 前缀 (如 `pet_firespirit`)
 - 地图: `map_` 前缀 (如 `map_changan`)
 - 任务: `main_` / `daily_` 前缀
+- 门派: `faction_` 前缀 (如 `faction_datang`)
+- 技能: `skill_` 前缀 (如 `skill_hengsao`)
+- 特性: `trait_` 前缀 (如 `trait_brave`)
+- 种族: `race_` 前缀 (如 `race_human`)
+- 套装: `set_` 前缀 (如 `set_flame`)
 
 ## 禁止事项
 

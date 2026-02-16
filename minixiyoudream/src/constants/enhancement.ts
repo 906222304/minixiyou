@@ -61,6 +61,7 @@ export const ENHANCEMENT_TABLE: EnhancementLevel[] = [
 /** 品质对应的最大强化等级 */
 export const QUALITY_MAX_ENHANCE: Record<Quality, number> = {
   common: 5,
+  uncommon: 6,
   rare: 8,
   epic: 10,
   legendary: 12,

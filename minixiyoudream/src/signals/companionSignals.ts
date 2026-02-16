@@ -100,9 +100,11 @@ export function unlockCompanion(templateId: string): Companion | null {
     bondStats: {},
     finalStats: { ...template.baseStats },
     elementResistances: {
+      metal: 0,
+      wood: 0,
+      water: 0,
       fire: 0,
-      ice: 0,
-      thunder: 0,
+      earth: 0,
     },
     equipment: {
       weapon: null,

@@ -82,7 +82,7 @@ export function throttle<T extends (...args: unknown[]) => unknown>(
 
 /** 品质颜色映射 */
 export const QUALITY_COLORS: Record<string, string> = {
-  common: '#FFFFFF',
+  common: '#4b5563',  // 深灰色 - 在浅色背景上可见
   rare: '#0070DD',
   epic: '#A335EE',
   legendary: '#FF8000',

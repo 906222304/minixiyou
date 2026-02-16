@@ -7,7 +7,7 @@ import type {
   SpecialEffectType,
   StatusEffectType,
 } from '@/types/affix';
-import type { StatType } from '@/types/common';
+import type { StatType, Element } from '@/types/common';
 
 // ============================================
 // 条件触发词条模板
@@ -172,7 +172,7 @@ interface SpecialAffixTemplate {
   effect: {
     type: SpecialEffectType;
     damagePercent?: number;    // 伤害百分比
-    element?: 'fire' | 'ice' | 'thunder';
+    element?: Element;
     statusEffect?: StatusEffectType;
     statusDuration?: number;
     healPercent?: number;
@@ -198,7 +198,7 @@ export const SPECIAL_AFFIX_TEMPLATES: SpecialAffixTemplate[] = [
     description: '攻击时{chance}%概率触发冰晶，造成{value}%攻击力的冰系伤害',
     rarity: 'common',
     trigger: { event: 'on_attack', chanceMin: 3, chanceMax: 5 },
-    effect: { type: 'damage', damagePercent: 50, element: 'ice' },
+    effect: { type: 'damage', damagePercent: 50, element: 'water' },
     weight: 100,
   },
   {
@@ -218,7 +218,7 @@ export const SPECIAL_AFFIX_TEMPLATES: SpecialAffixTemplate[] = [
     description: '攻击时{chance}%概率触发雷霆，造成{value}%攻击力的雷系伤害',
     rarity: 'rare',
     trigger: { event: 'on_attack', chanceMin: 5, chanceMax: 8 },
-    effect: { type: 'damage', damagePercent: 80, element: 'thunder' },
+    effect: { type: 'damage', damagePercent: 80, element: 'metal' },
     weight: 60,
   },
   {
@@ -276,7 +276,7 @@ export const SPECIAL_AFFIX_TEMPLATES: SpecialAffixTemplate[] = [
     description: '攻击时{chance}%概率触发连锁闪电，对目标及相邻敌人造成{value}%攻击力的雷系伤害',
     rarity: 'legendary',
     trigger: { event: 'on_attack', chanceMin: 8, chanceMax: 12 },
-    effect: { type: 'damage', damagePercent: 100, element: 'thunder' },
+    effect: { type: 'damage', damagePercent: 100, element: 'metal' },
     weight: 10,
   },
   {
@@ -296,7 +296,7 @@ export const SPECIAL_AFFIX_TEMPLATES: SpecialAffixTemplate[] = [
     description: '攻击时{chance}%概率触发凤凰之火，造成{value}%攻击力的火系伤害并回复等量HP',
     rarity: 'mythic',
     trigger: { event: 'on_attack', chanceMin: 10, chanceMax: 15 },
-    effect: { type: 'damage', damagePercent: 150, element: 'fire' },
+    effect: { type: 'damage', damagePercent: 150, element: 'fire' as const },
     weight: 3,
   },
 ];

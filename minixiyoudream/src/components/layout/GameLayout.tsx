@@ -4,31 +4,28 @@ import { useEffect } from 'react';
 import { useSignals } from '@preact/signals-react/runtime';
 import {
   player,
-  playerHp,
-  playerMp,
-  playerMaxHp,
-  playerMaxMp,
-  playerGold,
-  playerLevel,
   currentPage,
   showSidebar,
   toggleSidebar,
   closeSidebar,
   navigateTo,
+  showSuccess,
+  showError,
+  returnToMenu,
+  clearPlayer,
   type Page,
 } from '@/signals';
-import { gamePhase } from '@/signals/gameSignals';
 import { initQuests, isQuestInitialized } from '@/signals/questSignals';
 import { InventoryPage } from '@/components/inventory';
 import { PetPage } from '@/components/pet';
 import { CompanionPage } from '@/components/companion';
-import { MapPage } from '@/components/map';
+import { MapPage, ExplorePage } from '@/components/map';
 import { DungeonPage } from '@/components/dungeon';
 import { CharacterPage } from '@/components/character/CharacterPage';
 import { CultivationPage } from '@/components/cultivation';
 import { AchievementPage } from '@/components/achievement';
-import { QuestPage, QuestHint, QuestHintInline, QuestDialog } from '@/components/quest';
-import { getMap } from '@/constants/maps';
+import { QuestPage, QuestDialog } from '@/components/quest';
+import { autoSave, save, list } from '@/services/saveService';
 
 // 迷你西游梦风格图标
 const Icons = {
@@ -89,12 +86,19 @@ const Icons = {
   ),
 };
 
-const NAV_ITEMS: { page: Page; icon: React.ReactNode; label: string; emoji: string }[] = [
-  { page: 'home', icon: Icons.home, label: '首页', emoji: '🏠' },
+type NavItem = { page: Page; icon: React.ReactNode; label: string; emoji: string };
+
+// 底部导航项 (4个固定)
+const BOTTOM_NAV_ITEMS: NavItem[] = [
   { page: 'character', icon: Icons.home, label: '人物', emoji: '👤' },
   { page: 'inventory', icon: Icons.inventory, label: '背包', emoji: '🎒' },
   { page: 'pet', icon: Icons.pet, label: '宠物', emoji: '🐉' },
   { page: 'map', icon: Icons.map, label: '地图', emoji: '🗺️' },
+];
+
+// 侧边栏导航项 (移除 home, 保留其他)
+const SIDEBAR_NAV_ITEMS: NavItem[] = [
+  ...BOTTOM_NAV_ITEMS,
   { page: 'companion', icon: Icons.companion, label: '伙伴', emoji: '👥' },
   { page: 'dungeon', icon: Icons.dungeon, label: '副本', emoji: '🏰' },
   { page: 'cultivation', icon: Icons.settings, label: '修炼', emoji: '🧘' },
@@ -106,12 +110,6 @@ export function GameLayout() {
   useSignals();
 
   const currentPlayer = player.value;
-  const hp = playerHp.value;
-  const mp = playerMp.value;
-  const maxHp = playerMaxHp.value;
-  const maxMp = playerMaxMp.value;
-  const gold = playerGold.value;
-  const level = playerLevel.value;
   const page = currentPage.value;
   const sidebarOpen = showSidebar.value;
   const questInitialized = isQuestInitialized.value;
@@ -125,11 +123,8 @@ export function GameLayout() {
 
   if (!currentPlayer) return null;
 
-  const hpPercent = Math.max(0, Math.min(100, (hp / maxHp) * 100));
-  const mpPercent = Math.max(0, Math.min(100, (mp / maxMp) * 100));
-
   return (
-    <div className="min-h-screen text-[var(--game-text)] flex flex-col">
+    <div className="min-h-screen text-[var(--game-text)] flex flex-col" style={{ paddingTop: 'max(24px, env(safe-area-inset-top))' }}>
       {/* 小清新背景层 */}
       <div className="fixed inset-0 pointer-events-none overflow-hidden">
         {/* 渐变背景 - 清新明亮 */}
@@ -143,60 +138,6 @@ export function GameLayout() {
         {/* 柔和光晕 */}
         <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-[400px] h-[200px] bg-[var(--game-gold)]/10 rounded-full blur-[80px]" />
       </div>
-
-      {/* 顶部状态栏 */}
-      <header className="sticky top-0 z-20 px-4 py-3">
-        <div className="game-panel px-4 py-3">
-          <div className="flex items-center justify-between">
-            {/* 左侧：菜单 + 玩家信息 */}
-            <div className="flex items-center gap-3">
-              <button
-                onClick={toggleSidebar}
-                className="w-10 h-10 flex items-center justify-center hover:bg-[var(--game-bg-hover)] rounded-lg transition-colors cursor-pointer text-[var(--game-text-muted)] hover:text-[var(--game-text)]"
-                aria-label="打开菜单"
-              >
-                {Icons.menu}
-              </button>
-              <div className="flex items-center gap-2">
-                <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-[var(--game-gold)]/20 to-white/50 border border-[var(--game-gold)]/30 flex items-center justify-center text-lg shadow-sm">
-                  👤
-                </div>
-                <div className="flex flex-col">
-                  <span className="font-semibold text-[var(--game-text)]">{currentPlayer.name}</span>
-                  <span className="text-xs text-[var(--game-text-muted)]">Lv.{level}</span>
-                </div>
-              </div>
-            </div>
-
-            {/* 右侧：金币 */}
-            <div className="flex items-center gap-2 bg-white/80 px-3 py-1.5 rounded-lg border border-[var(--game-border)] shadow-sm">
-              <span className="text-lg">💰</span>
-              <span className="text-sm font-semibold text-[var(--game-gold-dark)]">{gold.toLocaleString()}</span>
-            </div>
-          </div>
-
-          {/* HP/MP 状态条 */}
-          <div className="mt-3 space-y-2">
-            {/* HP */}
-            <div className="flex items-center gap-3">
-              <span className="text-sm">❤️</span>
-              <div className="flex-1 game-progress game-progress-hp" style={{height: '10px'}}>
-                <div className="game-progress-fill" style={{ width: `${hpPercent}%` }} />
-              </div>
-              <span className="text-xs text-[var(--game-text-muted)] w-20 text-right">{hp}/{maxHp}</span>
-            </div>
-
-            {/* MP */}
-            <div className="flex items-center gap-3">
-              <span className="text-sm">💙</span>
-              <div className="flex-1 game-progress game-progress-mp" style={{height: '10px'}}>
-                <div className="game-progress-fill" style={{ width: `${mpPercent}%` }} />
-              </div>
-              <span className="text-xs text-[var(--game-text-muted)] w-20 text-right">{mp}/{maxMp}</span>
-            </div>
-          </div>
-        </div>
-      </header>
 
       {/* 侧边栏 */}
       {sidebarOpen && (
@@ -228,7 +169,7 @@ export function GameLayout() {
 
               {/* 导航项 */}
               <nav className="flex-1 space-y-2">
-                {NAV_ITEMS.map((item) => (
+                {SIDEBAR_NAV_ITEMS.map((item) => (
                   <button
                     key={item.page}
                     onClick={() => navigateTo(item.page)}
@@ -244,16 +185,61 @@ export function GameLayout() {
                 ))}
               </nav>
 
-              {/* 底部设置按钮 */}
-              <div className="pt-4 border-t border-[var(--game-border)]">
+              {/* 底部按钮 */}
+              <div className="pt-4 border-t border-[var(--game-border)] space-y-2">
+                {/* 存档按钮 - 保存为手动存档 */}
+                <button
+                  onClick={async () => {
+                    const currentPlayer = player.value;
+                    const saveName = `${currentPlayer?.name ?? '玩家'} - Lv.${currentPlayer?.level ?? 1} - ${new Date().toLocaleString('zh-CN', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' })}`;
+
+                    // 先检查是否已有同名存档，有则覆盖
+                    const saves = await list();
+                    const existingSave = saves.find(s =>
+                      s.playerName === currentPlayer?.name &&
+                      s.playerLevel === currentPlayer?.level
+                    );
+
+                    const result = await save(saveName, existingSave?.id);
+                    if (result.success) {
+                      showSuccess('存档成功！');
+                      // 同时更新自动存档
+                      await autoSave();
+                      closeSidebar();
+                    } else {
+                      showError(result.message);
+                    }
+                  }}
+                  className="w-full p-3 bg-green-500/10 hover:bg-green-500/20 rounded-lg text-left flex items-center gap-3 transition-colors touch-manipulation text-green-600"
+                >
+                  <span className="text-xl w-8 text-center">💾</span>
+                  <span className="font-medium">保存游戏</span>
+                </button>
                 <button
                   onClick={() => {
                     closeSidebar();
                   }}
-                  className="w-full p-3 hover:bg-[var(--game-bg-hover)] rounded-lg text-left flex items-center gap-3 transition-colors cursor-pointer text-[var(--game-text-muted)] hover:text-[var(--game-text)]"
+                  className="w-full p-3 hover:bg-[var(--game-bg-hover)] rounded-lg text-left flex items-center gap-3 transition-colors touch-manipulation text-[var(--game-text-muted)] hover:text-[var(--game-text)]"
                 >
                   <span className="text-xl w-8 text-center">⚙️</span>
                   <span className="font-medium">设置</span>
+                </button>
+                {/* 退出游戏按钮 */}
+                <button
+                  onClick={async () => {
+                    // 先自动保存
+                    await autoSave();
+                    // 清除玩家数据
+                    clearPlayer();
+                    // 关闭侧边栏
+                    closeSidebar();
+                    // 返回主菜单
+                    returnToMenu();
+                  }}
+                  className="w-full p-3 bg-red-500/10 hover:bg-red-500/20 rounded-lg text-left flex items-center gap-3 transition-colors touch-manipulation text-red-600"
+                >
+                  <span className="text-xl w-8 text-center">🚪</span>
+                  <span className="font-medium">退出游戏</span>
                 </button>
               </div>
             </div>
@@ -262,58 +248,8 @@ export function GameLayout() {
       )}
 
       {/* 主内容区域 */}
-      <main className="flex-1 p-4 overflow-auto pb-28 relative z-10">
-        {page === 'home' && (
-          <div className="space-y-5">
-            {/* 欢迎信息 + 任务栏 */}
-            <div className="game-panel p-4">
-              <div className="flex items-center justify-between">
-                {/* 左侧：欢迎信息 */}
-                <div className="flex items-center gap-3">
-                  <span className="text-3xl">👋</span>
-                  <div>
-                    <h2 className="text-lg font-bold text-[var(--game-gold)]">
-                      欢迎回来，{currentPlayer.name}！
-                    </h2>
-                    <p className="text-sm text-[var(--game-text-muted)]">
-                      你现在位于 <span className="text-[#60a5fa]">{getMap(currentPlayer.currentMapId)?.name ?? currentPlayer.currentMapId}</span>
-                    </p>
-                  </div>
-                </div>
-                {/* 右侧：任务栏 */}
-                <QuestHintInline />
-              </div>
-            </div>
-
-            {/* 战斗按钮 */}
-            <button
-              onClick={() => gamePhase.value = 'battle'}
-              className="game-btn game-btn-danger w-full py-5"
-            >
-              <div className="flex items-center justify-center gap-3">
-                <span className="text-2xl">⚔️</span>
-                <div className="text-left">
-                  <div className="font-bold text-lg">开始战斗</div>
-                  <div className="text-sm opacity-80">探索未知，挑战强敌</div>
-                </div>
-              </div>
-            </button>
-
-            {/* 功能网格 */}
-            <div className="grid grid-cols-2 gap-3">
-              {NAV_ITEMS.slice(1).map((item) => (
-                <button
-                  key={item.page}
-                  onClick={() => navigateTo(item.page)}
-                  className="game-card p-4 flex flex-col items-center gap-2"
-                >
-                  <span className="text-3xl">{item.emoji}</span>
-                  <span className="text-sm font-semibold text-[var(--game-text)]">{item.label}</span>
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
+      <main className="flex-1 p-4 overflow-auto relative z-10" style={{ paddingBottom: 'calc(7rem + env(safe-area-inset-bottom))' }}>
+        {page === 'explore' && <ExplorePage />}
 
         {page === 'inventory' && (
           <div>
@@ -338,21 +274,18 @@ export function GameLayout() {
         {page === 'quest' && <QuestPage />}
       </main>
 
-      {/* 常驻任务提示 */}
-      <QuestHint />
-
       {/* 底部导航 */}
-      <nav className="fixed bottom-4 left-4 right-4 z-20">
+      <nav className="fixed left-4 right-4 z-20" style={{ bottom: 'max(24px, calc(1rem + env(safe-area-inset-bottom)))' }}>
         <div className="game-panel px-3 py-2">
           <div className="flex justify-around items-center">
-            {NAV_ITEMS.slice(0, 4).map((item) => (
+            {BOTTOM_NAV_ITEMS.map((item) => (
               <button
                 key={item.page}
                 onClick={() => navigateTo(item.page)}
-                className={`flex flex-col items-center p-2 rounded-lg min-w-[56px] min-h-[56px] justify-center transition-all duration-200 cursor-pointer ${
+                className={`flex flex-col items-center p-2 rounded-lg min-w-[56px] min-h-[56px] justify-center transition-all duration-200 touch-manipulation ${
                   page === item.page
                     ? 'text-[var(--game-gold-dark)]'
-                    : 'text-[var(--game-text-muted)] hover:text-[var(--game-text)]'
+                    : 'text-[var(--game-text-muted)] hover:text-[var(--game-text)] active:bg-white/10'
                 }`}
                 aria-label={item.label}
                 aria-current={page === item.page ? 'page' : undefined}
@@ -363,7 +296,7 @@ export function GameLayout() {
             ))}
             <button
               onClick={toggleSidebar}
-              className="flex flex-col items-center p-2 rounded-lg min-w-[56px] min-h-[56px] justify-center text-[var(--game-text-muted)] hover:text-[var(--game-text)] transition-colors cursor-pointer"
+              className="flex flex-col items-center p-2 rounded-lg min-w-[56px] min-h-[56px] justify-center text-[var(--game-text-muted)] hover:text-[var(--game-text)] active:bg-white/10 transition-colors touch-manipulation"
               aria-label="更多菜单"
             >
               <span className="text-2xl">📋</span>

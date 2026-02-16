@@ -7,23 +7,28 @@ import { battleState } from '@/signals';
 export function BattleLog() {
   useSignals();
 
-  const logEndRef = useRef<HTMLDivElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
   const state = battleState.value;
   const logs = state?.logs ?? [];
 
-  // 自动滚动到最新日志
+  // 自动滚动到最新日志 - 只滚动容器内部
   useEffect(() => {
-    logEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    if (containerRef.current) {
+      containerRef.current.scrollTop = containerRef.current.scrollHeight;
+    }
   }, [logs.length]);
 
   if (!state) return null;
 
   return (
-    <div className="bg-white/70 rounded-xl p-3 h-24 overflow-y-auto text-xs shadow-sm border border-[var(--game-border)]">
+    <div
+      ref={containerRef}
+      className="bg-slate-50 rounded-lg sm:rounded-xl p-2 sm:p-3 h-16 sm:h-24 overflow-y-auto text-[10px] sm:text-xs shadow-sm border border-[var(--game-border)]"
+    >
       {logs.length === 0 ? (
         <p className="text-[var(--game-text-muted)] text-center">战斗开始！</p>
       ) : (
-        <div className="space-y-1">
+        <div className="space-y-0.5 sm:space-y-1">
           {logs.map((log, index) => (
             <div
               key={`${log.timestamp}-${index}`}
@@ -35,7 +40,6 @@ export function BattleLog() {
               {log.text}
             </div>
           ))}
-          <div ref={logEndRef} />
         </div>
       )}
     </div>

@@ -21,7 +21,7 @@ import {
 } from '@/signals/achievementSignals';
 import { ACHIEVEMENT_CATEGORIES } from '@/constants/achievements';
 import { player } from '@/signals/playerSignals';
-import { showSuccess, showError } from '@/signals/uiSignals';
+import { showSuccess, showError, returnToExplore } from '@/signals/uiSignals';
 import { AchievementCard } from './AchievementCard';
 import type { AchievementCategory } from '@/types/achievement';
 
@@ -46,8 +46,8 @@ function CategoryFilter() {
         className={`
           flex-shrink-0 px-4 py-2 rounded-lg text-sm font-medium transition-all
           ${currentCategory === 'all'
-            ? 'bg-[var(--game-gold)] text-[var(--game-bg-dark)] shadow-lg'
-            : 'bg-black/30 text-[var(--game-text-muted)] hover:text-white hover:bg-black/40'
+            ? 'bg-[var(--game-gold)] text-white shadow-lg'
+            : 'bg-slate-200 text-[var(--game-text)] hover:bg-slate-300 active:bg-slate-400'
           }
         `}
       >
@@ -70,10 +70,10 @@ function CategoryFilter() {
             className={`
               flex-shrink-0 px-4 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-2
               ${currentCategory === category
-                ? 'bg-[var(--game-gold)] text-[var(--game-bg-dark)] shadow-lg'
+                ? 'bg-[var(--game-gold)] text-white shadow-lg'
                 : completed
-                ? 'bg-green-900/30 text-green-400 border border-green-600/30 hover:bg-green-900/40'
-                : 'bg-black/30 text-[var(--game-text-muted)] hover:text-white hover:bg-black/40'
+                ? 'bg-green-100 text-green-700 border border-green-300 hover:bg-green-200'
+                : 'bg-slate-200 text-[var(--game-text)] hover:bg-slate-300 active:bg-slate-400'
               }
             `}
           >
@@ -107,8 +107,8 @@ function StatsOverview() {
           <div className="text-2xl font-bold text-[var(--game-gold)]">
             {stats.unlockedAchievements}
           </div>
-          <div className="text-xs text-[var(--game-text-muted)]">已完成</div>
-          <div className="text-xs text-[var(--game-text-dim)]">
+          <div className="text-xs text-slate-600">已完成</div>
+          <div className="text-xs text-slate-500">
             / {stats.totalAchievements}
           </div>
         </div>
@@ -118,32 +118,32 @@ function StatsOverview() {
           <div className="text-2xl font-bold text-[var(--game-gold)]">
             {stats.earnedPoints}
           </div>
-          <div className="text-xs text-[var(--game-text-muted)]">获得点数</div>
-          <div className="text-xs text-[var(--game-text-dim)]">
+          <div className="text-xs text-slate-600">获得点数</div>
+          <div className="text-xs text-slate-500">
             / {stats.totalPoints}
           </div>
         </div>
 
         {/* 可领取奖励 */}
         <div className="text-center">
-          <div className="text-2xl font-bold text-yellow-400">
+          <div className="text-2xl font-bold text-amber-500">
             {claimableRewardCount.value}
           </div>
-          <div className="text-xs text-[var(--game-text-muted)]">待领取</div>
+          <div className="text-xs text-slate-600">待领取</div>
         </div>
 
         {/* 完成率 */}
         <div className="text-center">
-          <div className="text-2xl font-bold text-green-400">
+          <div className="text-2xl font-bold text-emerald-500">
             {percent.toFixed(1)}%
           </div>
-          <div className="text-xs text-[var(--game-text-muted)]">完成率</div>
+          <div className="text-xs text-slate-600">完成率</div>
         </div>
       </div>
 
       {/* 总进度条 */}
       <div className="mt-4">
-        <div className="h-3 bg-black/40 rounded-full overflow-hidden">
+        <div className="h-3 bg-slate-300 rounded-full overflow-hidden">
           <div
             className="h-full bg-gradient-to-r from-[var(--game-gold)] to-yellow-300 transition-all duration-500"
             style={{ width: `${percent}%` }}
@@ -184,13 +184,13 @@ function NewAchievementNotification() {
           return (
             <div
               key={id}
-              className="flex items-center gap-2 px-3 py-1.5 bg-black/30 rounded-lg"
+              className="flex items-center gap-2 px-3 py-1.5 bg-slate-100 rounded-lg"
             >
               <span>{progress.achievement.icon}</span>
-              <span className="text-sm text-white">{progress.achievement.name}</span>
+              <span className="text-sm text-[var(--game-text)]">{progress.achievement.name}</span>
               <button
                 onClick={() => removeNewlyUnlockedAchievement(id)}
-                className="text-[var(--game-text-dim)] hover:text-white"
+                className="text-slate-500 hover:text-white"
               >
                 ×
               </button>
@@ -318,7 +318,7 @@ function TitleManager() {
     return (
       <div className="flex flex-wrap gap-1 mt-2">
         {Object.entries(statBonus).map(([stat, value]) => (
-          <span key={stat} className="text-xs px-2 py-0.5 bg-green-900/30 text-green-400 rounded">
+          <span key={stat} className="text-xs px-2 py-0.5 bg-emerald-100 text-emerald-600 rounded">
             {statNames[stat] || stat} +{value}
           </span>
         ))}
@@ -391,8 +391,8 @@ function TitleManager() {
                   key={playerTitle.titleId}
                   className={`p-4 rounded-lg transition-all ${
                     isActive
-                      ? 'bg-[var(--game-gold)]/10 border border-[var(--game-gold)]/30'
-                      : 'bg-black/20 hover:bg-black/30'
+                      ? 'bg-amber-100 border border-amber-300'
+                      : 'bg-slate-100 hover:bg-slate-200 active:bg-slate-300'
                   }`}
                 >
                   <div className="flex items-center gap-3">
@@ -413,12 +413,12 @@ function TitleManager() {
                           {title.name}
                         </span>
                         {title.rare && (
-                          <span className="text-xs px-1.5 py-0.5 bg-yellow-900/50 text-yellow-400 rounded">
+                          <span className="text-xs px-1.5 py-0.5 bg-amber-100 text-amber-600 rounded">
                             稀有
                           </span>
                         )}
                         {isActive && (
-                          <span className="text-xs px-1.5 py-0.5 bg-green-900/50 text-green-400 rounded">
+                          <span className="text-xs px-1.5 py-0.5 bg-emerald-100 text-emerald-600 rounded">
                             使用中
                           </span>
                         )}
@@ -427,14 +427,14 @@ function TitleManager() {
                         {title.description}
                       </div>
                       {renderStatBonus(title.statBonus)}
-                      <div className="text-xs text-[var(--game-text-dim)] mt-1">
+                      <div className="text-xs text-slate-500 mt-1">
                         获得时间: {new Date(playerTitle.acquiredAt).toLocaleDateString()}
                       </div>
                     </div>
                     {!isActive && (
                       <button
                         onClick={() => handleActivate(playerTitle.titleId)}
-                        className="px-3 py-1.5 bg-[var(--game-gold)] text-[var(--game-bg-dark)] rounded-lg text-sm font-medium hover:brightness-110 transition-all"
+                        className="px-3 py-1.5 bg-[var(--game-gold)] text-white rounded-lg text-sm font-medium hover:brightness-110 transition-all"
                       >
                         激活
                       </button>
@@ -448,7 +448,7 @@ function TitleManager() {
       </div>
 
       {/* 提示信息 */}
-      <div className="text-center text-xs text-[var(--game-text-dim)]">
+      <div className="text-center text-xs text-slate-500">
         称号可通过完成成就获得，激活称号可获得属性加成
       </div>
     </div>
@@ -462,6 +462,15 @@ export function AchievementPage() {
 
   return (
     <div className="space-y-5">
+      {/* 返回按钮 */}
+      <button
+        onClick={returnToExplore}
+        className="flex items-center gap-2 px-4 py-3 text-sm text-[var(--game-text-muted)] hover:text-[var(--game-text)] active:bg-white/10 rounded-lg transition-colors touch-manipulation"
+      >
+        <span className="text-lg">←</span>
+        <span>返回西游</span>
+      </button>
+
       {/* 标题 */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
@@ -485,7 +494,7 @@ export function AchievementPage() {
               <span> 点数</span>
             </div>
             {claimableRewardCount.value > 0 && (
-              <div className="px-2 py-1 bg-yellow-900/50 text-yellow-400 rounded text-xs animate-pulse">
+              <div className="px-2 py-1 bg-amber-100 text-amber-600 rounded text-xs animate-pulse">
                 {claimableRewardCount.value} 个奖励待领取
               </div>
             )}
@@ -494,7 +503,7 @@ export function AchievementPage() {
       </div>
 
       {/* 标签页切换 */}
-      <div className="flex gap-2 p-1 bg-black/30 rounded-lg">
+      <div className="flex gap-2 p-1 bg-slate-200 rounded-lg">
         {(['achievements', 'titles'] as TabType[]).map((tab) => (
           <button
             key={tab}
@@ -502,8 +511,8 @@ export function AchievementPage() {
             className={`
               flex-1 py-2.5 px-3 rounded-md text-sm font-semibold transition-all duration-200
               ${activeTab === tab
-                ? 'bg-[var(--game-gold)] text-[var(--game-bg-dark)] shadow-lg'
-                : 'text-[var(--game-text-muted)] hover:text-white hover:bg-white/5'
+                ? 'bg-[var(--game-gold)] text-white shadow-lg'
+                : 'text-[var(--game-text)] hover:bg-slate-300 active:bg-slate-400'
               }
             `}
           >

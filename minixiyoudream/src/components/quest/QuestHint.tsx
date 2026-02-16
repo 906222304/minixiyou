@@ -255,7 +255,7 @@ export function QuestHint() {
             </div>
           )}
           {canClaim && (
-            <div className="mt-2 flex items-center gap-1 text-xs text-green-600">
+            <div className="mt-2 flex items-center gap-1 text-xs text-emerald-600">
               <span className="animate-bounce">🎁</span>
               <span className="font-medium">奖励可领取！</span>
             </div>

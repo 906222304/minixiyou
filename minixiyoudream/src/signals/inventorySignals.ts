@@ -5,7 +5,7 @@ import type { Item, Equipment, EquipmentSlots, AffixLockState, ItemEffect } from
 import { generateUUID } from '@/types';
 import { createEmptyEquipmentSlots } from '@/types/equipment';
 import { getItemTemplate } from '@/constants/items';
-import { updateEquipEvent } from './questSignals';
+import { updateEquipEvent, updateItemCollectEvent } from './questSignals';
 import { player, updatePlayerHp, updatePlayerMp, updatePlayerGold } from './playerSignals';
 import { addPlayerExp } from './playerSignals';
 import { randomInt, randomChoice } from '@/utils/prng';
@@ -80,6 +80,14 @@ export function addItem(templateId: string, count: number = 1): boolean {
 
       inventoryItems.value = [...items, newItem];
     });
+  }
+
+  // 触发物品收集任务事件
+  const currentPlayer = player.value;
+  if (currentPlayer) {
+    updateItemCollectEvent(currentPlayer.id, templateId, count).catch(err =>
+      console.error('[Inventory] Failed to trigger item collect event:', err)
+    );
   }
 
   return true;

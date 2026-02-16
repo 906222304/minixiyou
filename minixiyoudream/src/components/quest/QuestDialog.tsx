@@ -21,9 +21,9 @@ function DialogBubble({ line, isPlayer }: { line: DialogLine; isPlayer: boolean 
 
   const getBubbleClass = () => {
     if (isPlayer) {
-      return 'bg-[var(--game-gold)]/20 border-[var(--game-gold)]/30';
+      return 'bg-amber-100 border-amber-300';
     }
-    return 'bg-black/40 border-white/10';
+    return 'bg-slate-100 border-slate-200';
   };
 
   return (
@@ -49,7 +49,7 @@ function DialogBubble({ line, isPlayer }: { line: DialogLine; isPlayer: boolean 
             ${isPlayer ? 'rounded-tr-sm' : 'rounded-tl-sm'}
           `}
         >
-          <p className="text-white leading-relaxed">{line.text}</p>
+          <p className={`leading-relaxed ${isPlayer ? 'text-[var(--game-text)]' : 'text-slate-700'}`}>{line.text}</p>
         </div>
       </div>
 

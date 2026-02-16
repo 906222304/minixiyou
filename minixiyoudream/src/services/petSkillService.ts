@@ -8,6 +8,11 @@ import {
 } from '@/constants/skillBooks';
 import type { Pet, SkillBook, PetSkill, LearnSkillResult, PetType, Element } from '@/types';
 
+// 重新导出 skillBookService 的功能以保持兼容性
+export {
+  skillBookService,
+} from './skillBookService';
+
 // ============================================
 // 学习限制检查
 // ============================================
@@ -50,9 +55,11 @@ export function checkRestrictions(pet: Pet, skillBook: SkillBook): RestrictionCh
   if (restrictions.element && pet.element) {
     if (!restrictions.element.includes(pet.element)) {
       const elementNames: Record<Element, string> = {
+        metal: '金',
+        wood: '木',
+        water: '水',
         fire: '火',
-        ice: '冰',
-        thunder: '雷',
+        earth: '土',
         physical: '物理',
         none: '无',
       };
@@ -279,9 +286,11 @@ export function formatSkillBookRequirements(skillBook: SkillBook): string[] {
 
   if (restrictions.element && restrictions.element.length > 0) {
     const elementNames: Record<Element, string> = {
+      metal: '金',
+      wood: '木',
+      water: '水',
       fire: '火',
-      ice: '冰',
-      thunder: '雷',
+      earth: '土',
       physical: '物理',
       none: '无',
     };

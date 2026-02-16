@@ -109,7 +109,7 @@ export function AffixDisplay({
 
       {/* 锁定图标 */}
       {showLock && (
-        <span className={`text-xs ${isLocked ? 'text-yellow-400' : 'text-gray-500'}`}>
+        <span className={`text-sm ${isLocked ? 'text-yellow-500' : 'text-slate-400'}`}>
           {isLocked ? '🔒' : '🔓'}
         </span>
       )}
@@ -135,14 +135,14 @@ export function AffixList({
 }: AffixListProps) {
   if (affixes.length === 0) {
     return (
-      <div className="text-gray-500 text-sm text-center py-4">
+      <div className="text-slate-600 text-sm text-center py-4">
         暂无词条
       </div>
     );
   }
 
   return (
-    <div className="space-y-1">
+    <div className="space-y-2">
       {affixes.map((affix, index) => (
         <AffixDisplay
           key={`${affix.templateId}-${index}`}

@@ -2,7 +2,7 @@
 
 import { signal, computed } from '@preact/signals-react';
 import { questService } from '@/services/questService';
-import { QUEST_TYPE_CONFIG, QUEST_CHAPTERS } from '@/constants/quests';
+import { QUEST_TYPE_CONFIG, QUEST_CHAPTERS, QUESTS } from '@/constants/quests';
 import { updatePlayerGold, addPlayerExp } from './playerSignals';
 import { addItem } from './inventorySignals';
 import type {
@@ -30,6 +30,9 @@ export const isQuestInitialized = signal(false);
 /** 当前选中的任务类型 */
 export const selectedQuestType = signal<QuestType | 'all'>('all');
 
+/** 当前选中的任务状态 */
+export const selectedQuestStatus = signal<'in_progress' | 'completed' | 'claimed' | 'available'>('in_progress');
+
 /** 当前选中的任务ID（用于详情展示） */
 export const selectedQuestId = signal<string | null>(null);
 
@@ -45,16 +48,57 @@ export const isQuestLoading = signal(false);
 /** 新完成的任务ID列表 */
 export const newlyCompletedQuests = signal<string[]>([]);
 
+/** 追踪的任务ID */
+export const trackedQuestId = signal<string | null>(null);
+
+/** 章节等级限制提示消息 */
+export const chapterLevelRestrictionMessage = signal<string | null>(null);
+
+/** 设置追踪的任务 */
+export function setTrackedQuest(questId: string | null): void {
+  trackedQuestId.value = questId;
+  if (questId) {
+    localStorage.setItem('trackedQuestId', questId);
+  } else {
+    localStorage.removeItem('trackedQuestId');
+  }
+}
+
+/** 初始化追踪任务 */
+export function initTrackedQuest(): void {
+  const saved = localStorage.getItem('trackedQuestId');
+  if (saved) {
+    trackedQuestId.value = saved;
+  }
+}
+
+/** 获取追踪的任务详情 */
+export const trackedQuestDetail = computed(() => {
+  const questId = trackedQuestId.value;
+  if (!questId) {
+    // 如果没有设置追踪任务，返回第一个进行中的任务
+    return activeQuests.value[0] || null;
+  }
+  return questProgress.value.find((p) => p.quest.id === questId) || null;
+});
+
 /** 筛选后的任务进度 */
 export const filteredQuestProgress = computed(() => {
   const progress = questProgress.value;
   const type = selectedQuestType.value;
+  const status = selectedQuestStatus.value;
 
-  if (type === 'all') {
-    return progress;
+  let filtered = progress;
+
+  // 按类型过滤
+  if (type !== 'all') {
+    filtered = filtered.filter((p) => p.quest.type === type);
   }
 
-  return progress.filter((p) => p.quest.type === type);
+  // 按状态过滤
+  filtered = filtered.filter((p) => p.playerData.status === status);
+
+  return filtered;
 });
 
 /** 进行中的任务 */
@@ -160,16 +204,19 @@ export async function initQuests(playerId: string, playerLevel: number): Promise
       if (progressInfo.playerData.status === 'in_progress' &&
           progressInfo.quest.conditions.length === 0) {
         // 无条件的任务直接完成
-        await completeQuest(playerId, progressInfo.quest.id);
+        await completeQuest(playerId, progressInfo.quest.id, playerLevel);
       }
     }
 
     // 刷新进度后，自动接取可接取的主线任务
     const updatedProgress = await questService.getQuestProgress(playerId, playerLevel);
     for (const progressInfo of updatedProgress) {
-      if (progressInfo.canAccept && progressInfo.quest.type === 'main') {
+      // 只接取状态为 available 的任务（防止重复接取）
+      if (progressInfo.canAccept &&
+          progressInfo.quest.type === 'main' &&
+          progressInfo.playerData.status === 'available') {
         // 自动接取主线任务
-        await acceptQuest(playerId, progressInfo.quest.id);
+        await acceptQuest(playerId, progressInfo.quest.id, playerLevel);
       }
     }
 
@@ -224,11 +271,26 @@ export async function refreshQuests(playerId: string, playerLevel: number): Prom
 /**
  * 接取任务
  */
-export async function acceptQuest(playerId: string, questId: string): Promise<{
+export async function acceptQuest(playerId: string, questId: string, playerLevel?: number): Promise<{
   success: boolean;
   message: string;
 }> {
   try {
+    // 检查章节等级限制
+    const questDef = QUESTS.find(q => q.id === questId);
+    if (questDef && questDef.chapter) {
+      const chapter = QUEST_CHAPTERS.find(c => c.id === questDef.chapter);
+      if (chapter && chapter.levelRequired) {
+        const level = playerLevel ?? 1;
+        if (level < chapter.levelRequired) {
+          return {
+            success: false,
+            message: `需要达到 ${chapter.levelRequired} 级才能接取「${chapter.name}」的任务`
+          };
+        }
+      }
+    }
+
     const result = await questService.acceptQuest(playerId, questId);
 
     if (result.success && result.quest) {
@@ -265,7 +327,7 @@ export async function acceptQuest(playerId: string, questId: string): Promise<{
 /**
  * 完成任务
  */
-export async function completeQuest(playerId: string, questId: string): Promise<{
+export async function completeQuest(playerId: string, questId: string, playerLevel?: number): Promise<{
   success: boolean;
   message: string;
 }> {
@@ -278,31 +340,74 @@ export async function completeQuest(playerId: string, questId: string): Promise<
         showQuestDialog(result.quest.completeDialog);
       }
 
-      // 更新本地状态
-      questProgress.value = questProgress.value.map((p) => {
-        if (p.quest.id === questId) {
-          return {
-            ...p,
-            playerData: {
-              ...p.playerData,
-              status: 'completed',
-              completedAt: Date.now(),
-            },
-            progressPercent: 100,
-            canClaim: true,
-          };
-        }
-        return p;
-      });
+      // 刷新任务进度（这会重新计算所有任务的 canAccept 状态）
+      const level = playerLevel ?? 1;
+      await refreshQuests(playerId, level);
 
       // 更新新完成任务列表
       newlyCompletedQuests.value = [...newlyCompletedQuests.value, questId];
+
+      // 注意：主线任务的自动接取已移至 claimQuestReward 中
+      // 只有在领取奖励后才会解锁下一个任务
     }
 
     return { success: result.success, message: result.message };
   } catch (error) {
     console.error('Failed to complete quest:', error);
     return { success: false, message: '完成任务失败' };
+  }
+}
+
+/**
+ * 自动接取下一个主线任务
+ */
+async function autoAcceptNextMainQuest(playerId: string, completedQuestId: string, playerLevel?: number): Promise<void> {
+  // 找到刚完成的任务，查找后续主线任务
+  const completedQuest = QUESTS.find(q => q.id === completedQuestId);
+  if (!completedQuest) return;
+
+  // 找到所有以前置任务为当前任务的主线任务
+  const nextMainQuests = QUESTS.filter(q =>
+    q.type === 'main' &&
+    q.prerequisites?.includes(completedQuestId)
+  );
+
+  if (nextMainQuests.length === 0) return;
+
+  // 按顺序尝试接取下一个主线任务
+  for (const nextQuest of nextMainQuests) {
+    // 检查所有前置任务是否都已完成（completed 或 claimed 状态）
+    const allPrereqsCompleted = nextQuest.prerequisites?.every(preId => {
+      const preProgress = questProgress.value.find(p => p.quest.id === preId);
+      return preProgress && (preProgress.playerData.status === 'completed' || preProgress.playerData.status === 'claimed');
+    });
+
+    if (!allPrereqsCompleted) continue;
+
+    // 检查章节等级限制
+    if (nextQuest.chapter) {
+      const chapter = QUEST_CHAPTERS.find(c => c.id === nextQuest.chapter);
+      if (chapter && chapter.levelRequired) {
+        const level = playerLevel ?? 1;
+        if (level < chapter.levelRequired) {
+          // 等级不足，不自动接取，但不显示错误（静默处理）
+          console.log(`[Quest] 等级不足，无法自动接取任务「${nextQuest.name}」，需要 ${chapter.levelRequired} 级`);
+          continue;
+        }
+      }
+    }
+
+    // 检查任务是否可接取
+    const nextProgress = questProgress.value.find(p => p.quest.id === nextQuest.id);
+    if (nextProgress && nextProgress.canAccept) {
+      // 自动接取
+      const acceptResult = await acceptQuest(playerId, nextQuest.id, playerLevel);
+      if (acceptResult.success) {
+        console.log(`[Quest] 自动接取下一个主线任务: ${nextQuest.name}`);
+        // 只接取第一个符合条件的任务
+        break;
+      }
+    }
   }
 }
 
@@ -361,6 +466,21 @@ export async function claimQuestReward(playerId: string, questId: string): Promi
           completedQuests: questStats.value.completedQuests + 1,
         };
       }
+
+      // 领取奖励后，解锁下一个主线任务
+      const claimedQuest = QUESTS.find(q => q.id === questId);
+      if (claimedQuest && claimedQuest.type === 'main') {
+        // 需要获取玩家等级来刷新任务
+        const { player } = await import('./playerSignals');
+        const currentPlayer = player.value;
+        const playerLevel = currentPlayer?.level ?? 1;
+
+        // 刷新任务进度，让后续任务变为 available
+        await refreshQuests(playerId, playerLevel);
+
+        // 检查并自动接取配置了 autoAccept 的后续任务
+        await autoAcceptNextMainQuest(playerId, questId, playerLevel);
+      }
     }
 
     return {
@@ -379,7 +499,8 @@ export async function claimQuestReward(playerId: string, questId: string): Promi
  */
 export async function triggerQuestEvent(
   playerId: string,
-  event: QuestEvent
+  event: QuestEvent,
+  currentLevel?: number
 ): Promise<string[]> {
   if (!isQuestInitialized.value) return [];
 
@@ -388,8 +509,8 @@ export async function triggerQuestEvent(
 
     if (updatedIds.length > 0) {
       // 刷新任务进度
-      const playerLevel = 1; // 从玩家数据获取
-      await refreshQuests(playerId, playerLevel);
+      const level = currentLevel ?? 1;
+      await refreshQuests(playerId, level);
 
       // 检查是否有任务可以完成
       for (const questId of updatedIds) {
@@ -399,7 +520,7 @@ export async function triggerQuestEvent(
           const allCompleted = progress.conditionDetails.every((cd) => cd.completed);
           if (allCompleted) {
             // 自动完成任务
-            await completeQuest(playerId, questId);
+            await completeQuest(playerId, questId, level);
           }
         }
       }
@@ -453,6 +574,13 @@ export function setSelectedQuestType(type: QuestType | 'all'): void {
 }
 
 /**
+ * 设置选中的任务状态
+ */
+export function setSelectedQuestStatus(status: 'in_progress' | 'completed' | 'claimed' | 'available'): void {
+  selectedQuestStatus.value = status;
+}
+
+/**
  * 设置选中的任务ID
  */
 export function setSelectedQuestId(questId: string | null): void {
@@ -482,6 +610,7 @@ export function resetQuestState(): void {
   questTracker.value = null;
   isQuestInitialized.value = false;
   selectedQuestType.value = 'all';
+  selectedQuestStatus.value = 'in_progress';
   selectedQuestId.value = null;
   currentDialog.value = null;
   currentDialogIndex.value = 0;
@@ -544,10 +673,14 @@ export async function updateNpcTalkEvent(playerId: string, npcId: string): Promi
  * 快捷方法：更新地图访问事件
  */
 export async function updateMapVisitEvent(playerId: string, mapId: string): Promise<string[]> {
+  // 获取当前玩家等级
+  const { player } = await import('./playerSignals');
+  const currentLevel = player.value?.level ?? 1;
+
   return triggerQuestEvent(playerId, {
     type: 'map_reached',
     targetId: mapId,
-  });
+  }, currentLevel);
 }
 
 /**
@@ -577,7 +710,7 @@ export async function updateLevelQuestEvent(playerId: string, level: number): Pr
       if (progress && progress.playerData.status === 'in_progress') {
         const allCompleted = progress.conditionDetails.every((cd) => cd.completed);
         if (allCompleted) {
-          await completeQuest(playerId, questId);
+          await completeQuest(playerId, questId, level);
         }
       }
     }
@@ -594,6 +727,83 @@ export async function updateBattleWinEvent(playerId: string): Promise<string[]> 
     type: 'battle_won',
     targetId: 'any',
     count: 1,
+  });
+}
+
+/**
+ * 快捷方法：更新宠物捕获事件
+ */
+export async function updatePetCaptureEvent(playerId: string, petId: string, count: number = 1): Promise<string[]> {
+  return triggerQuestEvent(playerId, {
+    type: 'pet_captured',
+    targetId: petId,
+    count,
+  });
+}
+
+/**
+ * 快捷方法：更新副本完成事件
+ */
+export async function updateDungeonCompleteEvent(playerId: string, dungeonId: string): Promise<string[]> {
+  return triggerQuestEvent(playerId, {
+    type: 'dungeon_completed',
+    targetId: dungeonId,
+    count: 1,
+  });
+}
+
+/**
+ * 快捷方法：更新技能使用事件
+ */
+export async function updateSkillUseEvent(playerId: string, skillId: string, count: number = 1): Promise<string[]> {
+  return triggerQuestEvent(playerId, {
+    type: 'skill_used',
+    targetId: skillId,
+    count,
+  });
+}
+
+/**
+ * 快捷方法：更新装备强化事件
+ */
+export async function updateEquipEnhanceEvent(playerId: string, count: number = 1): Promise<string[]> {
+  return triggerQuestEvent(playerId, {
+    type: 'equipment_enhanced',
+    targetId: 'equipment',
+    count,
+  });
+}
+
+/**
+ * 快捷方法：更新竞技场挑战事件
+ */
+export async function updateArenaBattleEvent(playerId: string, count: number = 1): Promise<string[]> {
+  return triggerQuestEvent(playerId, {
+    type: 'arena_battle',
+    targetId: 'any',
+    count,
+  });
+}
+
+/**
+ * 快捷方法：更新送礼事件
+ */
+export async function updateGiftGivenEvent(playerId: string, companionId: string, count: number = 1): Promise<string[]> {
+  return triggerQuestEvent(playerId, {
+    type: 'gift_given',
+    targetId: companionId,
+    count,
+  });
+}
+
+/**
+ * 快捷方法：更新钓鱼事件
+ */
+export async function updateFishCaughtEvent(playerId: string, count: number = 1): Promise<string[]> {
+  return triggerQuestEvent(playerId, {
+    type: 'fish_caught',
+    targetId: 'any',
+    count,
   });
 }
 
@@ -616,4 +826,29 @@ export function getQuestTypeIcon(type: QuestType): string {
  */
 export function getChapterName(chapterId: number): string {
   return QUEST_CHAPTERS.find((c) => c.id === chapterId)?.name || `第${chapterId}章`;
+}
+
+/**
+ * 获取章节等级要求
+ */
+export function getChapterLevelRequired(chapterId: number): number | undefined {
+  return QUEST_CHAPTERS.find((c) => c.id === chapterId)?.levelRequired;
+}
+
+/**
+ * 显示章节等级限制消息
+ */
+export function showChapterLevelRestriction(chapterName: string, levelRequired: number): void {
+  chapterLevelRestrictionMessage.value = `需要达到 ${levelRequired} 级才能接取「${chapterName}」的任务`;
+  // 3秒后自动清除
+  setTimeout(() => {
+    chapterLevelRestrictionMessage.value = null;
+  }, 3000);
+}
+
+/**
+ * 清除章节等级限制消息
+ */
+export function clearChapterLevelRestriction(): void {
+  chapterLevelRestrictionMessage.value = null;
 }

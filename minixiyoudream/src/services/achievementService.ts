@@ -28,6 +28,7 @@ function createDefaultTracker(): AchievementTracker {
     totalPlayTime: 0,
     totalGoldEarned: 0,
     totalExpEarned: 0,
+    totalGoldSpent: 0,
     monstersKilled: 0,
     bossesKilled: 0,
     dungeonsCleared: [],
@@ -35,18 +36,31 @@ function createDefaultTracker(): AchievementTracker {
     pvpWins: 0,
     totalDamageDealt: 0,
     battlesWon: 0,
+    dungeonsClearedEasy: 0,
+    dungeonsClearedNormal: 0,
+    dungeonsClearedHard: 0,
+    dungeonsClearedHell: 0,
     equipmentCollected: 0,
     legendaryCollected: 0,
     mythicCollected: 0,
     petsCollected: 0,
     companionsCollected: 0,
     itemsCollected: 0,
+    petsCaptured: 0,
+    petsEvolved: 0,
+    petsMaxLevel: 0,
+    gemsSocketed: 0,
+    gemsCollected: 0,
     mapsExplored: [],
     secretsDiscovered: 0,
     teleportsUnlocked: [],
+    regionsExplored: [],
     maxFavorabilityCompanions: [],
     bondsUnlocked: 0,
     maxLevelBonds: 0,
+    friendCount: 0,
+    giftsSent: 0,
+    giftsReceived: 0,
   };
 }
 
@@ -171,6 +185,10 @@ class AchievementService {
       );
       tracker.maxFavorabilityCompanions = [...data.tracker.maxFavorabilityCompanions, ...newCompanions];
     }
+    if (updates.regionsExplored) {
+      const newRegions = updates.regionsExplored.filter(r => !data.tracker.regionsExplored.includes(r));
+      tracker.regionsExplored = [...data.tracker.regionsExplored, ...newRegions];
+    }
 
     data.tracker = tracker;
 
@@ -226,9 +244,22 @@ class AchievementService {
       case 'dungeon_cleared': {
         const dungeonId = event.data.dungeonId as string;
         const noDamage = event.data.noDamage as boolean;
+        const difficulty = event.data.difficulty as string | undefined;
+
         trackerUpdates.dungeonsCleared = [dungeonId];
         if (noDamage) {
           trackerUpdates.noDamageDungeons = [dungeonId];
+        }
+
+        // 根据难度更新计数
+        if (difficulty === 'easy') {
+          trackerUpdates.dungeonsClearedEasy = data.tracker.dungeonsClearedEasy + 1;
+        } else if (difficulty === 'normal') {
+          trackerUpdates.dungeonsClearedNormal = data.tracker.dungeonsClearedNormal + 1;
+        } else if (difficulty === 'hard') {
+          trackerUpdates.dungeonsClearedHard = data.tracker.dungeonsClearedHard + 1;
+        } else if (difficulty === 'hell') {
+          trackerUpdates.dungeonsClearedHell = data.tracker.dungeonsClearedHell + 1;
         }
         break;
       }
@@ -248,14 +279,27 @@ class AchievementService {
         trackerUpdates.petsCollected = event.data.count as number;
         break;
 
+      case 'pet_captured':
+        trackerUpdates.petsCaptured = data.tracker.petsCaptured + 1;
+        break;
+
+      case 'pet_evolved':
+        trackerUpdates.petsEvolved = data.tracker.petsEvolved + 1;
+        break;
+
       case 'companion_unlocked':
         trackerUpdates.companionsCollected = event.data.count as number;
         break;
 
       case 'map_entered': {
         const mapId = event.data.mapId as string;
+        const region = event.data.region as string | undefined;
         if (!data.tracker.mapsExplored.includes(mapId)) {
           trackerUpdates.mapsExplored = [mapId];
+        }
+        // 区域探索
+        if (region && !data.tracker.regionsExplored.includes(region)) {
+          trackerUpdates.regionsExplored = [region];
         }
         break;
       }
@@ -285,6 +329,10 @@ class AchievementService {
         trackerUpdates.totalGoldEarned = data.tracker.totalGoldEarned + (event.data.amount as number);
         break;
 
+      case 'gold_spent':
+        trackerUpdates.totalGoldSpent = data.tracker.totalGoldSpent + (event.data.amount as number);
+        break;
+
       case 'exp_earned':
         trackerUpdates.totalExpEarned = data.tracker.totalExpEarned + (event.data.amount as number);
         break;
@@ -295,6 +343,22 @@ class AchievementService {
 
       case 'battle_won':
         trackerUpdates.battlesWon = data.tracker.battlesWon + 1;
+        break;
+
+      case 'gem_socketed':
+        trackerUpdates.gemsSocketed = data.tracker.gemsSocketed + 1;
+        break;
+
+      case 'gift_sent':
+        trackerUpdates.giftsSent = data.tracker.giftsSent + 1;
+        break;
+
+      case 'gift_received':
+        trackerUpdates.giftsReceived = data.tracker.giftsReceived + 1;
+        break;
+
+      case 'friend_added':
+        trackerUpdates.friendCount = data.tracker.friendCount + 1;
         break;
     }
 
@@ -357,6 +421,7 @@ class AchievementService {
       accumulate_playtime: tracker.totalPlayTime,
       accumulate_gold: tracker.totalGoldEarned,
       accumulate_exp: tracker.totalExpEarned,
+      spend_gold: tracker.totalGoldSpent,
       defeat_monsters: tracker.monstersKilled,
       defeat_bosses: tracker.bossesKilled,
       clear_dungeon: tracker.dungeonsCleared.length,
@@ -364,19 +429,32 @@ class AchievementService {
       win_pvp_battles: tracker.pvpWins,
       total_damage_dealt: tracker.totalDamageDealt,
       win_battles: tracker.battlesWon,
+      clear_dungeon_easy: tracker.dungeonsClearedEasy,
+      clear_dungeon_normal: tracker.dungeonsClearedNormal,
+      clear_dungeon_hard: tracker.dungeonsClearedHard,
+      clear_dungeon_hell: tracker.dungeonsClearedHell,
       collect_equipment: tracker.equipmentCollected,
       collect_legendary: tracker.legendaryCollected,
       collect_mythic: tracker.mythicCollected,
       collect_pets: tracker.petsCollected,
       collect_companions: tracker.companionsCollected,
       collect_items: tracker.itemsCollected,
+      pet_capture: tracker.petsCaptured,
+      pet_evolve: tracker.petsEvolved,
+      pet_level_max: tracker.petsMaxLevel,
+      socket_gems: tracker.gemsSocketed,
+      collect_gems: tracker.gemsCollected,
       explore_maps: tracker.mapsExplored.length,
       discover_secrets: tracker.secretsDiscovered,
       unlock_teleports: tracker.teleportsUnlocked.length,
       visit_all_maps: tracker.mapsExplored.length,
+      explore_region: tracker.regionsExplored.length,
       max_favorability: tracker.maxFavorabilityCompanions.length,
       unlock_bonds: tracker.bondsUnlocked,
       max_bond_level: tracker.maxLevelBonds,
+      friend_count: tracker.friendCount,
+      send_gifts: tracker.giftsSent,
+      receive_gifts: tracker.giftsReceived,
     };
 
     return progressMap[type] ?? 0;

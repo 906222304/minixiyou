@@ -10,6 +10,7 @@ export const QUEST_CHAPTERS: QuestChapter[] = [
     description: '踏入西游世界的第一步，从东海村开始冒险',
     icon: '🌊',
     questIds: ['main_1_1', 'main_1_2', 'main_1_3', 'main_1_4', 'main_1_5', 'main_1_6', 'main_1_7', 'main_1_8'],
+    levelRequired: 1,
   },
   {
     id: 2,
@@ -17,6 +18,7 @@ export const QUEST_CHAPTERS: QuestChapter[] = [
     description: '来到繁华的长安城，邂逅各路豪杰',
     icon: '🏯',
     questIds: ['main_2_1', 'main_2_2', 'main_2_3', 'main_2_4', 'main_2_5', 'main_2_6', 'main_2_7', 'main_2_8'],
+    levelRequired: 3,
   },
   {
     id: 3,
@@ -24,6 +26,7 @@ export const QUEST_CHAPTERS: QuestChapter[] = [
     description: '得遇仙人传授法术，踏上修行之路',
     icon: '✨',
     questIds: ['main_3_1', 'main_3_2', 'main_3_3', 'main_3_4', 'main_3_5', 'main_3_6'],
+    levelRequired: 5,
   },
   {
     id: 4,
@@ -31,6 +34,7 @@ export const QUEST_CHAPTERS: QuestChapter[] = [
     description: '与清清姑娘结下不解之缘',
     icon: '💕',
     questIds: ['main_4_1', 'main_4_2', 'main_4_3', 'main_4_4', 'main_4_5', 'main_4_6'],
+    levelRequired: 8,
   },
   {
     id: 5,
@@ -38,6 +42,7 @@ export const QUEST_CHAPTERS: QuestChapter[] = [
     description: '振远镖局比武招亲，卷入一场江湖风波',
     icon: '⚔️',
     questIds: ['main_5_1', 'main_5_2', 'main_5_3', 'main_5_4', 'main_5_5', 'main_5_6'],
+    levelRequired: 10,
   },
   {
     id: 6,
@@ -45,6 +50,7 @@ export const QUEST_CHAPTERS: QuestChapter[] = [
     description: '大雁塔中妖魔作乱，踏上降妖之路',
     icon: '🗼',
     questIds: ['main_6_1', 'main_6_2', 'main_6_3', 'main_6_4', 'main_6_5', 'main_6_6'],
+    levelRequired: 12,
   },
   {
     id: 7,
@@ -52,6 +58,7 @@ export const QUEST_CHAPTERS: QuestChapter[] = [
     description: '方寸山寻访道长，揭开千年之谜',
     icon: '⛰️',
     questIds: ['main_7_1', 'main_7_2', 'main_7_3', 'main_7_4', 'main_7_5', 'main_7_6'],
+    levelRequired: 15,
   },
   {
     id: 8,
@@ -59,6 +66,7 @@ export const QUEST_CHAPTERS: QuestChapter[] = [
     description: '远赴西域追寻清清，揭开身世之谜',
     icon: '🏜️',
     questIds: ['main_8_1', 'main_8_2', 'main_8_3', 'main_8_4', 'main_8_5', 'main_8_6'],
+    levelRequired: 18,
   },
   {
     id: 9,
@@ -66,6 +74,7 @@ export const QUEST_CHAPTERS: QuestChapter[] = [
     description: '进入西凉国，解救清清公主',
     icon: '👸',
     questIds: ['main_9_1', 'main_9_2', 'main_9_3', 'main_9_4', 'main_9_5', 'main_9_6'],
+    levelRequired: 20,
   },
   {
     id: 10,
@@ -73,6 +82,7 @@ export const QUEST_CHAPTERS: QuestChapter[] = [
     description: '巫王病危，魔王乘机作乱',
     icon: '👹',
     questIds: ['main_10_1', 'main_10_2', 'main_10_3', 'main_10_4', 'main_10_5', 'main_10_6'],
+    levelRequired: 22,
   },
   {
     id: 11,
@@ -80,6 +90,7 @@ export const QUEST_CHAPTERS: QuestChapter[] = [
     description: '最终决战，拯救三界',
     icon: '🌟',
     questIds: ['main_11_1', 'main_11_2', 'main_11_3', 'main_11_4', 'main_11_5', 'main_11_6'],
+    levelRequired: 25,
   },
   {
     id: 12,
@@ -87,6 +98,7 @@ export const QUEST_CHAPTERS: QuestChapter[] = [
     description: '新的旅程，新的希望',
     icon: '🌈',
     questIds: ['main_12_1', 'main_12_2', 'main_12_3', 'main_12_4', 'main_12_5'],
+    levelRequired: 28,
   },
 ];
 
@@ -345,6 +357,7 @@ export const QUESTS: Quest[] = [
     icon: '👴',
     levelRequired: 1,
     prerequisites: ['main_1_1'],
+    autoAccept: true,
     conditions: [
       { type: 'talk', target: 'npc_village_chief', required: 1, description: '与村长对话' },
     ],
@@ -364,7 +377,7 @@ export const QUESTS: Quest[] = [
     levelRequired: 1,
     prerequisites: ['main_1_2'],
     conditions: [
-      { type: 'kill', target: 'enemy_crab', required: 8, description: '击败螃蟹 (0/8)' },
+      { type: 'kill', target: 'enemy_crab', required: 8, description: '击败螃蟹 ({current}/{required})' },
     ],
     rewards: { gold: 100, exp: 100, items: [{ itemId: 'item_hp_potion_small', count: 3 }] },
     completeDialog: crabCompleteDialog,
@@ -397,7 +410,7 @@ export const QUESTS: Quest[] = [
     levelRequired: 3,
     prerequisites: ['main_1_4'],
     conditions: [
-      { type: 'kill', target: 'enemy_crab_spirit', required: 1, description: '击败蟹精 (0/1)' },
+      { type: 'kill', target: 'enemy_crab_spirit', required: 1, description: '击败蟹精 ({current}/{required})' },
     ],
     rewards: {
       gold: 200,
@@ -444,7 +457,7 @@ export const QUESTS: Quest[] = [
     prerequisites: ['main_1_5'],
     conditions: [
       { type: 'talk', target: 'npc_old_fisherman', required: 1, description: '与老渔夫对话' },
-      { type: 'collect', target: 'item_fishing_rod', required: 1, description: '找回鱼竿 (0/1)' },
+      { type: 'collect', target: 'item_fishing_rod', required: 1, description: '找回鱼竿 ({current}/{required})' },
     ],
     rewards: { gold: 120, exp: 100, items: [{ itemId: 'item_mp_potion_small', count: 3 }] },
     startDialog: [
@@ -617,7 +630,7 @@ export const QUESTS: Quest[] = [
     levelRequired: 5,
     prerequisites: ['main_2_7'],
     conditions: [
-      { type: 'kill', target: 'enemy_scout', required: 3, description: '击败斥候 (0/3)' },
+      { type: 'kill', target: 'enemy_scout', required: 3, description: '击败斥候 ({current}/{required})' },
       { type: 'visit_map', target: 'map_secret_hideout', required: 1, description: '发现秘密据点' },
     ],
     rewards: { gold: 250, exp: 250 },
@@ -681,7 +694,7 @@ export const QUESTS: Quest[] = [
     levelRequired: 5,
     prerequisites: ['main_3_2'],
     conditions: [
-      { type: 'collect', target: 'item_animal_tooth', required: 5, description: '收集动物碎齿 (0/5)' },
+      { type: 'collect', target: 'item_animal_tooth', required: 5, description: '收集动物碎齿 ({current}/{required})' },
     ],
     rewards: { gold: 150, exp: 150 },
     hints: ['动物碎齿可以从大老鼠身上获得'],
@@ -785,7 +798,7 @@ export const QUESTS: Quest[] = [
     levelRequired: 7,
     prerequisites: ['main_4_1'],
     conditions: [
-      { type: 'kill', target: 'enemy_black_guards', required: 3, description: '击败黑衣人 (0/3)' },
+      { type: 'kill', target: 'enemy_black_guards', required: 3, description: '击败黑衣人 ({current}/{required})' },
     ],
     rewards: { gold: 250, exp: 300 },
     startDialog: [
@@ -936,7 +949,7 @@ export const QUESTS: Quest[] = [
     levelRequired: 10,
     prerequisites: ['main_5_3'],
     conditions: [
-      { type: 'kill', target: 'enemy_xiao_xiaoyue', required: 1, description: '击败萧晓月 (0/1)' },
+      { type: 'kill', target: 'enemy_xiao_xiaoyue', required: 1, description: '击败萧晓月 ({current}/{required})' },
     ],
     rewards: { gold: 500, exp: 500 },
     startDialog: [
@@ -976,7 +989,7 @@ export const QUESTS: Quest[] = [
     prerequisites: ['main_5_5'],
     conditions: [
       { type: 'talk', target: 'npc_xiao_xiaoyue', required: 1, description: '与萧晓月对话' },
-      { type: 'kill', target: 'enemy_bandit', required: 5, description: '击败强盗 (0/5)' },
+      { type: 'kill', target: 'enemy_bandit', required: 5, description: '击败强盗 ({current}/{required})' },
     ],
     rewards: { gold: 400, exp: 400 },
     startDialog: [
@@ -1038,7 +1051,7 @@ export const QUESTS: Quest[] = [
     levelRequired: 12,
     prerequisites: ['main_6_2'],
     conditions: [
-      { type: 'kill', target: 'enemy_snake_demon', required: 1, description: '击败蛇妖 (0/1)' },
+      { type: 'kill', target: 'enemy_snake_demon', required: 1, description: '击败蛇妖 ({current}/{required})' },
     ],
     rewards: { gold: 400, exp: 400 },
     startDialog: snakeDemonDialog,
@@ -1054,7 +1067,7 @@ export const QUESTS: Quest[] = [
     levelRequired: 13,
     prerequisites: ['main_6_3'],
     conditions: [
-      { type: 'kill', target: 'enemy_fox_demon_female', required: 1, description: '击败狐妖女 (0/1)' },
+      { type: 'kill', target: 'enemy_fox_demon_female', required: 1, description: '击败狐妖女 ({current}/{required})' },
     ],
     rewards: { gold: 500, exp: 500 },
     startDialog: [
@@ -1100,7 +1113,7 @@ export const QUESTS: Quest[] = [
     prerequisites: ['main_6_5'],
     conditions: [
       { type: 'visit_map', target: 'map_dayan_ta_deep', required: 1, description: '探索大雁塔深处' },
-      { type: 'kill', target: 'enemy_tower_guardian', required: 1, description: '击败塔守护者 (0/1)' },
+      { type: 'kill', target: 'enemy_tower_guardian', required: 1, description: '击败塔守护者 ({current}/{required})' },
     ],
     rewards: {
       gold: 500,
@@ -1179,7 +1192,7 @@ export const QUESTS: Quest[] = [
     levelRequired: 16,
     prerequisites: ['main_7_3'],
     conditions: [
-      { type: 'kill', target: 'enemy_qingfeng_daoshi', required: 1, description: '击败清风道长 (0/1)' },
+      { type: 'kill', target: 'enemy_qingfeng_daoshi', required: 1, description: '击败清风道长 ({current}/{required})' },
     ],
     rewards: { gold: 600, exp: 600 },
     completeDialog: xiaofengTruthDialog,
@@ -1196,7 +1209,7 @@ export const QUESTS: Quest[] = [
     prerequisites: ['main_7_4'],
     conditions: [
       { type: 'visit_map', target: 'map_donghai_seaforest', required: 1, description: '进入东海海底莽林' },
-      { type: 'kill', target: 'enemy_red_blood_dragon', required: 1, description: '击败赤血龙王 (0/1)' },
+      { type: 'kill', target: 'enemy_red_blood_dragon', required: 1, description: '击败赤血龙王 ({current}/{required})' },
     ],
     rewards: {
       gold: 1000,
@@ -1262,7 +1275,7 @@ export const QUESTS: Quest[] = [
     prerequisites: ['main_8_1'],
     conditions: [
       { type: 'visit_map', target: 'map_bingmayong', required: 1, description: '进入兵马俑阵' },
-      { type: 'kill', target: 'enemy_terracotta_warriors', required: 5, description: '击败兵马俑 (0/5)' },
+      { type: 'kill', target: 'enemy_terracotta_warriors', required: 5, description: '击败兵马俑 ({current}/{required})' },
     ],
     rewards: { gold: 500, exp: 500 },
     startDialog: [
@@ -1313,8 +1326,8 @@ export const QUESTS: Quest[] = [
     levelRequired: 20,
     prerequisites: ['main_8_4'],
     conditions: [
-      { type: 'collect', target: 'item_travel_rations', required: 10, description: '准备干粮 (0/10)' },
-      { type: 'collect', target: 'item_water_skin', required: 5, description: '准备水袋 (0/5)' },
+      { type: 'collect', target: 'item_travel_rations', required: 10, description: '准备干粮 ({current}/{required})' },
+      { type: 'collect', target: 'item_water_skin', required: 5, description: '准备水袋 ({current}/{required})' },
       { type: 'talk', target: 'npc_xiao_xiaoyue', required: 1, description: '与萧晓月告别' },
     ],
     rewards: { gold: 400, exp: 400 },
@@ -1402,7 +1415,7 @@ export const QUESTS: Quest[] = [
     levelRequired: 22,
     prerequisites: ['main_9_2'],
     conditions: [
-      { type: 'kill', target: 'enemy_palace_guard', required: 5, description: '击败宫廷守卫 (0/5)' },
+      { type: 'kill', target: 'enemy_palace_guard', required: 5, description: '击败宫廷守卫 ({current}/{required})' },
     ],
     rewards: { gold: 600, exp: 600 },
     startDialog: [
@@ -1461,7 +1474,7 @@ export const QUESTS: Quest[] = [
     levelRequired: 24,
     prerequisites: ['main_9_5'],
     conditions: [
-      { type: 'kill', target: 'enemy_rebel_soldier', required: 10, description: '击败叛军 (0/10)' },
+      { type: 'kill', target: 'enemy_rebel_soldier', required: 10, description: '击败叛军 ({current}/{required})' },
       { type: 'talk', target: 'npc_qingqing', required: 1, description: '向清清汇报' },
     ],
     rewards: { gold: 800, exp: 800 },
@@ -1504,7 +1517,7 @@ export const QUESTS: Quest[] = [
     prerequisites: ['main_10_1'],
     conditions: [
       { type: 'visit_map', target: 'map_demonic_rift', required: 1, description: '调查魔气源头' },
-      { type: 'kill', target: 'enemy_lesser_demon', required: 8, description: '击败小魔 (0/8)' },
+      { type: 'kill', target: 'enemy_lesser_demon', required: 8, description: '击败小魔 ({current}/{required})' },
     ],
     rewards: { gold: 600, exp: 600 },
     startDialog: [
@@ -1524,7 +1537,7 @@ export const QUESTS: Quest[] = [
     prerequisites: ['main_10_2'],
     conditions: [
       { type: 'visit_map', target: 'map_ancient_seal', required: 1, description: '找到上古封印' },
-      { type: 'collect', target: 'item_seal_fragment', required: 3, description: '收集封印碎片 (0/3)' },
+      { type: 'collect', target: 'item_seal_fragment', required: 3, description: '收集封印碎片 ({current}/{required})' },
     ],
     rewards: { gold: 700, exp: 700 },
     startDialog: [
@@ -1542,7 +1555,7 @@ export const QUESTS: Quest[] = [
     levelRequired: 26,
     prerequisites: ['main_10_3'],
     conditions: [
-      { type: 'kill', target: 'enemy_demon_general', required: 3, description: '击败魔将 (0/3)' },
+      { type: 'kill', target: 'enemy_demon_general', required: 3, description: '击败魔将 ({current}/{required})' },
       { type: 'talk', target: 'npc_qingqing', required: 1, description: '与清清商议' },
     ],
     rewards: { gold: 800, exp: 800 },
@@ -1582,8 +1595,8 @@ export const QUESTS: Quest[] = [
     levelRequired: 27,
     prerequisites: ['main_10_5'],
     conditions: [
-      { type: 'kill', target: 'enemy_demon_army', required: 20, description: '击败魔军 (0/20)' },
-      { type: 'kill', target: 'enemy_demon_captain', required: 1, description: '击败魔军队长 (0/1)' },
+      { type: 'kill', target: 'enemy_demon_army', required: 20, description: '击败魔军 ({current}/{required})' },
+      { type: 'kill', target: 'enemy_demon_captain', required: 1, description: '击败魔军队长 ({current}/{required})' },
     ],
     rewards: {
       gold: 1000,
@@ -1609,7 +1622,7 @@ export const QUESTS: Quest[] = [
     prerequisites: ['main_10_6'],
     conditions: [
       { type: 'talk', target: 'npc_xiaofeng', required: 1, description: '与晓风商议' },
-      { type: 'collect', target: 'item_spirit_bead', required: 5, description: '收集灵珠碎片 (0/5)' },
+      { type: 'collect', target: 'item_spirit_bead', required: 5, description: '收集灵珠碎片 ({current}/{required})' },
     ],
     rewards: { gold: 800, exp: 800 },
     startDialog: [
@@ -1629,7 +1642,7 @@ export const QUESTS: Quest[] = [
     prerequisites: ['main_11_1'],
     conditions: [
       { type: 'visit_map', target: 'map_demon_castle', required: 1, description: '进入魔王城' },
-      { type: 'kill', target: 'enemy_demon_elite', required: 10, description: '击败精锐恶魔 (0/10)' },
+      { type: 'kill', target: 'enemy_demon_elite', required: 10, description: '击败精锐恶魔 ({current}/{required})' },
     ],
     rewards: { gold: 1000, exp: 1000 },
     startDialog: [
@@ -1647,7 +1660,7 @@ export const QUESTS: Quest[] = [
     levelRequired: 28,
     prerequisites: ['main_11_2'],
     conditions: [
-      { type: 'kill', target: 'enemy_four_demon_general', required: 4, description: '击败四魔将 (0/4)' },
+      { type: 'kill', target: 'enemy_four_demon_general', required: 4, description: '击败四魔将 ({current}/{required})' },
     ],
     rewards: { gold: 1200, exp: 1200 },
     startDialog: [
@@ -1665,7 +1678,7 @@ export const QUESTS: Quest[] = [
     levelRequired: 29,
     prerequisites: ['main_11_3'],
     conditions: [
-      { type: 'kill', target: 'enemy_demon_king', required: 1, description: '击败魔王 (0/1)' },
+      { type: 'kill', target: 'enemy_demon_king', required: 1, description: '击败魔王 ({current}/{required})' },
     ],
     rewards: {
       gold: 2000,
@@ -1696,7 +1709,7 @@ export const QUESTS: Quest[] = [
     prerequisites: ['main_11_4'],
     conditions: [
       { type: 'talk', target: 'npc_qingqing', required: 1, description: '与清清对话' },
-      { type: 'collect', target: 'item_building_material', required: 20, description: '收集建材 (0/20)' },
+      { type: 'collect', target: 'item_building_material', required: 20, description: '收集建材 ({current}/{required})' },
     ],
     rewards: { gold: 800, exp: 800 },
     startDialog: [
@@ -1801,7 +1814,7 @@ export const QUESTS: Quest[] = [
     prerequisites: ['main_12_3'],
     conditions: [
       { type: 'visit_map', target: 'map_dragon_palace', required: 1, description: '进入龙宫' },
-      { type: 'kill', target: 'enemy_sea_monster', required: 10, description: '击败海怪 (0/10)' },
+      { type: 'kill', target: 'enemy_sea_monster', required: 10, description: '击败海怪 ({current}/{required})' },
     ],
     rewards: { gold: 1000, exp: 1000 },
     startDialog: [
@@ -1847,7 +1860,7 @@ export const QUESTS: Quest[] = [
     icon: '🌿',
     levelRequired: 2,
     conditions: [
-      { type: 'collect', target: 'item_herb', required: 10, description: '收集草药 (0/10)' },
+      { type: 'collect', target: 'item_herb', required: 10, description: '收集草药 ({current}/{required})' },
     ],
     rewards: {
       gold: 200,
@@ -1868,7 +1881,7 @@ export const QUESTS: Quest[] = [
     icon: '🎯',
     levelRequired: 3,
     conditions: [
-      { type: 'kill', target: 'any', required: 50, description: '击败任意怪物 (0/50)' },
+      { type: 'kill', target: 'any', required: 50, description: '击败任意怪物 ({current}/{required})' },
     ],
     rewards: {
       gold: 500,
@@ -1889,7 +1902,7 @@ export const QUESTS: Quest[] = [
     icon: '🗺️',
     levelRequired: 3,
     conditions: [
-      { type: 'visit_map', target: 'any', required: 5, description: '访问不同区域 (0/5)' },
+      { type: 'visit_map', target: 'any', required: 5, description: '访问不同区域 ({current}/{required})' },
     ],
     rewards: {
       gold: 300,
@@ -1908,7 +1921,7 @@ export const QUESTS: Quest[] = [
     icon: '📦',
     levelRequired: 5,
     conditions: [
-      { type: 'collect', target: 'any_material', required: 20, description: '收集材料 (0/20)' },
+      { type: 'collect', target: 'any_material', required: 20, description: '收集材料 ({current}/{required})' },
     ],
     rewards: {
       gold: 400,
@@ -1929,7 +1942,7 @@ export const QUESTS: Quest[] = [
     icon: '💎',
     levelRequired: 10,
     conditions: [
-      { type: 'collect', target: 'any_gem', required: 5, description: '获得宝石 (0/5)' },
+      { type: 'collect', target: 'any_gem', required: 5, description: '获得宝石 ({current}/{required})' },
     ],
     rewards: {
       gold: 800,
@@ -1952,7 +1965,7 @@ export const QUESTS: Quest[] = [
     icon: '🗡️',
     levelRequired: 1,
     conditions: [
-      { type: 'kill', target: 'any', required: 10, description: '击败任意怪物 (0/10)' },
+      { type: 'kill', target: 'any', required: 10, description: '击败任意怪物 ({current}/{required})' },
     ],
     rewards: {
       gold: 100,
@@ -1970,7 +1983,7 @@ export const QUESTS: Quest[] = [
     icon: '⚔️',
     levelRequired: 1,
     conditions: [
-      { type: 'battle', target: 'any', required: 3, description: '完成战斗 (0/3)' },
+      { type: 'battle', target: 'any', required: 3, description: '完成战斗 ({current}/{required})' },
     ],
     rewards: {
       gold: 80,
@@ -1987,7 +2000,7 @@ export const QUESTS: Quest[] = [
     icon: '👹',
     levelRequired: 5,
     conditions: [
-      { type: 'kill', target: 'boss', required: 1, description: '击败Boss (0/1)' },
+      { type: 'kill', target: 'boss', required: 1, description: '击败Boss ({current}/{required})' },
     ],
     rewards: {
       gold: 200,
@@ -2007,7 +2020,7 @@ export const QUESTS: Quest[] = [
     icon: '🌿',
     levelRequired: 2,
     conditions: [
-      { type: 'collect', target: 'item_herb', required: 5, description: '收集草药 (0/5)' },
+      { type: 'collect', target: 'item_herb', required: 5, description: '收集草药 ({current}/{required})' },
     ],
     rewards: {
       gold: 80,
@@ -2024,7 +2037,7 @@ export const QUESTS: Quest[] = [
     icon: '⚔️',
     levelRequired: 5,
     conditions: [
-      { type: 'kill', target: 'elite', required: 5, description: '击败精英怪物 (0/5)' },
+      { type: 'kill', target: 'elite', required: 5, description: '击败精英怪物 ({current}/{required})' },
     ],
     rewards: {
       gold: 150,
@@ -2041,7 +2054,7 @@ export const QUESTS: Quest[] = [
     icon: '💰',
     levelRequired: 3,
     conditions: [
-      { type: 'collect', target: 'gold', required: 500, description: '获得金币 (0/500)' },
+      { type: 'collect', target: 'gold', required: 500, description: '获得金币 ({current}/{required})' },
     ],
     rewards: {
       gold: 200,
@@ -2059,7 +2072,7 @@ export const QUESTS: Quest[] = [
     icon: '📦',
     levelRequired: 3,
     conditions: [
-      { type: 'collect', target: 'any_material', required: 10, description: '收集材料 (0/10)' },
+      { type: 'collect', target: 'any_material', required: 10, description: '收集材料 ({current}/{required})' },
     ],
     rewards: {
       gold: 100,
@@ -2076,7 +2089,7 @@ export const QUESTS: Quest[] = [
     icon: '📚',
     levelRequired: 5,
     conditions: [
-      { type: 'collect', target: 'exp', required: 500, description: '获得经验值 (0/500)' },
+      { type: 'collect', target: 'exp', required: 500, description: '获得经验值 ({current}/{required})' },
     ],
     rewards: {
       gold: 150,
@@ -2093,7 +2106,7 @@ export const QUESTS: Quest[] = [
     icon: '🗺️',
     levelRequired: 8,
     conditions: [
-      { type: 'dungeon', target: 'any', required: 1, description: '完成副本 (0/1)' },
+      { type: 'dungeon', target: 'any', required: 1, description: '完成副本 ({current}/{required})' },
     ],
     rewards: {
       gold: 300,
@@ -2110,7 +2123,7 @@ export const QUESTS: Quest[] = [
     icon: '💎',
     levelRequired: 10,
     conditions: [
-      { type: 'collect', target: 'any_gem', required: 2, description: '获得宝石 (0/2)' },
+      { type: 'collect', target: 'any_gem', required: 2, description: '获得宝石 ({current}/{required})' },
     ],
     rewards: {
       gold: 200,
@@ -2127,7 +2140,7 @@ export const QUESTS: Quest[] = [
     icon: '🐾',
     levelRequired: 5,
     conditions: [
-      { type: 'battle', target: 'with_pet', required: 5, description: '带宠物战斗 (0/5)' },
+      { type: 'battle', target: 'with_pet', required: 5, description: '带宠物战斗 ({current}/{required})' },
     ],
     rewards: {
       gold: 120,
@@ -2144,7 +2157,7 @@ export const QUESTS: Quest[] = [
     icon: '🎯',
     levelRequired: 5,
     conditions: [
-      { type: 'skill_use', target: 'any', required: 20, description: '使用技能 (0/20)' },
+      { type: 'skill_use', target: 'any', required: 20, description: '使用技能 ({current}/{required})' },
     ],
     rewards: {
       gold: 100,
@@ -2161,7 +2174,7 @@ export const QUESTS: Quest[] = [
     icon: '🧭',
     levelRequired: 3,
     conditions: [
-      { type: 'visit_map', target: 'any', required: 3, description: '访问地图 (0/3)' },
+      { type: 'visit_map', target: 'any', required: 3, description: '访问地图 ({current}/{required})' },
     ],
     rewards: {
       gold: 100,
@@ -2177,7 +2190,7 @@ export const QUESTS: Quest[] = [
     icon: '🔨',
     levelRequired: 8,
     conditions: [
-      { type: 'enhance', target: 'equipment', required: 1, description: '强化装备 (0/1)' },
+      { type: 'enhance', target: 'equipment', required: 1, description: '强化装备 ({current}/{required})' },
     ],
     rewards: {
       gold: 150,
@@ -2194,7 +2207,7 @@ export const QUESTS: Quest[] = [
     icon: '🏟️',
     levelRequired: 10,
     conditions: [
-      { type: 'arena', target: 'any', required: 3, description: '竞技场挑战 (0/3)' },
+      { type: 'arena', target: 'any', required: 3, description: '竞技场挑战 ({current}/{required})' },
     ],
     rewards: {
       gold: 250,
@@ -2211,7 +2224,7 @@ export const QUESTS: Quest[] = [
     icon: '🎁',
     levelRequired: 5,
     conditions: [
-      { type: 'gift', target: 'companion', required: 3, description: '送礼物 (0/3)' },
+      { type: 'gift', target: 'companion', required: 3, description: '送礼物 ({current}/{required})' },
     ],
     rewards: {
       gold: 100,
@@ -2228,7 +2241,7 @@ export const QUESTS: Quest[] = [
     icon: '🎣',
     levelRequired: 3,
     conditions: [
-      { type: 'fish', target: 'any', required: 5, description: '钓鱼 (0/5)' },
+      { type: 'fish', target: 'any', required: 5, description: '钓鱼 ({current}/{required})' },
     ],
     rewards: {
       gold: 80,

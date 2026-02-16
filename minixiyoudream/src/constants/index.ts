@@ -68,3 +68,57 @@ export * from './gems';
 
 // 物品
 export * from './items';
+
+// 装备
+export * from './equipment';
+
+// 装备特效和特技
+export * from './equipmentEffects';
+
+// 装备套装
+export * from './equipmentSets';
+
+// 新套装系统（四圣兽+麒麟）- 使用命名导出避免冲突
+export {
+  QINGLONG_SET,
+  BAIHU_SET,
+  ZHUQUE_SET,
+  XUANWU_SET,
+  QILIN_SET,
+  getSetQualityColor as getNewSetQualityColor,
+} from './sets';
+
+// 宠物成长
+export * from './petGrowth';
+
+// 宠物捕捉
+export * from './petCapture';
+
+// 宠物进化
+export * from './petEvolution';
+
+// 图标配置
+export * from './iconConfig';
+
+// 商店
+export * from './shops';
+
+// 宠物技能槽配置
+export {
+  PET_SKILL_SLOT_CONFIG,
+  SKILL_SLOT_UNLOCK_CONFIG,
+  SKILL_LOCK_CONFIG,
+  getPetSkillSlotConfig,
+  getInitialSkillSlots,
+  getMaxSkillSlots,
+  getSkillSlotUnlockConfig,
+  canUnlockSlotByLevel,
+  needsItemUnlock,
+  getSlotUnlockItem,
+  getSlotUnlockGoldCost,
+  getAllSlotUnlockItems,
+  getAvailableSkillSlots as getPetAvailableSkillSlots,
+} from './petSkillSlots';
+
+// 兽诀配置
+export * from './beastScrolls';

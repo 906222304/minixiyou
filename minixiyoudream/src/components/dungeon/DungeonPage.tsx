@@ -8,6 +8,7 @@ import {
   battleState,
   battleResult,
   isBattleActive,
+  returnToExplore,
 } from '@/signals';
 import { getAllDungeons, getDungeon } from '@/constants/dungeons';
 import {
@@ -33,6 +34,7 @@ import {
   getDifficultyColor,
   getDungeonTypeName,
 } from '@/signals/dungeonSignals';
+import { getItemTemplate } from '@/constants/items';
 import type { DungeonDifficulty, Dungeon } from '@/types';
 
 /** 难度选择模态框 */
@@ -143,7 +145,7 @@ function DungeonProgressBar() {
         </span>
       </div>
 
-      <div className="w-full h-3 bg-gray-700 rounded-full overflow-hidden">
+      <div className="w-full h-3 bg-slate-200 rounded-full overflow-hidden">
         <div
           className={`h-full transition-all duration-300 ${
             isBoss ? 'bg-red-500' : 'bg-[var(--game-gold)]'
@@ -249,11 +251,14 @@ function DungeonResultModal({
               <div className="flex flex-wrap gap-2 text-sm">
                 <span className="text-green-400">+{result.rewards.exp} 经验</span>
                 <span className="text-yellow-400">+{result.rewards.gold} 金币</span>
-                {result.rewards.items.map((item, i) => (
-                  <span key={i} className="text-purple-400">
-                    +{item.count}x {item.itemId}
-                  </span>
-                ))}
+                {result.rewards.items.map((item, i) => {
+                  const itemTemplate = getItemTemplate(item.itemId);
+                  return (
+                    <span key={i} className="text-purple-400">
+                      +{item.count}x {itemTemplate?.name || item.itemId}
+                    </span>
+                  );
+                })}
               </div>
             </div>
           )}
@@ -261,7 +266,7 @@ function DungeonResultModal({
 
         <button
           onClick={onClose}
-          className="mt-6 w-full py-3 rounded-lg bg-[var(--game-gold)] text-[var(--game-bg-dark)] font-medium hover:brightness-110 transition-all"
+          className="mt-6 w-full py-3 rounded-lg bg-[var(--game-gold)] text-white font-medium hover:brightness-110 transition-all"
         >
           确认
         </button>
@@ -359,7 +364,7 @@ function DungeonList({
                   {hasAnyClear && (
                     <span className="text-xs text-green-400">已通关</span>
                   )}
-                  <span className="text-xs px-2 py-0.5 rounded bg-gray-700 text-[var(--game-text-muted)]">
+                  <span className="text-xs px-2 py-0.5 rounded bg-slate-200 text-[var(--game-text-muted)]">
                     {getDungeonTypeName(dungeon.type)}
                   </span>
                 </div>
@@ -388,7 +393,7 @@ function DungeonList({
                 disabled={!canEnter}
                 className={`flex-1 py-2 rounded-lg text-sm font-medium transition-colors ${
                   canEnter
-                    ? 'bg-[var(--game-gold)] text-[var(--game-bg-dark)] hover:brightness-110'
+                    ? 'bg-[var(--game-gold)] text-white hover:brightness-110'
                     : 'bg-gray-600 text-gray-400 cursor-not-allowed'
                 }`}
               >
@@ -534,6 +539,15 @@ export function DungeonPage() {
   // 显示副本列表
   return (
     <div className="space-y-4">
+      {/* 返回按钮 */}
+      <button
+        onClick={returnToExplore}
+        className="flex items-center gap-2 px-4 py-3 text-sm text-[var(--game-text-muted)] hover:text-[var(--game-text)] active:bg-white/10 rounded-lg transition-colors touch-manipulation"
+      >
+        <span className="text-lg">←</span>
+        <span>返回西游</span>
+      </button>
+
       <h2 className="text-lg font-medium">副本</h2>
 
       <DungeonList onSelectDungeon={setSelectedDungeon} />

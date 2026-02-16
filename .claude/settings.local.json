@@ -19,12 +19,19 @@
       "Bash(timeout:*)",
       "Bash(python:*)",
       "Bash(zip:*)",
-      "Bash(curl:*)"
+      "Bash(curl:*)",
+      "Bash(./gradlew.bat:*)",
+      "Bash(gradlew.bat:*)",
+      "Bash(java:*)",
+      "Bash(set:*)",
+      "Bash(export:*)",
+      "Bash(rm:*)",
+      "Bash(wc:*)"
     ]
   },
   "project": {
-    "name": "MiniXiyouDream",
-    "description": "西游题材单机文字RPG游戏",
+    "name": "迷你西游梦",
+    "description": "西游题材单机文字RPG游戏（参考梦幻西游）",
     "techStack": [
       "React 19",
       "TypeScript 5.8",
@@ -32,7 +39,16 @@
       "Tailwind CSS 4",
       "Preact Signals",
       "Dexie.js",
-      "PWA"
+      "PWA",
+      "Capacitor"
+    ],
+    "features": [
+      "五行系统（金木水火土）",
+      "回合制战斗",
+      "宠物系统（捕捉、合宠、打书）",
+      "装备系统（强化、套装）",
+      "剧情任务（12章）",
+      "成就系统（79个成就）"
     ],
     "docsPath": "minixiyoudream/docs",
     "specsPath": "minixiyoudream/specs",

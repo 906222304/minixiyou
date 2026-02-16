@@ -2,6 +2,7 @@
 
 import { useEffect } from 'react';
 import { useSignals } from '@preact/signals-react/runtime';
+import { returnToExplore } from '@/signals';
 import {
   cultivationData,
   activeCultivationType,
@@ -232,6 +233,15 @@ export function CultivationPage() {
 
   return (
     <div className="space-y-4">
+      {/* 返回按钮 */}
+      <button
+        onClick={returnToExplore}
+        className="flex items-center gap-2 px-4 py-3 text-sm text-[var(--game-text-muted)] hover:text-[var(--game-text)] active:bg-white/10 rounded-lg transition-colors touch-manipulation"
+      >
+        <span className="text-lg">←</span>
+        <span>返回西游</span>
+      </button>
+
       {/* 顶部状态栏 */}
       <div className="game-panel p-4">
         <div className="flex items-center justify-between">

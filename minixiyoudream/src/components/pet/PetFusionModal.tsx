@@ -300,7 +300,7 @@ export function PetFusionModal({
                           ? 'text-[#4ade80]'
                           : isDecrease
                           ? 'text-[#f87171]'
-                          : 'text-white'
+                          : 'text-[var(--game-text)]'
                       }`}
                     >
                       {change.newValue.toFixed(2)}

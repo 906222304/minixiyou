@@ -165,7 +165,7 @@ export function MapMonsters() {
         <h4 className="text-sm font-bold text-[var(--game-gold-dark)] mb-3 flex items-center gap-2">
           <span>👹</span>
           <span>野外怪物</span>
-          <span className="text-xs text-[var(--game-text-muted)] font-normal ml-auto">
+          <span className="text-xs text-slate-500 font-normal ml-auto">
             点击查看详情
           </span>
         </h4>

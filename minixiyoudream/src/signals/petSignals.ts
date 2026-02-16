@@ -5,6 +5,7 @@ import type { Pet } from '@/types';
 import { generateUUID } from '@/types';
 import { getPetTemplate, randomAptitude } from '@/constants/pets';
 import { calculatePetStats } from '@/constants/formulas';
+import { rollPetQuality, generateGrowthRate, getPetQualityConfig } from '@/constants/petGrowth';
 
 /** 玩家拥有的宠物列表 */
 export const playerPets = signal<Pet[]>([]);
@@ -31,6 +32,13 @@ export function createPet(
   const template = getPetTemplate(templateId);
   if (!template) return null;
 
+  // 随机品质
+  const quality = rollPetQuality(prng);
+  const qualityConfig = getPetQualityConfig(quality);
+
+  // 生成成长率
+  const growthRate = generateGrowthRate(quality, template.type, prng);
+
   const aptitude = randomAptitude(prng);
   const level = 1;
   const stats = calculatePetStats(template.baseStats, aptitude as unknown as Record<string, number>, level);
@@ -43,6 +51,8 @@ export function createPet(
     type: template.type,
     rarity: template.baseRarity,
     element: template.element,
+    quality,
+    growthRate,
     level,
     exp: 0,
     maxLevel: 100,
@@ -60,6 +70,7 @@ export function createPet(
     maxHp: stats.maxHp,
     mp: stats.maxMp,
     maxMp: stats.maxMp,
+    variantAppearance: qualityConfig.hasAppearanceChange ? `${templateId}_variant` : undefined,
   };
 
   return pet;

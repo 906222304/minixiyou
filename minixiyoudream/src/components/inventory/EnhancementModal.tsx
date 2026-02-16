@@ -203,18 +203,18 @@ export function EnhancementModal({
               >
                 <div className="flex items-center gap-2">
                   <span className="text-sm">{STAT_ICONS[statKey] || '◆'}</span>
-                  <span className="text-[var(--game-text-muted)] text-xs">
+                  <span className="text-slate-400 text-xs">
                     {STAT_NAMES[statKey] || key}
                   </span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <span className="text-white text-sm font-semibold">
+                  <span className="text-[var(--game-text)] text-sm font-semibold">
                     {isPercent ? `${((currentValue as number) * 100).toFixed(1)}%` : currentValue}
                   </span>
                   {preview.targetLevel <= preview.maxLevel && (
                     <>
-                      <span className="text-[var(--game-text-dim)]">→</span>
-                      <span className={`text-sm font-semibold ${increase > 0 ? 'text-[#4ade80]' : 'text-white'}`}>
+                      <span className="text-slate-500">→</span>
+                      <span className={`text-sm font-semibold ${increase > 0 ? 'text-[#4ade80]' : 'text-[var(--game-text)]'}`}>
                         {isPercent ? `${((nextValue as number) * 100).toFixed(1)}%` : nextValue}
                       </span>
                       {increase > 0 && (
@@ -244,7 +244,7 @@ export function EnhancementModal({
             className={`text-lg transition-all duration-300 ${
               index < filledStars
                 ? 'text-[var(--game-gold)] animate-glow-pulse'
-                : 'text-[var(--game-text-dim)] opacity-40'
+                : 'text-slate-500 opacity-40'
             }`}
             style={index < filledStars ? { '--glow-color': 'rgba(245, 166, 35, 0.5)' } as React.CSSProperties : {}}
           >
@@ -315,7 +315,7 @@ export function EnhancementModal({
                   <span className="game-tag game-tag-gold text-xs">
                     {getQualityName(currentEquipment.quality)}
                   </span>
-                  <span className="text-[var(--game-text-dim)] text-xs">
+                  <span className="text-slate-500 text-xs">
                     最大强化: +{preview.maxLevel}
                   </span>
                 </div>
@@ -349,7 +349,7 @@ export function EnhancementModal({
               {/* 目标等级 */}
               <div className="flex items-center justify-between">
                 <span className="text-[var(--game-text-muted)] text-sm">目标等级</span>
-                <span className="text-white font-semibold">+{preview.targetLevel}</span>
+                <span className="text-[var(--game-gold)] font-semibold">+{preview.targetLevel}</span>
               </div>
 
               {/* 成功率 */}
@@ -412,10 +412,10 @@ export function EnhancementModal({
                     <div className="flex items-center gap-2">
                       <span className="text-lg">{PROTECTION_ITEM.icon}</span>
                       <div className="text-left">
-                        <div className="text-sm font-medium text-white">
+                        <div className="text-sm font-medium text-[var(--game-text)]">
                           {PROTECTION_ITEM.name}
                         </div>
-                        <div className="text-xs text-[var(--game-text-dim)]">
+                        <div className="text-xs text-slate-500">
                           {PROTECTION_ITEM.description}
                         </div>
                       </div>
@@ -424,7 +424,7 @@ export function EnhancementModal({
                       <div className={`text-sm ${canUseProtection ? 'text-[var(--game-gold)]' : 'text-[#f87171]'}`}>
                         ×{protectionCost}
                       </div>
-                      <div className="text-xs text-[var(--game-text-dim)]">
+                      <div className="text-xs text-slate-500">
                         拥有: {protectionStones}
                       </div>
                     </div>

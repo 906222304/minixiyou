@@ -8,6 +8,7 @@ const toastTimerManager = new TimerManager();
 
 /** 当前页面/面板 */
 export type Page =
+  | 'explore'
   | 'home'
   | 'character'
   | 'inventory'
@@ -22,8 +23,8 @@ export type Page =
   | 'quest'
   | 'settings';
 
-/** 当前页面 */
-export const currentPage = signal<Page>('home');
+/** 当前页面 - 默认西游页面，开放世界体验 */
+export const currentPage = signal<Page>('explore');
 
 /** 是否显示侧边栏 */
 export const showSidebar = signal(false);
@@ -64,6 +65,25 @@ export function toggleSidebar(): void {
 
 /** 关闭侧边栏 */
 export function closeSidebar(): void {
+  showSidebar.value = false;
+}
+
+/** 返回西游页面 */
+export function returnToExplore(): void {
+  currentPage.value = 'explore';
+  showSidebar.value = false;
+}
+
+/** 任务导航来源类型 */
+export type QuestNavigationSource = 'normal' | 'claimable' | 'available';
+
+/** 任务导航来源 - 用于自动切换任务视图 */
+export const questNavigationSource = signal<QuestNavigationSource>('normal');
+
+/** 导航到任务页面（带来源参数） */
+export function navigateToQuest(source: QuestNavigationSource = 'normal'): void {
+  questNavigationSource.value = source;
+  currentPage.value = 'quest';
   showSidebar.value = false;
 }
 

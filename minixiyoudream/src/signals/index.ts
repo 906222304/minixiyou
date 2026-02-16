@@ -6,6 +6,8 @@ export {
   gameSeed,
   gameTime,
   isPlaying,
+  returnToMenu,
+  startNewGame,
   type GamePhase,
 } from './gameSignals';
 
@@ -36,6 +38,14 @@ export {
   calculateResetCost,
   playerAttributePoints,
   playerAllocatedPoints,
+  // 技能学习系统
+  learnSkill,
+  upgradeSkill,
+  getAvailableSkillsToLearn,
+  playerSkillPoints,
+  playerLearnedSkills,
+  // 退出游戏
+  clearPlayer,
 } from './playerSignals';
 
 // 伙伴状态
@@ -103,6 +113,7 @@ export {
   navigateTo,
   toggleSidebar,
   closeSidebar,
+  returnToExplore,
   showLoading,
   hideLoading,
   showToast,
@@ -112,7 +123,11 @@ export {
   closeModal,
   confirmModal,
   cancelModal,
+  // 任务导航
+  questNavigationSource,
+  navigateToQuest,
   type Page,
+  type QuestNavigationSource,
 } from './uiSignals';
 
 // 背包状态
@@ -259,6 +274,7 @@ export {
   questTracker,
   isQuestInitialized,
   selectedQuestType,
+  selectedQuestStatus,
   selectedQuestId,
   currentDialog,
   currentDialogIndex,
@@ -272,6 +288,16 @@ export {
   selectedQuestDetail,
   isDialogActive,
   currentDialogLine,
+  // 任务追踪
+  trackedQuestId,
+  setTrackedQuest,
+  initTrackedQuest,
+  trackedQuestDetail,
+  // 章节等级限制
+  chapterLevelRestrictionMessage,
+  showChapterLevelRestriction,
+  clearChapterLevelRestriction,
+  // 函数
   initQuests,
   refreshQuests,
   acceptQuest,
@@ -282,6 +308,7 @@ export {
   advanceDialog,
   closeDialog,
   setSelectedQuestType,
+  setSelectedQuestStatus,
   setSelectedQuestId,
   clearNewlyCompletedQuests,
   removeNewlyCompletedQuest,
@@ -297,6 +324,7 @@ export {
   getQuestTypeName,
   getQuestTypeIcon,
   getChapterName,
+  getChapterLevelRequired,
 } from './questSignals';
 
 // 挂机战斗状态

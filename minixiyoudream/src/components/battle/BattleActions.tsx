@@ -230,16 +230,16 @@ export function BattleActions({ selectedTargetId, onSelectTarget }: BattleAction
   // 如果战斗已结束，显示结算按钮
   if (state.result) {
     return (
-      <div className="space-y-3">
-        <div className={`text-center text-lg font-bold ${state.result.victory ? 'text-[#16a34a]' : 'text-[#dc2626]'}`}>
+      <div className="space-y-2 sm:space-y-3">
+        <div className={`text-center text-base sm:text-lg font-bold ${state.result.victory ? 'text-[#16a34a]' : 'text-[#dc2626]'}`}>
           {state.result.victory ? '战斗胜利！' : '战斗失败...'}
         </div>
         {state.result.victory && (
-          <div className="text-center text-sm text-[var(--game-text-muted)] space-y-1">
+          <div className="text-center text-xs sm:text-sm text-[var(--game-text-muted)] space-y-0.5 sm:space-y-1">
             <p>战斗回合: {state.result.stats.rounds}</p>
             <p>总伤害输出: {state.result.stats.totalDamageDealt}</p>
             <p>暴击次数: {state.result.stats.criticalHits}</p>
-            <div className="border-t border-[var(--game-border)] pt-2 mt-2">
+            <div className="border-t border-[var(--game-border)] pt-1.5 sm:pt-2 mt-1.5 sm:mt-2">
               <p className="text-[#16a34a]">获得经验: +{state.result.rewards.exp}</p>
               <p className="text-[#eab308]">获得金币: +{state.result.rewards.gold}</p>
               {state.result.rewards.items.length > 0 && (
@@ -257,7 +257,7 @@ export function BattleActions({ selectedTargetId, onSelectTarget }: BattleAction
         )}
         <button
           onClick={handleBattleEnd}
-          className="game-btn game-btn-primary w-full py-3 font-medium"
+          className="game-btn game-btn-primary w-full px-2 sm:px-3 py-1.5 sm:py-2 font-medium text-xs sm:text-sm"
         >
           确定
         </button>
@@ -268,35 +268,42 @@ export function BattleActions({ selectedTargetId, onSelectTarget }: BattleAction
   // 如果不是玩家回合或自动战斗，显示等待状态
   if (!isPlayerTurn || auto) {
     return (
-      <div className="space-y-3">
-        <div className="flex justify-center gap-2">
-          <button
-            onClick={() => setShowAutoConfig(true)}
-            className="game-btn game-btn-sm px-2 py-2 text-sm font-medium"
-            title="自动战斗配置"
-          >
-            ⚙️
-          </button>
-          <button
-            onClick={toggleAuto}
-            className={`game-btn game-btn-sm px-3 py-2 text-sm font-medium ${
-              auto ? 'game-btn-success' : ''
-            }`}
-          >
-            {auto ? '自动中' : '自动'}
-          </button>
-          <button
-            onClick={cycleSpeed}
-            className="game-btn game-btn-sm px-3 py-2 text-sm font-medium"
-          >
-            {speed}x
-          </button>
+      <div className="space-y-2 sm:space-y-3">
+        {/* 回合信息 */}
+        <div className="flex justify-between items-center">
+          <div className="text-xs sm:text-sm">
+            <span className="text-[var(--game-text-muted)]">回合:</span>{' '}
+            <span className="font-medium text-[var(--game-text)]">{state.round}/{state.maxRounds}</span>
+          </div>
+          <div className="flex gap-1 sm:gap-2">
+            <button
+              onClick={() => setShowAutoConfig(true)}
+              className="game-btn px-2 sm:px-3 py-1 sm:py-2 text-xs sm:text-sm"
+              title="自动战斗配置"
+            >
+              ⚙️
+            </button>
+            <button
+              onClick={toggleAuto}
+              className={`game-btn px-2 sm:px-3 py-1 sm:py-2 text-xs sm:text-sm ${
+                auto ? 'game-btn-success' : ''
+              }`}
+            >
+              {auto ? '自动中' : '自动'}
+            </button>
+            <button
+              onClick={cycleSpeed}
+              className="game-btn px-2 sm:px-3 py-1 sm:py-2 text-xs sm:text-sm"
+            >
+              {speed}x
+            </button>
+          </div>
         </div>
         <div className="text-center">
-          <p className="text-sm text-[var(--game-gold-dark)] font-medium">
+          <p className="text-xs sm:text-sm text-[var(--game-gold-dark)] font-medium">
             {currentActor?.name} 的回合
           </p>
-          <p className="text-[var(--game-text-muted)] text-sm">
+          <p className="text-[var(--game-text-muted)] text-xs sm:text-sm">
             {auto ? '自动战斗中...' : '等待中...'}
           </p>
         </div>
@@ -311,24 +318,24 @@ export function BattleActions({ selectedTargetId, onSelectTarget }: BattleAction
   }
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-2 sm:space-y-3">
       {/* 顶部控制栏 */}
       <div className="flex justify-between items-center">
-        <div className="text-sm">
+        <div className="text-xs sm:text-sm">
           <span className="text-[var(--game-text-muted)]">回合:</span>{' '}
           <span className="font-medium text-[var(--game-text)]">{state.round}/{state.maxRounds}</span>
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-1 sm:gap-2">
           <button
             onClick={() => setShowAutoConfig(true)}
-            className="game-btn game-btn-sm px-2 py-1 text-xs"
+            className="game-btn px-2 sm:px-3 py-1 sm:py-2 text-xs sm:text-sm"
             title="自动战斗配置"
           >
             ⚙️
           </button>
           <button
             onClick={toggleAuto}
-            className={`game-btn game-btn-sm px-2 py-1 text-xs ${
+            className={`game-btn px-2 sm:px-3 py-1 sm:py-2 text-xs sm:text-sm ${
               auto ? 'game-btn-success' : ''
             }`}
           >
@@ -336,7 +343,7 @@ export function BattleActions({ selectedTargetId, onSelectTarget }: BattleAction
           </button>
           <button
             onClick={cycleSpeed}
-            className="game-btn game-btn-sm px-2 py-1 text-xs"
+            className="game-btn px-2 sm:px-3 py-1 sm:py-2 text-xs sm:text-sm"
           >
             {speed}x
           </button>
@@ -344,10 +351,10 @@ export function BattleActions({ selectedTargetId, onSelectTarget }: BattleAction
       </div>
 
       {/* 当前行动单位 */}
-      <div className="text-center text-sm text-[var(--game-gold-dark)] font-medium">
+      <div className="text-center text-xs sm:text-sm text-[var(--game-gold-dark)] font-medium">
         {currentActor?.name} 的回合
         {currentActor && (
-          <span className="text-[var(--game-text-muted)] ml-2">
+          <span className="text-[var(--game-text-muted)] ml-1 sm:ml-2 hidden sm:inline">
             HP: {currentActor.hp}/{currentActor.maxHp} | MP: {currentActor.mp}/{currentActor.maxMp}
           </span>
         )}
@@ -355,41 +362,41 @@ export function BattleActions({ selectedTargetId, onSelectTarget }: BattleAction
 
       {/* 技能面板 */}
       {activePanel === 'skills' && (
-        <div className="game-panel p-3 max-h-48 overflow-y-auto">
-          <div className="flex items-center justify-between mb-2">
-            <h4 className="text-sm font-semibold text-[var(--game-text)]">选择技能</h4>
+        <div className="game-panel p-2 sm:p-3 max-h-36 sm:max-h-48 overflow-y-auto">
+          <div className="flex items-center justify-between mb-1.5 sm:mb-2">
+            <h4 className="text-xs sm:text-sm font-semibold text-[var(--game-text)]">选择技能</h4>
             <button
               onClick={() => setActivePanel('none')}
-              className="text-xs text-[var(--game-text-muted)] hover:text-[var(--game-text)]"
+              className="text-[10px] sm:text-xs text-[var(--game-text-muted)] hover:text-[var(--game-text)]"
             >
               关闭
             </button>
           </div>
           {allSkills.length === 0 ? (
-            <p className="text-center text-[var(--game-text-muted)] text-sm py-4">
+            <p className="text-center text-[var(--game-text-muted)] text-xs sm:text-sm py-3 sm:py-4">
               没有可用技能
             </p>
           ) : (
-            <div className="space-y-2">
+            <div className="space-y-1.5 sm:space-y-2">
               {allSkills.map(({ skill, cooldown, canUse }) => (
                 <button
                   key={skill.id}
                   onClick={() => canUse && handleUseSkill(skill)}
                   disabled={!canUse}
-                  className={`w-full game-card p-2 text-left ${!canUse ? 'opacity-50' : ''}`}
+                  className={`w-full game-card p-1.5 sm:p-2 text-left ${!canUse ? 'opacity-50' : ''}`}
                 >
-                  <div className="flex items-center gap-2">
-                    <span className="text-lg">{skill.icon}</span>
+                  <div className="flex items-center gap-1.5 sm:gap-2">
+                    <span className="text-base sm:text-lg">{skill.icon}</span>
                     <div className="flex-1 min-w-0">
-                      <div className="font-medium text-sm truncate">{skill.name}</div>
-                      <div className="text-xs text-[var(--game-text-muted)] truncate">
+                      <div className="font-medium text-xs sm:text-sm truncate">{skill.name}</div>
+                      <div className="text-[10px] sm:text-xs text-[var(--game-text-muted)] truncate">
                         {skill.description}
                       </div>
                     </div>
                     <div className="text-right">
-                      <span className="text-xs text-[#60a5fa]">{skill.mpCost} MP</span>
+                      <span className="text-[10px] sm:text-xs text-[#60a5fa]">{skill.mpCost} MP</span>
                       {cooldown > 0 && (
-                        <div className="text-xs text-[#f87171]">CD: {cooldown}</div>
+                        <div className="text-[10px] sm:text-xs text-[#f87171]">CD: {cooldown}</div>
                       )}
                     </div>
                   </div>
@@ -402,37 +409,37 @@ export function BattleActions({ selectedTargetId, onSelectTarget }: BattleAction
 
       {/* 道具面板 */}
       {activePanel === 'items' && (
-        <div className="game-panel p-3 max-h-48 overflow-y-auto">
-          <div className="flex items-center justify-between mb-2">
-            <h4 className="text-sm font-semibold text-[var(--game-text)]">选择道具</h4>
+        <div className="game-panel p-2 sm:p-3 max-h-36 sm:max-h-48 overflow-y-auto">
+          <div className="flex items-center justify-between mb-1.5 sm:mb-2">
+            <h4 className="text-xs sm:text-sm font-semibold text-[var(--game-text)]">选择道具</h4>
             <button
               onClick={() => setActivePanel('none')}
-              className="text-xs text-[var(--game-text-muted)] hover:text-[var(--game-text)]"
+              className="text-[10px] sm:text-xs text-[var(--game-text-muted)] hover:text-[var(--game-text)]"
             >
               关闭
             </button>
           </div>
           {usableItems.length === 0 ? (
-            <p className="text-center text-[var(--game-text-muted)] text-sm py-4">
+            <p className="text-center text-[var(--game-text-muted)] text-xs sm:text-sm py-3 sm:py-4">
               没有可用道具
             </p>
           ) : (
-            <div className="space-y-2">
+            <div className="space-y-1.5 sm:space-y-2">
               {usableItems.map((item) => (
                 <button
                   key={item.id}
                   onClick={() => handleUseItem(item)}
-                  className="w-full game-card p-2 text-left"
+                  className="w-full game-card p-1.5 sm:p-2 text-left"
                 >
-                  <div className="flex items-center gap-2">
-                    <span className="text-lg">{'potion' in item ? '🧪' : '📦'}</span>
+                  <div className="flex items-center gap-1.5 sm:gap-2">
+                    <span className="text-base sm:text-lg">{'potion' in item ? '🧪' : '📦'}</span>
                     <div className="flex-1 min-w-0">
-                      <div className="font-medium text-sm truncate">{item.name}</div>
-                      <div className="text-xs text-[var(--game-text-muted)]">
+                      <div className="font-medium text-xs sm:text-sm truncate">{item.name}</div>
+                      <div className="text-[10px] sm:text-xs text-[var(--game-text-muted)]">
                         消耗品
                       </div>
                     </div>
-                    <span className="text-xs text-[var(--game-text-dim)]">x{item.count}</span>
+                    <span className="text-[10px] sm:text-xs text-[var(--game-text-dim)]">x{item.count}</span>
                   </div>
                 </button>
               ))}
@@ -444,54 +451,54 @@ export function BattleActions({ selectedTargetId, onSelectTarget }: BattleAction
       {/* 操作按钮 */}
       {activePanel === 'none' && (
         <>
-          <div className="grid grid-cols-3 gap-2">
+          <div className="grid grid-cols-3 gap-1.5 sm:gap-2">
             <button
               onClick={handleAttack}
               disabled={!selectedTargetId}
-              className="game-btn game-btn-danger py-3 font-medium text-sm disabled:opacity-50"
+              className="game-btn game-btn-danger px-2 sm:px-3 py-1.5 sm:py-2 font-medium text-xs sm:text-sm disabled:opacity-50"
             >
               攻击
             </button>
             <button
               onClick={() => setActivePanel('skills')}
-              className="game-btn game-btn-magic py-3 font-medium text-sm"
+              className="game-btn game-btn-magic px-2 sm:px-3 py-1.5 sm:py-2 font-medium text-xs sm:text-sm"
             >
               技能
               {availableSkills.length > 0 && (
-                <span className="ml-1 text-xs">({availableSkills.length})</span>
+                <span className="ml-0.5 sm:ml-1 text-[10px] sm:text-xs">({availableSkills.length})</span>
               )}
             </button>
             <button
               onClick={handleDefend}
-              className="game-btn py-3 font-medium text-sm"
+              className="game-btn px-2 sm:px-3 py-1.5 sm:py-2 font-medium text-xs sm:text-sm"
             >
               防御
             </button>
           </div>
-          <div className="grid grid-cols-3 gap-2">
+          <div className="grid grid-cols-3 gap-1.5 sm:gap-2">
             <button
               onClick={() => setActivePanel('items')}
               disabled={usableItems.length === 0}
-              className="game-btn game-btn-success py-2 font-medium text-sm disabled:opacity-50"
+              className="game-btn game-btn-success px-2 sm:px-3 py-1.5 sm:py-2 font-medium text-xs sm:text-sm disabled:opacity-50"
             >
               道具
               {usableItems.length > 0 && (
-                <span className="ml-1 text-xs">({usableItems.length})</span>
+                <span className="ml-0.5 sm:ml-1 text-[10px] sm:text-xs">({usableItems.length})</span>
               )}
             </button>
             <button
               onClick={handleCapture}
               disabled={!canCapture}
-              className="game-btn py-2 font-medium text-sm disabled:opacity-50"
+              className="game-btn px-2 sm:px-3 py-1.5 sm:py-2 font-medium text-xs sm:text-sm disabled:opacity-50"
               title={canCapture ? `捕捉成功率: ${Math.round(captureRate * 100)}%` : '该目标无法捕捉'}
             >
-              🧬 捕捉
+              捕捉
             </button>
             <button
               onClick={handleEscape}
-              className="game-btn game-btn-danger py-2 font-medium text-sm"
+              className="game-btn game-btn-danger px-2 sm:px-3 py-1.5 sm:py-2 font-medium text-xs sm:text-sm"
             >
-              🏃 逃跑
+              逃跑
             </button>
           </div>
         </>
@@ -499,7 +506,7 @@ export function BattleActions({ selectedTargetId, onSelectTarget }: BattleAction
 
       {/* 目标选择提示 */}
       {activePanel === 'none' && (
-        <p className="text-center text-[var(--game-text-muted)] text-xs">
+        <p className="text-center text-[var(--game-text-muted)] text-[10px] sm:text-xs">
           {selectedTargetId
             ? '已选择目标，点击"攻击"执行'
             : '请点击敌方单位选择攻击目标'}

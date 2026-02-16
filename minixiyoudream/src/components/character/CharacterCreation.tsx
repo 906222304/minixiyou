@@ -148,7 +148,7 @@ export function CharacterCreation() {
                       ? 'bg-[var(--game-gold)] text-white'
                       : i === currentStepIndex
                       ? 'bg-[var(--game-gold)]/20 border-2 border-[var(--game-gold)] text-[var(--game-gold-dark)]'
-                      : 'bg-white/50 text-[var(--game-text-dim)] border border-[var(--game-border)]'
+                      : 'bg-[var(--game-bg-subtle)] text-[var(--game-text-muted)] border border-[var(--game-border)]'
                   }`}
                 >
                   {i < currentStepIndex ? (
@@ -171,7 +171,7 @@ export function CharacterCreation() {
           </div>
 
           {/* 当前步骤标签 */}
-          <p className="text-[var(--game-text-muted)] text-sm mt-4">
+          <p className="text-slate-600 text-sm mt-4">
             步骤 {currentStepIndex + 1}/5: {STEP_LABELS[step]}
           </p>
         </div>
@@ -207,7 +207,7 @@ export function CharacterCreation() {
                     maxLength={12}
                     autoComplete="off"
                   />
-                  <p className="text-xs text-[var(--game-text-dim)] mt-2">
+                  <p className="text-xs text-slate-500 mt-2">
                     {name.length}/12 字符
                   </p>
                 </div>
@@ -261,25 +261,25 @@ export function CharacterCreation() {
                               const statInfo = statLabels[stat];
                               return (
                                 <div key={stat} className="flex items-center gap-2">
-                                  <span className="text-xs text-[var(--game-text-muted)] w-10">{statInfo.name}</span>
+                                  <span className="text-xs text-slate-600 w-10">{statInfo.name}</span>
                                   <div className="flex-1 h-2 bg-slate-200 rounded-full overflow-hidden">
                                     <div
                                       className={`h-full ${statInfo.color} rounded-full transition-all duration-300`}
                                       style={{ width: `${(value / maxStat) * 100}%` }}
                                     />
                                   </div>
-                                  <span className="text-xs text-[var(--game-text-dim)] w-6 text-right">{value}</span>
+                                  <span className="text-xs text-slate-500 w-6 text-right">{value}</span>
                                 </div>
                               );
                             })}
                           </div>
 
                           {/* 种族特性 */}
-                          <div className="mt-3 flex flex-wrap gap-1.5">
+                          <div className="mt-3 flex flex-wrap gap-2">
                             {race.traits.map((trait) => (
                               <span
                                 key={trait.id}
-                                className="px-2 py-0.5 bg-[var(--game-gold)]/20 rounded text-xs text-[var(--game-gold-dark)]"
+                                className="px-2.5 py-1 bg-[var(--game-gold)]/20 rounded-lg text-xs text-[var(--game-gold-dark)] font-medium"
                               >
                                 {trait.name}
                               </span>
@@ -481,7 +481,7 @@ export function CharacterCreation() {
                       {rolledTraits.map((trait) => (
                         <span
                           key={trait.id}
-                          className={`px-3 py-1.5 rounded-lg text-sm font-medium ${RARITY_COLORS[trait.rarity]} bg-white/50`}
+                          className={`px-3 py-1.5 rounded-lg text-sm font-medium ${RARITY_COLORS[trait.rarity]} bg-[var(--game-bg-subtle)]`}
                         >
                           {trait.name}
                         </span>

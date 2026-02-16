@@ -23,7 +23,7 @@ export function BattleUnit({ unit, isEnemy, isPet, isActive, isSelected, onClick
   return (
     <div
       className={`
-        relative flex flex-col items-center p-2 rounded-xl transition-all bg-white/70 shadow-sm
+        battle-unit relative flex flex-col items-center p-1 sm:p-2 rounded-lg sm:rounded-xl transition-all bg-white/70 shadow-sm
         ${isDead ? 'opacity-50 grayscale' : ''}
         ${isActive ? 'ring-2 ring-[var(--game-gold)] shadow-lg animate-pulse' : ''}
         ${isSelected ? 'ring-2 ring-[#dc2626] bg-red-50/70' : ''}
@@ -33,7 +33,7 @@ export function BattleUnit({ unit, isEnemy, isPet, isActive, isSelected, onClick
     >
       {/* 单位图标 */}
       <div className={`
-        text-3xl mb-1 transition-transform
+        battle-unit-icon text-xl sm:text-3xl mb-0.5 sm:mb-1 transition-transform
         ${isActive ? 'scale-110' : ''}
         ${isDead ? 'grayscale' : ''}
       `}>
@@ -41,7 +41,7 @@ export function BattleUnit({ unit, isEnemy, isPet, isActive, isSelected, onClick
       </div>
 
       {/* HP条 */}
-      <div className="w-16 h-2.5 bg-gray-200 rounded-full overflow-hidden relative">
+      <div className="battle-unit-hp w-12 sm:w-16 h-2 sm:h-2.5 bg-gray-200 rounded-full overflow-hidden relative">
         <div
           className={`h-full transition-all duration-300 rounded-full ${
             hpPercent > 50 ? 'bg-[#4ade80]' : hpPercent > 25 ? 'bg-[#fbbf24]' : 'bg-[#f87171]'
@@ -49,14 +49,14 @@ export function BattleUnit({ unit, isEnemy, isPet, isActive, isSelected, onClick
           style={{ width: `${hpPercent}%` }}
         />
         {/* HP数值显示在条内 */}
-        <span className="absolute inset-0 flex items-center justify-center text-[8px] font-medium text-gray-700">
+        <span className="absolute inset-0 flex items-center justify-center text-[7px] sm:text-[8px] font-medium text-gray-700">
           {unit.hp}
         </span>
       </div>
 
       {/* MP条（仅非宠物显示） */}
       {!isPet && unit.maxMp > 0 && (
-        <div className="w-16 h-1.5 bg-gray-200 rounded-full overflow-hidden mt-0.5">
+        <div className="w-12 sm:w-16 h-1 sm:h-1.5 bg-gray-200 rounded-full overflow-hidden mt-0.5">
           <div
             className="h-full bg-[#60a5fa] transition-all duration-300 rounded-full"
             style={{ width: `${mpPercent}%` }}
@@ -65,7 +65,7 @@ export function BattleUnit({ unit, isEnemy, isPet, isActive, isSelected, onClick
       )}
 
       {/* 名称 */}
-      <div className="text-xs mt-1 text-center truncate w-16 font-medium text-[var(--game-text)]">
+      <div className="text-[10px] sm:text-xs mt-0.5 sm:mt-1 text-center truncate w-12 sm:w-16 font-medium text-[var(--game-text)]">
         {unit.name}
       </div>
 
@@ -73,7 +73,7 @@ export function BattleUnit({ unit, isEnemy, isPet, isActive, isSelected, onClick
       {unit.statusEffects.length > 0 && (
         <div className="flex gap-0.5 mt-0.5">
           {unit.statusEffects.slice(0, 3).map((effect) => (
-            <span key={effect.id} className="text-xs" title={effect.name}>
+            <span key={effect.id} className="text-[10px] sm:text-xs" title={effect.name}>
               {effect.icon}
             </span>
           ))}
@@ -82,13 +82,13 @@ export function BattleUnit({ unit, isEnemy, isPet, isActive, isSelected, onClick
 
       {/* 防御状态指示 */}
       {unit.isDefending && (
-        <div className="absolute -top-1 -right-1 text-xs">🛡️</div>
+        <div className="absolute -top-1 -right-1 text-[10px] sm:text-xs">🛡️</div>
       )}
 
       {/* 选中指示器 */}
       {isSelected && (
         <div className="absolute -bottom-1 left-1/2 transform -translate-x-1/2">
-          <span className="text-xs text-[#dc2626]">▼</span>
+          <span className="text-[10px] sm:text-xs text-[#dc2626]">▼</span>
         </div>
       )}
     </div>

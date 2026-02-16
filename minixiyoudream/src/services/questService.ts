@@ -16,7 +16,9 @@ import type {
   QuestStatus,
   QuestCondition,
 } from '@/types/quest';
-import { LRUCache } from '@/utils/cache';
+
+/** localStorage 存储键前缀 */
+const STORAGE_KEY_PREFIX = 'minixiyou_quest_';
 
 /** 任务数据存储结构 */
 export interface QuestData {
@@ -70,32 +72,91 @@ function createDefaultQuestData(playerId: string): QuestData {
   };
 }
 
+/** 获取存储键 */
+function getStorageKey(playerId: string): string {
+  return `${STORAGE_KEY_PREFIX}${playerId}`;
+}
+
+/** 检查 localStorage 是否可用 */
+function isLocalStorageAvailable(): boolean {
+  try {
+    if (typeof window === 'undefined' || typeof localStorage === 'undefined') {
+      return false;
+    }
+    // 测试是否可以正常读写
+    const testKey = '__test__';
+    localStorage.setItem(testKey, testKey);
+    localStorage.removeItem(testKey);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/** localStorage 是否可用 */
+const hasLocalStorage = isLocalStorageAvailable();
+
 /**
  * 任务服务类
  */
 class QuestService {
-  private cache: LRUCache<string, QuestData> = new LRUCache(50);
+  private memoryCache: Map<string, QuestData> = new Map();
+
+  /**
+   * 从 localStorage 加载数据
+   */
+  private loadFromStorage(playerId: string): QuestData | null {
+    if (!hasLocalStorage) return null;
+
+    try {
+      const key = getStorageKey(playerId);
+      const stored = localStorage.getItem(key);
+      if (stored) {
+        const data = JSON.parse(stored) as QuestData;
+        return data;
+      }
+    } catch (error) {
+      console.error('[QuestService] Failed to load from localStorage:', error);
+    }
+    return null;
+  }
+
+  /**
+   * 保存到 localStorage
+   */
+  private saveToStorage(playerId: string, data: QuestData): void {
+    if (!hasLocalStorage) return;
+
+    try {
+      const key = getStorageKey(playerId);
+      localStorage.setItem(key, JSON.stringify(data));
+    } catch (error) {
+      console.error('[QuestService] Failed to save to localStorage:', error);
+    }
+  }
 
   /**
    * 初始化玩家任务数据
    */
   async initPlayerQuests(playerId: string): Promise<QuestData> {
-    // 先检查缓存
-    const cached = this.cache.get(playerId);
+    // 先检查内存缓存
+    const cached = this.memoryCache.get(playerId);
     if (cached) {
       // 检查日常任务重置
       return this.checkDailyReset(cached);
     }
 
-    // 从数据库加载 - 注意：任务数据存储在专用的表中
-    // 由于当前db没有quests表，我们需要扩展它
-    // 暂时使用内存存储，后续可以迁移到IndexedDB
-    let data = this.cache.get(playerId);
+    // 从 localStorage 加载
+    let data = this.loadFromStorage(playerId);
 
     if (!data) {
+      // 没有存储的数据，创建新的
       data = createDefaultQuestData(playerId);
-      this.cache.set(playerId, data);
+      this.saveToStorage(playerId, data);
     }
+
+    // 存入内存缓存
+    this.memoryCache.set(playerId, data);
 
     // 检查日常任务重置
     return this.checkDailyReset(data);
@@ -136,19 +197,21 @@ class QuestService {
    * 获取玩家任务数据
    */
   async getPlayerQuests(playerId: string): Promise<QuestData | undefined> {
-    return this.cache.get(playerId);
+    return this.memoryCache.get(playerId);
   }
 
   /**
-   * 保存玩家任务数据（内存缓存）
+   * 保存玩家任务数据（内存缓存 + localStorage）
    */
   async savePlayerQuests(playerId: string): Promise<void> {
-    const data = this.cache.get(playerId);
+    const data = this.memoryCache.get(playerId);
     if (!data) return;
 
     data.updatedAt = Date.now();
-    // 数据保持在缓存中
-    this.cache.set(playerId, data);
+    // 更新内存缓存
+    this.memoryCache.set(playerId, data);
+    // 持久化到 localStorage
+    this.saveToStorage(playerId, data);
   }
 
   /**
@@ -170,9 +233,9 @@ class QuestService {
       return { success: false, message: '任务不存在' };
     }
 
-    // 检查是否已接取
+    // 检查是否已接取（更严格：不允许已接取的任务再次接取）
     const existingQuest = data.quests.find((pq) => pq.questId === questId);
-    if (existingQuest && existingQuest.status !== 'locked') {
+    if (existingQuest && existingQuest.status !== 'locked' && existingQuest.status !== 'available') {
       return { success: false, message: '任务已接取' };
     }
 
@@ -357,6 +420,46 @@ class QuestService {
         tracker.battlesWon[battleTarget] = (tracker.battlesWon[battleTarget] || 0) + (event.count || 1);
         break;
       }
+
+      case 'pet_captured': {
+        // 捕获宠物，使用 itemsCollected 以 pet_ 前缀存储
+        const petId = `pet_${event.targetId}`;
+        tracker.itemsCollected[petId] = (tracker.itemsCollected[petId] || 0) + (event.count || 1);
+        break;
+      }
+
+      case 'dungeon_completed': {
+        const dungeonId = event.targetId || 'any';
+        tracker.dungeonsCompleted[dungeonId] = (tracker.dungeonsCompleted[dungeonId] || 0) + (event.count || 1);
+        break;
+      }
+
+      case 'skill_used': {
+        const skillId = event.targetId || 'any';
+        tracker.skillsUsed[skillId] = (tracker.skillsUsed[skillId] || 0) + (event.count || 1);
+        break;
+      }
+
+      case 'equipment_enhanced':
+        tracker.equipmentsEnhanced += event.count || 1;
+        break;
+
+      case 'arena_battle':
+        tracker.arenaBattles += event.count || 1;
+        break;
+
+      case 'gift_given':
+        tracker.giftsGiven += event.count || 1;
+        break;
+
+      case 'fish_caught':
+        tracker.fishCaught += event.count || 1;
+        break;
+
+      case 'level_reached':
+        // level_reached 事件通过 updateLevelCondition 方法处理
+        // 这里不需要更新 tracker，因为等级条件直接存储在 conditionProgress 中
+        break;
     }
   }
 
@@ -530,8 +633,18 @@ class QuestService {
         const required = condition.required;
         const completed = current >= required;
 
+        // 动态替换描述模板中的占位符
+        const formattedDescription = this.formatConditionDescription(
+          condition.description,
+          current,
+          required
+        );
+
         return {
-          condition,
+          condition: {
+            ...condition,
+            description: formattedDescription,
+          },
           current,
           required,
           completed,
@@ -573,6 +686,15 @@ class QuestService {
   }
 
   /**
+   * 格式化条件描述，替换占位符
+   */
+  private formatConditionDescription(description: string, current: number, required: number): string {
+    return description
+      .replace(/{current}/g, String(Math.min(current, required)))
+      .replace(/{required}/g, String(required));
+  }
+
+  /**
    * 检查是否可以接取任务
    */
   private canAcceptQuest(
@@ -585,7 +707,7 @@ class QuestService {
       return false;
     }
 
-    // 检查前置任务
+    // 检查前置任务（completed 或 claimed 都算完成）
     if (quest.prerequisites) {
       const completedIds = playerQuests
         .filter((pq) => pq.status === 'completed' || pq.status === 'claimed')
@@ -726,9 +848,32 @@ class QuestService {
    */
   clearCache(playerId?: string): void {
     if (playerId) {
-      this.cache.delete(playerId);
+      this.memoryCache.delete(playerId);
+      // 同时清除 localStorage
+      if (hasLocalStorage) {
+        try {
+          localStorage.removeItem(getStorageKey(playerId));
+        } catch (error) {
+          console.error('[QuestService] Failed to clear localStorage:', error);
+        }
+      }
     } else {
-      this.cache.clear();
+      this.memoryCache.clear();
+      // 清除所有任务相关的 localStorage
+      if (hasLocalStorage) {
+        try {
+          const keysToRemove: string[] = [];
+          for (let i = 0; i < localStorage.length; i++) {
+            const key = localStorage.key(i);
+            if (key && key.startsWith(STORAGE_KEY_PREFIX)) {
+              keysToRemove.push(key);
+            }
+          }
+          keysToRemove.forEach(key => localStorage.removeItem(key));
+        } catch (error) {
+          console.error('[QuestService] Failed to clear all localStorage:', error);
+        }
+      }
     }
   }
 }

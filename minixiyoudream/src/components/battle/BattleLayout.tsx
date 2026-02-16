@@ -55,8 +55,14 @@ export function BattleLayout() {
             critDamage: 0.5,
             hitRate: 0.9,
             dodgeRate: 0.05,
+            antiCritRate: 0,
+            penetration: 0,
+            lifeSteal: 0,
+            reflect: 0,
+            healBonus: 0,
+            cooldownReduction: 0,
           },
-          elementResistances: { fire: 0, ice: 0, thunder: 0 },
+          elementResistances: { metal: 0, wood: 0, water: 0, fire: 0, earth: 0 },
           hp: 150,
           maxHp: 150,
           mp: 0,
@@ -84,8 +90,14 @@ export function BattleLayout() {
             critDamage: 0.6,
             hitRate: 0.85,
             dodgeRate: 0.03,
+            antiCritRate: 0,
+            penetration: 0,
+            lifeSteal: 0,
+            reflect: 0,
+            healBonus: 0,
+            cooldownReduction: 0,
           },
-          elementResistances: { fire: 0, ice: 0, thunder: 0 },
+          elementResistances: { metal: 0, wood: 0, water: 0, fire: 0, earth: 0 },
           hp: 200,
           maxHp: 200,
           mp: 0,
@@ -428,7 +440,7 @@ export function BattleLayout() {
     }
   };
 
-  // 敌人AI逻辑
+  // 敌人AI逻辑 - 根据aiBehavior决定策略
   const executeEnemyAI = (actor: CombatUnit, currentState: typeof state) => {
     if (!currentState) {
       logger.debug('[BattleLayout] executeEnemyAI: 无状态');
@@ -451,12 +463,101 @@ export function BattleLayout() {
       return;
     }
 
-    // 优先使用技能
+    // 获取敌人的aiBehavior（从敌人引用中获取）
+    const enemyRef = actor.ref as { aiBehavior?: string } | undefined;
+    const aiBehavior = enemyRef?.aiBehavior || 'balanced';
+
+    // 根据aiBehavior决定技能使用概率和目标选择策略
+    let skillUseChance: number;
+    let targetStrategy: 'lowestHp' | 'highestHp' | 'random' | 'strongest';
+
+    switch (aiBehavior) {
+      case 'aggressive':
+        // 激进型：高技能使用率，优先攻击HP最低的目标
+        skillUseChance = 0.6;
+        targetStrategy = 'lowestHp';
+        break;
+      case 'defensive':
+        // 防御型：低技能使用率，随机选择目标
+        skillUseChance = 0.25;
+        targetStrategy = 'random';
+        // 低血量时有概率防御
+        if (actor.hp < actor.maxHp * 0.3 && random() < 0.3) {
+          const action: BattleAction = {
+            actorId: actor.id,
+            type: 'defend',
+          };
+          executeAction(action);
+          return;
+        }
+        break;
+      case 'support':
+        // 辅助型：中等技能使用率，优先攻击最强的目标
+        skillUseChance = 0.5;
+        targetStrategy = 'strongest';
+        break;
+      case 'balanced':
+      default:
+        // 平衡型：中等技能使用率，随机选择目标
+        skillUseChance = 0.4;
+        targetStrategy = 'random';
+        break;
+    }
+
+    // 根据策略选择目标
+    const selectEnemyTarget = (targets: CombatUnit[], strategy: string): CombatUnit => {
+      if (targets.length === 1) return targets[0];
+
+      switch (strategy) {
+        case 'lowestHp':
+          // 优先攻击HP最低的
+          return targets.reduce((lowest, unit) =>
+            unit.hp < lowest.hp ? unit : lowest, targets[0]);
+        case 'highestHp':
+          // 优先攻击HP最多的
+          return targets.reduce((highest, unit) =>
+            unit.hp > highest.hp ? unit : highest, targets[0]);
+        case 'strongest':
+          // 优先攻击攻击力最高的
+          return targets.reduce((strongest, unit) =>
+            unit.stats.physicalAttack > strongest.stats.physicalAttack ? unit : strongest, targets[0]);
+        case 'random':
+        default:
+          return randomChoice(targets);
+      }
+    };
+
+    // 获取可用技能
     const usableSkills = actor.skills.filter(skill => isSkillUsable(actor, skill.id));
-    if (usableSkills.length > 0 && random() < 0.3) {
-      const skill = randomChoice(usableSkills);
+
+    // 尝试使用技能
+    if (usableSkills.length > 0 && random() < skillUseChance) {
+      // 根据aiBehavior优先选择特定类型的技能
+      let prioritizedSkills = [...usableSkills];
+
+      if (aiBehavior === 'aggressive') {
+        // 激进型优先选择伤害技能
+        prioritizedSkills.sort((a, b) => {
+          const aDamage = a.effects.some(e => e.type === 'damage') ? 1 : 0;
+          const bDamage = b.effects.some(e => e.type === 'damage') ? 1 : 0;
+          return bDamage - aDamage;
+        });
+      } else if (aiBehavior === 'support') {
+        // 辅助型优先选择debuff/buff技能
+        prioritizedSkills.sort((a, b) => {
+          const aDebuff = a.effects.some(e => e.type === 'debuff' || e.type === 'buff') ? 1 : 0;
+          const bDebuff = b.effects.some(e => e.type === 'debuff' || e.type === 'buff') ? 1 : 0;
+          return bDebuff - aDebuff;
+        });
+      }
+
+      // 选择技能（优先列表前面的，但也有一点点随机性）
+      const skill = random() < 0.7 && prioritizedSkills.length > 0
+        ? prioritizedSkills[0]
+        : randomChoice(usableSkills);
+
       const targetId = skill.targetType === 'single_enemy' || skill.targetType === 'single_ally'
-        ? randomChoice(aliveAllies).id
+        ? selectEnemyTarget(aliveAllies, targetStrategy).id
         : undefined;
 
       const action: BattleAction = {
@@ -469,10 +570,8 @@ export function BattleLayout() {
       return;
     }
 
-    // 普通攻击 - 优先攻击HP最低的目标
-    const target = aliveAllies.reduce((lowest, unit) =>
-      unit.hp < lowest.hp ? unit : lowest
-    , aliveAllies[0]);
+    // 普通攻击
+    const target = selectEnemyTarget(aliveAllies, targetStrategy);
 
     const action: BattleAction = {
       actorId: actor.id,
@@ -516,29 +615,29 @@ export function BattleLayout() {
   return (
     <div className="min-h-screen bg-gradient-to-b from-[#e3f2fd] via-[#f5faff] to-[#fff8f0] text-[var(--game-text)] flex flex-col">
       {/* 顶部信息栏 */}
-      <header className="game-panel mx-4 mt-4 px-4 py-2 flex justify-between items-center">
-        <div className="flex items-center gap-4">
-          <div className="text-sm">
+      <header className="game-panel mx-2 sm:mx-4 mt-2 sm:mt-4 px-2 sm:px-4 py-1.5 sm:py-2 flex justify-between items-center">
+        <div className="flex items-center gap-2 sm:gap-4">
+          <div className="text-xs sm:text-sm">
             <span className="text-[var(--game-text-muted)]">回合:</span>{' '}
-            <span className="font-medium">{state.round}</span>/{state.maxRounds}
+            <span className="font-medium text-[var(--game-text)]">{state.round}</span>/{state.maxRounds}
           </div>
           {auto && (
-            <span className="game-tag game-tag-green text-xs">
+            <span className="game-tag game-tag-green text-[10px] sm:text-xs">
               自动战斗中
             </span>
           )}
         </div>
         <button
           onClick={handleReturn}
-          className="game-btn game-btn-danger game-btn-sm text-sm px-4"
+          className="game-btn game-btn-danger px-2 sm:px-3 py-1 sm:py-2 text-xs sm:text-sm"
         >
-          🚪 退出战斗
+          退出战斗
         </button>
       </header>
 
       {/* 敌方区域 */}
-      <div className="bg-gradient-to-b from-transparent to-[var(--game-bg-panel)]/30 p-4">
-        <div className="flex justify-center gap-4 flex-wrap">
+      <div className="bg-gradient-to-b from-transparent to-[var(--game-bg-panel)]/30 p-2 sm:p-4">
+        <div className="flex justify-center gap-2 sm:gap-4 flex-wrap">
           {state.enemies.map((enemy) => (
             <BattleUnit
               key={enemy.id}
@@ -554,13 +653,13 @@ export function BattleLayout() {
       </div>
 
       {/* 战斗日志 */}
-      <div className="flex-1 p-4 overflow-hidden">
+      <div className="flex-1 p-2 sm:p-4 overflow-hidden">
         <BattleLog />
       </div>
 
       {/* 我方区域 - 人物 */}
-      <div className="bg-gradient-to-t from-[var(--game-bg-panel)]/50 to-transparent p-4">
-        <div className="flex justify-center gap-4 flex-wrap mb-2">
+      <div className="bg-gradient-to-t from-[var(--game-bg-panel)]/50 to-transparent p-2 sm:p-4">
+        <div className="flex justify-center gap-2 sm:gap-4 flex-wrap mb-1 sm:mb-2">
           {state.playerFormation.characters.map((char, index) =>
             char ? (
               <BattleUnit
@@ -571,7 +670,7 @@ export function BattleLayout() {
             ) : (
               <div
                 key={`empty-char-${index}`}
-                className="w-20 h-24 border border-dashed border-[var(--game-border)] rounded-lg flex items-center justify-center text-[var(--game-text-dim)] bg-white/50"
+                className="w-14 h-16 sm:w-20 sm:h-24 border border-dashed border-[var(--game-border)] rounded-lg flex items-center justify-center text-[var(--game-text-muted)] text-xs bg-[var(--game-bg-subtle)]"
               >
                 空
               </div>
@@ -580,7 +679,7 @@ export function BattleLayout() {
         </div>
 
         {/* 我方区域 - 宠物 */}
-        <div className="flex justify-center gap-4 flex-wrap">
+        <div className="flex justify-center gap-2 sm:gap-4 flex-wrap">
           {state.playerFormation.pets.map((pet, index) =>
             pet ? (
               <BattleUnit
@@ -592,7 +691,7 @@ export function BattleLayout() {
             ) : (
               <div
                 key={`empty-pet-${index}`}
-                className="w-20 h-20 border border-dashed border-[var(--game-border)] rounded-lg flex items-center justify-center text-[var(--game-text-dim)] text-xs bg-white/50"
+                className="w-14 h-14 sm:w-20 sm:h-20 border border-dashed border-[var(--game-border)] rounded-lg flex items-center justify-center text-[var(--game-text-muted)] text-[10px] sm:text-xs bg-[var(--game-bg-subtle)]"
               >
                 空
               </div>
@@ -602,7 +701,7 @@ export function BattleLayout() {
       </div>
 
       {/* 操作区域 */}
-      <div className="game-panel mx-4 mb-4 p-4">
+      <div className="game-panel mx-2 sm:mx-4 mb-2 sm:mb-4 p-2 sm:p-4">
         <BattleActions
           selectedTargetId={selectedTargetId ?? undefined}
           onSelectTarget={handleSelectTarget}

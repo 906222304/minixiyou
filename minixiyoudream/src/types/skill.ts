@@ -28,6 +28,8 @@ export interface SkillEffect {
   baseValue?: number;
   multiplier?: number;
   statScale?: { stat: string; ratio: number };
+  stat?: string;
+  value?: number;
   duration?: number;
   statusEffect?: string;
   description: string;
@@ -68,6 +70,9 @@ export interface Skill {
 
   // 倍率
   multiplier: number;
+
+  // 连击次数（默认1）
+  hitCount?: number;
 }
 
 /** 角色已学习技能 */

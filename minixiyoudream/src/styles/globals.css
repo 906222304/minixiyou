@@ -38,54 +38,65 @@
   --animate-shimmer: shimmer 2s ease-in-out infinite;
 }
 
-/* CSS变量 - 小清新游戏风格 */
+/* CSS变量 - Q版可爱风格 (迷你西游梦) */
 :root {
-  /* 背景层次 - 清新明亮 */
-  --game-bg-darkest: #e8f4fc;
-  --game-bg-dark: #f0f7fc;
+  /* 背景层次 - Q版清新明亮 */
+  --game-bg-base: #f0f7fa;
+  --game-bg-subtle: #f5fafc;
   --game-bg-panel: #ffffff;
-  --game-bg-card: #f8fcff;
-  --game-bg-hover: #e3f2fd;
+  --game-bg-card: #ffffff;
+  --game-bg-hover: #e8f4f8;
+  --game-bg-active: #d9eef5;
+  --game-bg-muted: #fdf8f0;
 
-  /* 边框颜色 */
-  --game-border: #c8e0f0;
-  --game-border-light: #a8d0e8;
-  --game-border-active: #64b5f6;
+  /* 边框颜色 - 柔和边框 */
+  --game-border: #cbd5e1;
+  --game-border-light: #e2e8f0;
+  --game-border-active: #f59e0b;
+  --game-border-hover: #94a3b8;
 
-  /* 文字颜色 */
-  --game-text: #2c3e50;
-  --game-text-muted: #5a7a8a;
-  --game-text-dim: #8aa8b8;
+  /* 文字颜色 - WCAG AA 标准（提高对比度） */
+  --game-text: #1a202c;
+  --game-text-muted: #2d3748;
+  --game-text-dim: #4a5568;
+  --game-text-hint: #64748b;
 
-  /* 金色主题 */
-  --game-gold: #f5a623;
-  --game-gold-dark: #d4920a;
-  --game-gold-light: #ffc658;
-  --game-gold-glow: rgba(245, 166, 35, 0.3);
+  /* 金色主题 - 西游神话感 */
+  --game-gold: #f59e0b;
+  --game-gold-dark: #d97706;
+  --game-gold-light: #fbbf24;
+  --game-gold-glow: rgba(245, 158, 11, 0.25);
+
+  /* 西游特色色 */
+  --game-jade: #10b981;
+  --game-amber: #f97316;
+  --game-celestial: #6366f1;
+  --game-crimson: #ef4444;
 
   /* 主题色 */
   --game-primary: #3b82f6;
   --game-secondary: #8b5cf6;
 
   /* 品质发光 */
-  --glow-common: rgba(120, 140, 160, 0.2);
-  --glow-rare: rgba(33, 150, 243, 0.25);
-  --glow-epic: rgba(156, 39, 176, 0.25);
-  --glow-legendary: rgba(255, 152, 0, 0.3);
-  --glow-mythic: rgba(255, 193, 7, 0.35);
+  --glow-common: rgba(107, 114, 128, 0.15);
+  --glow-rare: rgba(59, 130, 246, 0.20);
+  --glow-epic: rgba(139, 92, 246, 0.20);
+  --glow-legendary: rgba(249, 115, 22, 0.25);
+  --glow-mythic: rgba(234, 179, 8, 0.30);
 
   /* 战斗颜色 */
-  --hp-color: #e53935;
-  --hp-color-dark: #c62828;
-  --mp-color: #1e88e5;
-  --mp-color-dark: #1565c0;
-  --exp-color: #43a047;
+  --hp-color: #ef4444;
+  --hp-color-dark: #dc2626;
+  --mp-color: #3b82f6;
+  --mp-color-dark: #2563eb;
+  --exp-color: #10b981;
 
-  /* 阴影 - 柔和 */
-  --shadow-sm: 0 2px 8px rgba(100, 150, 200, 0.1);
-  --shadow-md: 0 4px 16px rgba(100, 150, 200, 0.12);
-  --shadow-lg: 0 8px 32px rgba(100, 150, 200, 0.15);
-  --shadow-xl: 0 16px 48px rgba(100, 150, 200, 0.18);
+  /* 阴影 - Q版柔和 */
+  --shadow-xs: 0 1px 2px rgba(100, 116, 139, 0.08);
+  --shadow-sm: 0 2px 8px rgba(100, 116, 139, 0.12);
+  --shadow-md: 0 4px 16px rgba(100, 116, 139, 0.15);
+  --shadow-lg: 0 8px 32px rgba(100, 116, 139, 0.18);
+  --shadow-xl: 0 16px 48px rgba(100, 116, 139, 0.22);
 }
 
 /* 全局样式 */
@@ -97,7 +108,7 @@ body {
   font-family: 'Noto Sans SC', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  background: linear-gradient(180deg, #e3f2fd 0%, #f5faff 50%, #fff8f0 100%);
+  background: linear-gradient(180deg, #e0f2fe 0%, #f0f9ff 40%, #fffbeb 100%);
   color: var(--game-text);
   min-height: 100vh;
 }
@@ -241,7 +252,7 @@ html {
   background: rgba(240, 247, 252, 0.5);
 }
 
-/* 游戏按钮 - 高级效果 */
+/* 游戏按钮 - 小清新风格 */
 .game-btn {
   position: relative;
   display: inline-flex;
@@ -249,13 +260,12 @@ html {
   justify-content: center;
   gap: 8px;
   padding: 12px 24px;
-  background: linear-gradient(180deg, #2a2a3e 0%, #1a1a28 60%, #12121c 100%);
-  border: 1px solid var(--game-border-light);
+  background: linear-gradient(180deg, #ffffff 0%, #f0f4f8 60%, #e8f0f5 100%);
+  border: 1px solid var(--game-border);
   border-radius: 6px;
   color: var(--game-text);
   font-weight: 600;
   font-size: 14px;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
   cursor: pointer;
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   overflow: hidden;
@@ -283,8 +293,8 @@ html {
 }
 
 .game-btn:hover {
-  background: linear-gradient(180deg, #e3f2fd 0%, #d0e8f8 60%, #c8e0f0 100%);
-  border-color: var(--game-border-active);
+  background: linear-gradient(180deg, #fff8e8 0%, #ffe8c8 60%, #ffd8a0 100%);
+  border-color: var(--game-gold);
   transform: translateY(-2px);
   box-shadow: var(--shadow-md);
 }
@@ -597,6 +607,36 @@ html {
   border: 1px solid #90b8f0;
   color: #2563eb;
   box-shadow: 0 2px 8px rgba(96, 165, 250, 0.15);
+}
+
+.game-tag-default {
+  background: linear-gradient(180deg, #f5f5f5 0%, #e5e5e5 100%);
+  border: 1px solid #d4d4d4;
+  color: #525252;
+}
+
+.game-tag-orange {
+  background: linear-gradient(180deg, #fff8e8 0%, #ffe8c8 100%);
+  border: 1px solid #f5d090;
+  color: #d97706;
+}
+
+.game-icon-sm {
+  width: 32px;
+  height: 32px;
+  font-size: 16px;
+}
+
+.game-icon-md {
+  width: 48px;
+  height: 48px;
+  font-size: 24px;
+}
+
+.game-icon-lg {
+  width: 64px;
+  height: 64px;
+  font-size: 32px;
 }
 
 /* 游戏输入框 - 小清新风格 */
@@ -1161,4 +1201,61 @@ html {
 
 .toggle-switch input:checked + .toggle-slider:before {
   transform: translateX(16px);
+}
+
+/* ============================================
+   移动端战斗UI优化
+   ============================================ */
+
+@media (max-width: 640px) {
+  /* 按钮更紧凑但保持可触摸 */
+  .game-btn {
+    padding: 8px 12px;
+    font-size: 12px;
+    min-height: 36px;
+  }
+
+  /* 面板更紧凑 */
+  .game-panel {
+    border-radius: 8px;
+    padding: 8px;
+  }
+
+  /* 卡片更紧凑 */
+  .game-card {
+    padding: 8px;
+    border-radius: 8px;
+  }
+
+  /* 战斗单位 */
+  .battle-unit {
+    min-width: 48px;
+  }
+
+  /* 弹窗优化 */
+  .game-modal {
+    border-radius: 12px;
+    margin: 8px;
+    max-height: 90vh;
+    overflow-y: auto;
+  }
+
+  .game-modal-header {
+    padding: 12px 16px;
+  }
+
+  .game-modal-body {
+    padding: 12px 16px;
+  }
+
+  .game-modal-footer {
+    padding: 12px 16px;
+    flex-wrap: wrap;
+  }
+
+  /* 标签更小 */
+  .game-tag {
+    padding: 2px 8px;
+    font-size: 10px;
+  }
 }

@@ -508,9 +508,10 @@ export function rollRandomTraits(count: number, prng: () => number): Trait[] {
 
 /** 特性稀有度权重配置 */
 export const TRAIT_RARITY_WEIGHTS: Record<Quality, number> = {
-  common: 50,
-  rare: 30,
-  epic: 15,
-  legendary: 4,
-  mythic: 1,
+  common: 45,
+  uncommon: 25,
+  rare: 20,
+  epic: 7,
+  legendary: 2.5,
+  mythic: 0.5,
 };
