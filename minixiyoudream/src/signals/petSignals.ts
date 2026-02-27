@@ -1,11 +1,9 @@
-// 宠物状态管理
+// 宠物状态管理 - 使用新的召唤兽系统
 
 import { signal, computed } from '@preact/signals-react';
-import type { Pet } from '@/types';
-import { generateUUID } from '@/types';
-import { getPetTemplate, randomAptitude } from '@/constants/pets';
-import { calculatePetStats } from '@/constants/formulas';
-import { rollPetQuality, generateGrowthRate, getPetQualityConfig } from '@/constants/petGrowth';
+import type { Pet, FusionResult, AlchemyResult } from '@/types/pet';
+import { summonService, type PRNG } from '@/services/summonService';
+import { alchemyService } from '@/services/alchemyService';
 
 /** 玩家拥有的宠物列表 */
 export const playerPets = signal<Pet[]>([]);
@@ -29,49 +27,21 @@ export function createPet(
   ownerId: string = 'player',
   prng: () => number = Math.random
 ): Pet | null {
-  const template = getPetTemplate(templateId);
-  if (!template) return null;
-
-  // 随机品质
-  const quality = rollPetQuality(prng);
-  const qualityConfig = getPetQualityConfig(quality);
-
-  // 生成成长率
-  const growthRate = generateGrowthRate(quality, template.type, prng);
-
-  const aptitude = randomAptitude(prng);
-  const level = 1;
-  const stats = calculatePetStats(template.baseStats, aptitude as unknown as Record<string, number>, level);
-
-  const pet: Pet = {
-    id: generateUUID(),
-    baseId: templateId,
-    name: template.name,
-    icon: template.icon,
-    type: template.type,
-    rarity: template.baseRarity,
-    element: template.element,
-    quality,
-    growthRate,
-    level,
-    exp: 0,
-    maxLevel: 100,
-    aptitude,
-    stats,
-    skills: [],
-    maxSkills: 4,
-    intimacy: 0,
-    intimacyLevel: 1,
-    loyalty: 50,
-    isActive: false,
-    ownerType,
-    ownerId,
-    hp: stats.maxHp,
-    maxHp: stats.maxHp,
-    mp: stats.maxMp,
-    maxMp: stats.maxMp,
-    variantAppearance: qualityConfig.hasAppearanceChange ? `${templateId}_variant` : undefined,
+  // 创建 PRNG 适配器
+  const prngAdapter: PRNG = {
+    nextFloat: (min = 0, max = 1) => min + prng() * (max - min),
+    roll: (chance) => prng() * 100 < chance,
+    nextInt: (min, max) => Math.floor(prng() * (max - min + 1)) + min,
   };
+
+  // 使用 summonService 创建召唤兽
+  const pet = summonService.createSummon(templateId, 1, undefined, prngAdapter);
+
+  if (!pet) return null;
+
+  // 设置所有者信息
+  pet.ownerType = ownerType;
+  pet.ownerId = ownerId;
 
   return pet;
 }
@@ -132,42 +102,24 @@ export function addPetExp(petId: string, exp: number): boolean {
   if (index < 0) return false;
 
   const pet = pets[index];
-  let newExp = pet.exp + exp;
-  let newLevel = pet.level;
+  const previousLevel = pet.level;
 
-  // 简单的升级逻辑
-  while (newExp >= getExpForLevel(newLevel) && newLevel < pet.maxLevel) {
-    newExp -= getExpForLevel(newLevel);
-    newLevel++;
-  }
+  // 使用 summonService 处理升级
+  const updatedPet = summonService.levelUp(pet, exp);
 
-  if (newLevel !== pet.level) {
-    // 重新计算属性
-    const template = getPetTemplate(pet.baseId);
-    if (template) {
-      const newStats = calculatePetStats(
-        template.baseStats,
-        pet.aptitude as unknown as Record<string, number>,
-        newLevel
-      );
-
-      const newPets = [...pets];
-      newPets[index] = {
-        ...pet,
-        level: newLevel,
-        exp: newExp,
-        stats: newStats,
-        maxHp: newStats.maxHp,
-        maxMp: newStats.maxMp,
-        hp: Math.min(pet.hp, newStats.maxHp),
-        mp: Math.min(pet.mp, newStats.maxMp),
-      };
-
-      playerPets.value = newPets;
-    }
+  // 如果等级变化了，需要重新计算属性（levelUp 内部已处理）
+  if (updatedPet.level !== previousLevel) {
+    const newPets = [...pets];
+    newPets[index] = {
+      ...updatedPet,
+      // 保持 HP/MP 不超过新的最大值
+      hp: Math.min(pet.hp, updatedPet.maxHp),
+      mp: Math.min(pet.mp, updatedPet.maxMp),
+    };
+    playerPets.value = newPets;
   } else {
     const newPets = [...pets];
-    newPets[index] = { ...pet, exp: newExp };
+    newPets[index] = updatedPet;
     playerPets.value = newPets;
   }
 
@@ -175,8 +127,8 @@ export function addPetExp(petId: string, exp: number): boolean {
 }
 
 /** 获取升级所需经验 */
-function getExpForLevel(level: number): number {
-  return Math.floor(100 * Math.pow(1.2, level - 1));
+export function getExpForLevel(level: number): number {
+  return summonService.getExpNeeded(level);
 }
 
 /** 恢复宠物HP/MP */
@@ -215,3 +167,161 @@ export function renamePet(petId: string, nickname: string): boolean {
 export function clearPets(): void {
   playerPets.value = [];
 }
+
+/** 学习技能（打书） */
+export function learnPetSkill(
+  petId: string,
+  skillBookId: string
+): { success: boolean; message: string } {
+  const pets = playerPets.value;
+  const index = pets.findIndex((p) => p.id === petId);
+  if (index < 0) return { success: false, message: '宠物不存在' };
+
+  const pet = pets[index];
+  const result = summonService.learnSkill(pet, skillBookId, {
+    nextFloat: () => Math.random(),
+    roll: (chance) => Math.random() * 100 < chance,
+    nextInt: (min, max) => Math.floor(Math.random() * (max - min + 1)) + min,
+  });
+
+  if (result.success) {
+    const newPets = [...pets];
+    newPets[index] = result.pet;
+    playerPets.value = newPets;
+  }
+
+  return { success: result.success, message: result.message };
+}
+
+/** 锁定/解锁技能 */
+export function togglePetSkillLock(petId: string, skillId: string): boolean {
+  const pets = playerPets.value;
+  const index = pets.findIndex((p) => p.id === petId);
+  if (index < 0) return false;
+
+  const pet = pets[index];
+  const updatedPet = summonService.toggleSkillLock(pet, skillId);
+
+  const newPets = [...pets];
+  newPets[index] = updatedPet;
+  playerPets.value = newPets;
+
+  return true;
+}
+
+/** 获取宠物当前经验进度 (0-1) */
+export function getPetExpProgress(pet: Pet): number {
+  const expNeeded = summonService.getExpNeeded(pet.level);
+  return expNeeded > 0 ? pet.exp / expNeeded : 0;
+}
+
+// ==================== 炼妖/合宠功能 ====================
+
+/** 合宠（炼妖）- 两只召唤兽合成 */
+export function fusePets(petId1: string, petId2: string): FusionResult | null {
+  const pets = playerPets.value;
+  const pet1 = pets.find((p) => p.id === petId1);
+  const pet2 = pets.find((p) => p.id === petId2);
+
+  if (!pet1 || !pet2) {
+    return null;
+  }
+
+  // 执行合宠
+  const result = alchemyService.fusePets(pet1, pet2);
+
+  // 移除原宠物，添加新宠物
+  const newPets = pets.filter((p) => p.id !== petId1 && p.id !== petId2);
+
+  // 检查宠物栏是否已满
+  if (newPets.length >= maxPets) {
+    return null;
+  }
+
+  newPets.push(result.pet);
+  playerPets.value = newPets;
+
+  return result;
+}
+
+/** 获取合宠预览 */
+export function getFusionPreview(petId1: string, petId2: string) {
+  const pets = playerPets.value;
+  const pet1 = pets.find((p) => p.id === petId1);
+  const pet2 = pets.find((p) => p.id === petId2);
+
+  if (!pet1 || !pet2) {
+    return null;
+  }
+
+  return alchemyService.getFusionPreview(pet1, pet2);
+}
+
+// ==================== 资质培养功能 ====================
+
+/** 使用炼妖材料培养资质 */
+export function trainAptitude(petId: string, materialId: string): AlchemyResult {
+  const pets = playerPets.value;
+  const index = pets.findIndex((p) => p.id === petId);
+
+  if (index < 0) {
+    return { success: false, criticalHit: false, message: '宠物不存在' };
+  }
+
+  const pet = pets[index];
+  const result = alchemyService.trainAptitude(pet, materialId);
+
+  // 更新宠物状态
+  if (result.aptitudeChange) {
+    const newPets = [...pets];
+    newPets[index] = { ...pet };
+    playerPets.value = newPets;
+  }
+
+  return result;
+}
+
+/** 批量培养资质 */
+export function trainAptitudeBatch(
+  petId: string,
+  materialId: string,
+  count: number
+): { results: AlchemyResult[]; totalChange: number } {
+  const pets = playerPets.value;
+  const index = pets.findIndex((p) => p.id === petId);
+
+  if (index < 0) {
+    return {
+      results: [{ success: false, criticalHit: false, message: '宠物不存在' }],
+      totalChange: 0,
+    };
+  }
+
+  const pet = pets[index];
+  const result = alchemyService.trainAptitudeBatch(pet, materialId, count);
+
+  // 更新宠物状态
+  const newPets = [...pets];
+  newPets[index] = { ...pet };
+  playerPets.value = newPets;
+
+  return result;
+}
+
+/** 获取资质培养预估效果 */
+export function getTrainingEstimate(petId: string, materialId: string) {
+  const pets = playerPets.value;
+  const pet = pets.find((p) => p.id === petId);
+
+  if (!pet) {
+    return null;
+  }
+
+  return alchemyService.getTrainingEstimate(pet, materialId);
+}
+
+/** 获取所有炼妖材料 */
+export function getAllAlchemyMaterials() {
+  return alchemyService.getAllAlchemyMaterials();
+}
+

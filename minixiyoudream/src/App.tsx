@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useSignals } from '@preact/signals-react/runtime';
 import { gamePhase, player } from '@/signals';
+import { startMpRegeneration, stopMpRegeneration } from '@/signals/playerSignals';
 import { CharacterCreation } from '@/components/character/CharacterCreation';
 import { GameLayout } from '@/components/layout/GameLayout';
 import { BattleLayout } from '@/components/battle';
@@ -91,6 +92,19 @@ function App() {
     return () => {
       clearInterval(interval);
       window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
+  }, [phase]);
+
+  // 启动MP自动恢复
+  useEffect(() => {
+    if (phase === 'playing') {
+      startMpRegeneration();
+    } else {
+      stopMpRegeneration();
+    }
+
+    return () => {
+      stopMpRegeneration();
     };
   }, [phase]);
 

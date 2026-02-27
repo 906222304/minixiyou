@@ -1,14 +1,20 @@
 // 玩家状态管理
 
 import { signal, computed } from '@preact/signals-react';
-import type { Player, CreatePlayerOptions, CharacterTrait, FullStats, AllocatedPoints, BaseStats, RaceType } from '@/types';
+import type { Player, CreatePlayerOptions, CharacterTrait, FullStats, AllocatedPoints, BaseStats, RaceType, LearnedBaseSkill } from '@/types';
 import { generateUUID } from '@/types';
 import { getRace } from '@/constants/races';
 import { getFaction } from '@/constants/factions';
-import { calculateCombatStats, calculateBaseStats } from '@/constants/formulas';
+import { calculateCombatStats, calculateBaseStats, MP_REGEN } from '@/constants/formulas';
 import { getSkill, getFactionSkills } from '@/constants/skills';
 import type { LearnedSkill } from '@/types';
 import { applyTraitBonuses, applyTraitElementResistances } from '@/services/traitService';
+import {
+  initializeFactionBaseSkills,
+  calculateBaseSkillBonus,
+  applyBaseSkillBonus,
+} from '@/services/baseSkillService';
+import { isInBattle } from './battleSignals';
 
 /** 每级获得的属性点数 */
 const POINTS_PER_LEVEL = 5;
@@ -129,6 +135,13 @@ export function createPlayer(options: CreatePlayerOptions): Player {
     finalStats = applyTraitBonuses(finalStats, traits);
   }
 
+  // 初始化门派基础技能（所有基础技能1级）
+  const learnedBaseSkills = initializeFactionBaseSkills(options.factionId);
+
+  // 应用基础技能属性加成
+  const baseSkillBonus = calculateBaseSkillBonus(learnedBaseSkills);
+  finalStats = applyBaseSkillBonus(finalStats, baseSkillBonus);
+
   // 计算元素抗性（含特性加成）
   const baseElementResistances = {
     metal: 0,
@@ -159,7 +172,7 @@ export function createPlayer(options: CreatePlayerOptions): Player {
   const newPlayer: Player = {
     id: generateUUID(),
     name: options.name,
-    avatar: '🧑',
+    avatar: options.avatarId || 'avatar_01',
     race: options.race,
     factionId: options.factionId,
     level: 1,
@@ -185,6 +198,7 @@ export function createPlayer(options: CreatePlayerOptions): Player {
     },
     skills: initialSkills,
     skillPoints: 1, // 初始给1点技能点
+    learnedBaseSkills, // 门派基础技能
     traits,
     hp: finalStats.maxHp,
     maxHp: finalStats.maxHp,
@@ -325,7 +339,8 @@ function recalculatePlayerStats(
   raceType: RaceType,
   allocatedPoints: AllocatedPoints,
   level: number,
-  traits: CharacterTrait[] = []
+  traits: CharacterTrait[] = [],
+  learnedBaseSkills: LearnedBaseSkill[] = []
 ): FullStats {
   const race = getRace(raceType);
   if (!race) {
@@ -363,6 +378,12 @@ function recalculatePlayerStats(
     finalStats = applyTraitBonuses(finalStats, traits);
   }
 
+  // 应用基础技能属性加成
+  if (learnedBaseSkills.length > 0) {
+    const baseSkillBonus = calculateBaseSkillBonus(learnedBaseSkills);
+    finalStats = applyBaseSkillBonus(finalStats, baseSkillBonus);
+  }
+
   return finalStats;
 }
 
@@ -392,7 +413,8 @@ export function addPlayerExp(exp: number): boolean {
       player.value.race,
       player.value.allocatedPoints,
       currentLevel,
-      player.value.traits
+      player.value.traits,
+      player.value.learnedBaseSkills
     );
 
     player.value = {
@@ -436,7 +458,8 @@ export function allocateAttributePoint(stat: keyof BaseStats): boolean {
     player.value.race,
     newAllocatedPoints,
     player.value.level,
-    player.value.traits
+    player.value.traits,
+    player.value.learnedBaseSkills
   );
 
   player.value = {
@@ -472,7 +495,8 @@ export function deallocateAttributePoint(stat: keyof BaseStats): boolean {
     player.value.race,
     newAllocatedPoints,
     player.value.level,
-    player.value.traits
+    player.value.traits,
+    player.value.learnedBaseSkills
   );
 
   player.value = {
@@ -505,7 +529,8 @@ export function resetAttributePoints(goldCost: number): boolean {
     player.value.race,
     createEmptyAllocatedPoints(),
     player.value.level,
-    player.value.traits
+    player.value.traits,
+    player.value.learnedBaseSkills
   );
 
   player.value = {
@@ -679,4 +704,69 @@ export const playerLearnedSkills = computed(() => {
 /** 清除玩家数据（退出游戏时使用） */
 export function clearPlayer(): void {
   player.value = null;
+  stopMpRegeneration();
+}
+
+// ============================================
+// 战斗外MP自动恢复系统
+// ============================================
+
+/** MP恢复定时器ID */
+let mpRegenIntervalId: ReturnType<typeof setInterval> | null = null;
+
+/** 启动MP自动恢复 */
+export function startMpRegeneration(): void {
+  // 如果已经在运行，不重复启动
+  if (mpRegenIntervalId !== null) return;
+
+  mpRegenIntervalId = setInterval(() => {
+    // 检查是否在战斗中
+    if (isInBattle.value) return;
+
+    // 检查玩家是否存在
+    const currentPlayer = player.value;
+    if (!currentPlayer) return;
+
+    // 检查MP是否已满
+    if (currentPlayer.mp >= currentPlayer.maxMp) return;
+
+    // 计算恢复量（2%最大MP）
+    const regenAmount = Math.max(1, Math.floor(currentPlayer.maxMp * MP_REGEN.outOfCombatRegenPercent));
+    const newMp = Math.min(currentPlayer.maxMp, currentPlayer.mp + regenAmount);
+
+    // 更新MP
+    player.value = {
+      ...currentPlayer,
+      mp: newMp,
+      updatedAt: Date.now(),
+    };
+  }, 1000); // 每秒执行一次
+}
+
+/** 停止MP自动恢复 */
+export function stopMpRegeneration(): void {
+  if (mpRegenIntervalId !== null) {
+    clearInterval(mpRegenIntervalId);
+    mpRegenIntervalId = null;
+  }
+}
+
+/** 手动恢复MP（用于药水等效果） */
+export function restoreMp(amount: number): void {
+  if (!player.value) return;
+
+  const newMp = Math.min(player.value.maxMp, player.value.mp + amount);
+  player.value = {
+    ...player.value,
+    mp: newMp,
+    updatedAt: Date.now(),
+  };
+}
+
+/** 按百分比恢复MP */
+export function restoreMpPercent(percent: number): void {
+  if (!player.value) return;
+
+  const amount = Math.floor(player.value.maxMp * (percent / 100));
+  restoreMp(amount);
 }

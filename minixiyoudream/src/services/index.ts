@@ -55,8 +55,11 @@ export type {
 } from './gemService';
 export { dungeonService } from './dungeonService';
 export type { DungeonRunState } from './dungeonService';
-export { petService } from './petService';
-export type { PRNG } from './petService';
+// petService 已废弃，请使用 summonService
+export { summonService } from './summonService';
+export { alchemyService } from './alchemyService';
+export type { PRNG } from './prng';
+export { defaultPrng, createSeededPrng } from './prng';
 export { skillBookService } from './skillBookService';
 export {
   equipmentService,
@@ -102,3 +105,16 @@ export {
   hasTraitEffect,
   getTraitEffectValue,
 } from './traitService';
+export {
+  calculateBaseSkillBonus,
+  applyBaseSkillBonus,
+  checkSkillUnlockCondition,
+  findSkillRequirement,
+  getUnlockableSkills,
+  getBaseSkillUpgradeExp,
+  getBaseSkillUpgradeGold,
+  initializeFactionBaseSkills,
+  getBaseSkillDetails,
+  upgradeBaseSkill,
+  getBaseSkillBonusDescription,
+} from './baseSkillService';

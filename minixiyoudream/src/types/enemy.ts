@@ -1,7 +1,25 @@
 // 敌人类型定义
 
 import type { UUID, Quality, CombatStats, Element, ItemDrop, ElementResistances } from './common';
-import type { PetSkill } from './pet';
+
+/** 敌人技能定义 - 简化版本，不需要完整的 PetSkill 字段 */
+export interface EnemySkill {
+  id: string;
+  name: string;
+  type: 'active' | 'passive' | 'trigger';
+  description?: string;
+  mpCost?: number;
+  cooldown?: number;
+  multiplier?: number;
+  element?: Element | 'none';
+  effect?: {
+    type: string;
+    statusEffect?: string;
+    stat?: string;
+    value?: number;
+    duration?: number;
+  };
+}
 
 /** 敌人类型 */
 export type EnemyType =
@@ -35,7 +53,7 @@ export interface EnemyTemplate {
   elementResistances: ElementResistances;
 
   // 技能
-  skills: PetSkill[];
+  skills: EnemySkill[];
 
   // AI行为
   aiBehavior: EnemyAIBehavior;
@@ -89,7 +107,7 @@ export interface Enemy {
   element?: Element;
 
   // 技能
-  skills: PetSkill[];
+  skills: EnemySkill[];
 
   // 战斗状态
   hp: number;

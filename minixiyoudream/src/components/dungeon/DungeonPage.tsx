@@ -9,6 +9,9 @@ import {
   battleResult,
   isBattleActive,
   returnToExplore,
+  showSuccess,
+  showError,
+  showToast,
 } from '@/signals';
 import { getAllDungeons, getDungeon } from '@/constants/dungeons';
 import {
@@ -35,6 +38,7 @@ import {
   getDungeonTypeName,
 } from '@/signals/dungeonSignals';
 import { getItemTemplate } from '@/constants/items';
+import { ConfirmModal, useConfirmModal } from '@/components/common/ConfirmModal';
 import type { DungeonDifficulty, Dungeon } from '@/types';
 
 /** 难度选择模态框 */
@@ -50,12 +54,40 @@ function DifficultyModal({
   const currentPlayer = player.value;
   const remainingRuns = getDungeonRemainingRuns(dungeon.id);
 
+  // 计算预览奖励
+  const getPreviewRewards = (rewardMultiplier: number) => {
+    const baseExp = dungeon.baseRewards.exp;
+    const baseGold = dungeon.baseRewards.gold;
+    return {
+      exp: Math.floor(baseExp * rewardMultiplier),
+      gold: Math.floor(baseGold * rewardMultiplier),
+    };
+  };
+
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-      <div className="game-panel p-6 max-w-md w-full mx-4">
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 overflow-y-auto">
+      <div className="game-panel p-6 max-w-md w-full mx-4 my-4">
         <h3 className="text-lg font-medium mb-4 text-[var(--game-text)]">
           选择难度 - {dungeon.name}
         </h3>
+
+        {/* 副本基础奖励预览 */}
+        <div className="mb-4 p-3 bg-[var(--game-panel)] rounded-lg">
+          <div className="text-sm font-medium text-[var(--game-text)] mb-2">基础奖励预览</div>
+          <div className="flex gap-4 text-sm">
+            <span className="text-green-400">基础经验: {dungeon.baseRewards.exp}</span>
+            <span className="text-yellow-400">基础金币: {dungeon.baseRewards.gold}</span>
+          </div>
+          {dungeon.dropPool && dungeon.dropPool.length > 0 && (
+            <div className="mt-2 text-sm text-purple-400">
+              可能掉落: {dungeon.dropPool.slice(0, 5).map(drop => {
+                const template = getItemTemplate(drop.itemId);
+                return template?.name || drop.itemId;
+              }).join(', ')}
+              {dungeon.dropPool.length > 5 && ` 等${dungeon.dropPool.length}种`}
+            </div>
+          )}
+        </div>
 
         <div className="space-y-3">
           {dungeon.difficulties.map((diff) => {
@@ -64,13 +96,14 @@ function DifficultyModal({
               currentPlayer &&
               currentPlayer.level >= diff.recommendedLevel;
             const hasCleared = hasFirstClear(dungeon.id, diff.difficulty);
+            const previewRewards = getPreviewRewards(diff.rewardMultiplier);
 
             return (
               <button
                 key={diff.difficulty}
                 onClick={() => isUnlocked && onSelect(diff.difficulty)}
                 disabled={!isUnlocked || !checkResult.canEnter}
-                className={`w-full p-4 rounded-lg text-left transition-colors ${
+                className={`w-full p-4 min-h-[44px] rounded-lg text-left transition-colors touch-manipulation active:scale-[0.98] ${
                   isUnlocked && checkResult.canEnter
                     ? 'bg-[var(--game-panel)] hover:bg-[var(--game-panel-hover)] cursor-pointer'
                     : 'bg-gray-700 opacity-50 cursor-not-allowed'
@@ -94,6 +127,11 @@ function DifficultyModal({
                   <div className="text-yellow-500">
                     奖励倍率: x{diff.rewardMultiplier}
                   </div>
+                  {/* 实际奖励预览 */}
+                  <div className="pt-2 border-t border-gray-600 mt-2 flex gap-3">
+                    <span className="text-green-400">预估: +{previewRewards.exp}经验</span>
+                    <span className="text-yellow-400">+{previewRewards.gold}金币</span>
+                  </div>
                 </div>
 
                 {!isUnlocked && (
@@ -113,7 +151,7 @@ function DifficultyModal({
 
         <button
           onClick={onClose}
-          className="mt-4 w-full py-2 rounded-lg bg-gray-600 hover:bg-gray-500 text-white transition-colors"
+          className="mt-4 w-full py-3 min-h-[44px] rounded-lg bg-gray-600 hover:bg-gray-500 text-white transition-colors touch-manipulation active:scale-95"
         >
           取消
         </button>
@@ -266,7 +304,7 @@ function DungeonResultModal({
 
         <button
           onClick={onClose}
-          className="mt-6 w-full py-3 rounded-lg bg-[var(--game-gold)] text-white font-medium hover:brightness-110 transition-all"
+          className="mt-6 w-full py-3 min-h-[44px] rounded-lg bg-[var(--game-gold)] text-white font-medium hover:brightness-110 transition-all touch-manipulation active:scale-95"
         >
           确认
         </button>
@@ -277,56 +315,33 @@ function DungeonResultModal({
 
 /** 副本进行中UI */
 function DungeonInProgress() {
-  const [showExitConfirm, setShowExitConfirm] = useState(false);
+  const { showConfirm, modalProps } = useConfirmModal();
 
   const handleExit = () => {
-    setShowExitConfirm(true);
-  };
-
-  const confirmExit = () => {
-    exitDungeon();
-    setShowExitConfirm(false);
+    showConfirm('退出副本将不会获得任何奖励，且会消耗挑战次数。', {
+      title: '确认退出副本?',
+      type: 'danger',
+      onConfirm: () => {
+        exitDungeon();
+        showToast('已退出副本', 'info');
+      },
+    });
   };
 
   return (
     <div className="space-y-4">
       <DungeonProgressBar />
 
-      {/* 退出按钮 */}
+      {/* 退出按钮 - 最小触控区域44px */}
       <button
         onClick={handleExit}
-        className="w-full py-2 rounded-lg bg-red-600 hover:bg-red-500 text-white transition-colors"
+        className="w-full py-3 min-h-[44px] rounded-lg bg-red-600 hover:bg-red-500 text-white transition-colors touch-manipulation active:scale-95"
       >
         退出副本
       </button>
 
-      {/* 退出确认框 */}
-      {showExitConfirm && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="game-panel p-6 max-w-sm w-full mx-4">
-            <h3 className="text-lg font-medium text-[var(--game-text)] mb-4">
-              确认退出副本?
-            </h3>
-            <p className="text-sm text-[var(--game-text-muted)] mb-4">
-              退出副本将不会获得任何奖励，且会消耗挑战次数。
-            </p>
-            <div className="flex gap-3">
-              <button
-                onClick={() => setShowExitConfirm(false)}
-                className="flex-1 py-2 rounded-lg bg-gray-600 hover:bg-gray-500 text-white transition-colors"
-              >
-                取消
-              </button>
-              <button
-                onClick={confirmExit}
-                className="flex-1 py-2 rounded-lg bg-red-600 hover:bg-red-500 text-white transition-colors"
-              >
-                确认退出
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* 退出确认弹窗 */}
+      <ConfirmModal {...modalProps} />
     </div>
   );
 }
@@ -349,6 +364,13 @@ function DungeonList({
           hasFirstClear(dungeon.id, diff.difficulty)
         );
 
+        // 计算通关进度
+        const clearedDifficulties = dungeon.difficulties.filter((diff) =>
+          hasFirstClear(dungeon.id, diff.difficulty)
+        ).length;
+        const totalDifficulties = dungeon.difficulties.length;
+        const progressPercent = (clearedDifficulties / totalDifficulties) * 100;
+
         return (
           <div
             key={dungeon.id}
@@ -356,8 +378,8 @@ function DungeonList({
           >
             <div className="flex items-center gap-3">
               <span className="text-3xl">{dungeon.icon}</span>
-              <div className="flex-1">
-                <div className="flex items-center gap-2">
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 flex-wrap">
                   <span className="font-medium text-[var(--game-text)]">
                     {dungeon.name}
                   </span>
@@ -371,7 +393,22 @@ function DungeonList({
                 <div className="text-sm text-[var(--game-text-muted)]">
                   {dungeon.description}
                 </div>
-                <div className="flex gap-3 mt-2 text-xs">
+
+                {/* 通关进度条 */}
+                <div className="mt-2">
+                  <div className="flex justify-between text-xs mb-1">
+                    <span className="text-[var(--game-text-muted)]">通关进度</span>
+                    <span className="text-green-400">{clearedDifficulties}/{totalDifficulties}</span>
+                  </div>
+                  <div className="w-full h-2 bg-slate-200 rounded-full overflow-hidden">
+                    <div
+                      className="h-full bg-green-500 transition-all duration-300"
+                      style={{ width: `${progressPercent}%` }}
+                    />
+                  </div>
+                </div>
+
+                <div className="flex gap-3 mt-2 text-xs flex-wrap">
                   <span className="text-[var(--game-text-muted)]">
                     推荐: Lv.{dungeon.requirements.minLevel}+
                   </span>
@@ -391,7 +428,7 @@ function DungeonList({
               <button
                 onClick={() => onSelectDungeon(dungeon)}
                 disabled={!canEnter}
-                className={`flex-1 py-2 rounded-lg text-sm font-medium transition-colors ${
+                className={`flex-1 py-3 min-h-[44px] rounded-lg text-sm font-medium transition-colors touch-manipulation active:scale-95 ${
                   canEnter
                     ? 'bg-[var(--game-gold)] text-white hover:brightness-110'
                     : 'bg-gray-600 text-gray-400 cursor-not-allowed'
@@ -491,8 +528,9 @@ export function DungeonPage() {
 
     const result = enterDungeon(selectedDungeon.id, difficulty);
     if (!result.success) {
-      // TODO: 显示错误提示
-      console.error('Failed to enter dungeon:', result.error);
+      showError(result.error || '进入副本失败');
+    } else {
+      showSuccess(`成功进入 ${selectedDungeon.name}`);
     }
 
     setSelectedDungeon(null);

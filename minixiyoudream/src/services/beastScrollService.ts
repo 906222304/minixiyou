@@ -1,7 +1,7 @@
 // 兽诀服务 - 梦幻西游风格打书系统核心逻辑
 
 import { PRNG } from '@/utils/prng';
-import type { Pet, PetSkill, PetType, Element } from '@/types';
+import type { Pet, PetSkill, PetType, Element, SkillTier } from '@/types';
 import {
   getBeastScroll,
   getBeastScrollBySkillId,
@@ -101,6 +101,7 @@ export function checkRestrictions(pet: Pet, scroll: BeastScrollConfig): Restrict
       defense: '防御型',
       support: '辅助型',
       control: '控制型',
+      balance: '平衡型',
     };
     const allowedTypes = restrictions.petType.map(t => typeNames[t]).join('、');
     return {
@@ -176,13 +177,13 @@ export function findExistingSkill(pet: Pet, skillId: string): { skill: PetSkill;
 /** 计算平均资质 */
 function getAverageAptitude(pet: Pet): number {
   const apt = pet.aptitude;
-  return (apt.attack + apt.defense + apt.magic + apt.speed + apt.hp + apt.mp) / 6;
+  return (apt.attack + apt.defense + (apt.magic ?? apt.dodge) + apt.speed + apt.hp + apt.mp) / 6;
 }
 
 /** 计算平均成长 */
 function getAverageGrowth(pet: Pet): number {
-  const growth = pet.growthRate;
-  return (growth.physical + growth.defense + growth.magic + growth.speed + growth.hp + growth.mp) / 6;
+  // growthRate 是一个 number（GrowthRateValue），直接返回
+  return typeof pet.growthRate === 'number' ? pet.growthRate : 1.0;
 }
 
 /** 获取锁定技能数量 */
@@ -219,16 +220,25 @@ export function createSkillInstance(scroll: BeastScrollConfig, level: number = 1
   const baseSkill = scroll.skill;
   const levelBonus = SKILL_LEVEL_BONUS[level - 1] || 0;
 
+  // 根据兽诀等级映射到技能等级
+  const tierMap: Record<string, SkillTier> = {
+    low: 'basic',
+    medium: 'advanced',
+    high: 'special',
+    super: 'super',
+  };
+
   return {
     id: `skill_${baseSkill.skillId}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+    templateId: baseSkill.skillId,
     name: baseSkill.name,
+    tier: tierMap[scroll.tier] || 'basic',
     type: baseSkill.type,
     description: baseSkill.description,
     mpCost: baseSkill.mpCost,
     cooldown: baseSkill.cooldown,
     multiplier: baseSkill.multiplier ? baseSkill.multiplier + levelBonus : undefined,
     element: baseSkill.element,
-    effect: baseSkill.effect,
     level,
     skillId: baseSkill.skillId,
     locked: false,

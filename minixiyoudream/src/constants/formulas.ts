@@ -41,9 +41,10 @@ export function calculateCombatStats(
   const agi = stats.agility * raceBonus.agility;
   const wil = stats.willpower * raceBonus.willpower;
 
-  // 妖族额外敏捷加成
-  const isSpirit = race === 'spirit';
-  const dodgeBonus = isSpirit ? 0.1 : 0;
+  // 种族特殊加成
+  // 人族：冷却-1回合
+  const isHuman = race === 'human';
+  const cooldownReduction = isHuman ? 1 : 0;
 
   return {
     // 攻防属性
@@ -63,9 +64,9 @@ export function calculateCombatStats(
     critRate: Math.min(0.05 + agi * 0.002, 0.5),
     critDamage: 0.5 + agi * 0.01,
 
-    // 命中/闪避 - 命中上限99%，闪避上限30%（妖族额外+10%）
+    // 命中/闪避 - 命中上限99%，闪避上限30%
     hitRate: Math.min(0.9 + agi * 0.001, 0.99),
-    dodgeRate: Math.min(0.02 + agi * 0.002 + dodgeBonus, 0.4),
+    dodgeRate: Math.min(0.02 + agi * 0.002, 0.3),
 
     // 新增扩展属性 - 初始值
     antiCritRate: Math.min(0.05 + vit * 0.001, 0.3),  // 抗暴率基础5%，上限30%
@@ -73,7 +74,7 @@ export function calculateCombatStats(
     lifeSteal: 0,                                       // 吸血需要装备提供
     reflect: 0,                                         // 反弹需要装备提供
     healBonus: 0,                                       // 治疗加成需要装备提供
-    cooldownReduction: 0,                              // 冷却缩减需要装备提供
+    cooldownReduction,                                 // 人族冷却-1回合
   };
 }
 
@@ -518,13 +519,52 @@ export function calculatePetStats(
   };
 }
 
+// ============== MP恢复配置 ==============
+
+/** MP恢复配置 */
+export const MP_REGEN = {
+  // 战斗外每秒恢复百分比
+  outOfCombatRegenPercent: 0.02, // 2%/秒
+  // 战斗内回合恢复（基础）
+  inCombatRegenBase: 0, // 基础0，靠种族被动
+  // 仙族被动加成
+  fairyBonus: 0.05, // 5%/回合
+};
+
+// ============== 金币掉落系统 ==============
+
+/** 金币掉落公式配置 */
+export const GOLD_DROP_FORMULA = {
+  // 基础金币 * 1.15^等级 * 类型倍率
+  baseMultiplier: 10,
+  growthRate: 1.15,
+  typeMultipliers: {
+    normal: 1,
+    elite: 3,
+    boss: 10,
+    rare: 5
+  }
+};
+
+/**
+ * 计算金币掉落
+ * @param level 敌人等级
+ * @param type 敌人类型
+ * @returns 金币数量
+ */
+export function calculateGoldDrop(level: number, type: 'normal' | 'elite' | 'boss' | 'rare'): number {
+  const { baseMultiplier, growthRate, typeMultipliers } = GOLD_DROP_FORMULA;
+  return Math.floor(baseMultiplier * Math.pow(growthRate, level) * typeMultipliers[type]);
+}
+
 // ============== 种族被动效果 ==============
 
 /** 种族被动效果类型 */
 export interface RacePassiveEffect {
-  type: 'survive_fatal' | 'mp_regen' | 'low_hp_attack' | 'dodge_fatal';
-  trigger: 'on_fatal_damage' | 'on_turn_end' | 'on_attack';
+  type: 'survive_fatal' | 'mp_regen' | 'low_hp_attack' | 'survive_heal' | 'mp_shield';
+  trigger: 'on_fatal_damage' | 'on_turn_end' | 'on_attack' | 'on_damage';
   value: number;
+  secondaryValue?: number;
   description: string;
 }
 
@@ -538,29 +578,24 @@ export function getRacePassiveEffect(race: RaceType): RacePassiveEffect {
       return {
         type: 'survive_fatal',
         trigger: 'on_fatal_damage',
-        value: 0.1, // 10%概率
-        description: '受到致命伤害时，有10%概率保留1HP存活',
+        value: 0.2, // 20%概率
+        description: '受到致命伤害时，有20%概率保留1HP存活',
       };
     case 'celestial':
       return {
         type: 'mp_regen',
         trigger: 'on_turn_end',
-        value: 0.02, // 2%MP
-        description: '每回合结束时恢复2%最大MP',
+        value: 0.04, // 4%MP恢复
+        secondaryValue: 0.15, // MP上限+15%
+        description: 'MP上限+15%，每回合恢复4%最大MP',
       };
     case 'demon':
       return {
-        type: 'low_hp_attack',
-        trigger: 'on_attack',
-        value: 0.2, // +20%攻击
-        description: '当HP低于30%时，物理攻击+20%',
-      };
-    case 'spirit':
-      return {
-        type: 'dodge_fatal',
+        type: 'survive_heal',
         trigger: 'on_fatal_damage',
-        value: 0.15, // 15%概率
-        description: '受到致命伤害时，有15%概率闪避此次伤害',
+        value: 0.15, // 15%概率存活
+        secondaryValue: 0.15, // 恢复15%HP
+        description: '受到致命伤害时，15%概率存活并恢复15%HP',
       };
     default:
       return {
@@ -588,34 +623,73 @@ export function calculateRacePassive(
     isFatalDamage: boolean;
   },
   prng: () => number
-): { triggered: boolean; effect?: string; value?: number } {
+): { triggered: boolean; effect?: string; value?: number; healAmount?: number } {
   const effect = getRacePassiveEffect(race);
 
   switch (effect.type) {
     case 'survive_fatal':
+      // 人族：存活致命伤
       if (context.isFatalDamage && prng() < effect.value) {
         return { triggered: true, effect: 'survive', value: 1 };
       }
       break;
 
     case 'mp_regen': {
+      // 仙族：MP恢复
       const mpRecovery = Math.floor(context.maxMp * effect.value);
       return { triggered: true, effect: 'mp_regen', value: mpRecovery };
     }
 
-    case 'low_hp_attack':
-      if (context.currentHp / context.maxHp < 0.3) {
-        return { triggered: true, effect: 'attack_bonus', value: effect.value };
-      }
-      break;
-
-    case 'dodge_fatal':
-      // 妖族：闪避致命伤害
+    case 'survive_heal':
+      // 魔族：存活并回血
       if (context.isFatalDamage && prng() < effect.value) {
-        return { triggered: true, effect: 'dodge', value: 0 };
+        const healAmount = Math.floor(context.maxHp * (effect.secondaryValue ?? 0));
+        return { triggered: true, effect: 'survive_heal', value: 1, healAmount };
       }
       break;
   }
 
   return { triggered: false };
+}
+
+/**
+ * 计算魔族狂暴加成（HP越低攻击越高）
+ * @param currentHp 当前HP
+ * @param maxHp 最大HP
+ * @returns 攻击力加成百分比
+ */
+export function calculateDemonRageBonus(currentHp: number, maxHp: number): number {
+  const hpPercent = currentHp / maxHp;
+  // HP每降低10%，物理攻击+4%（最高+40%）
+  const missingPercent = Math.floor((1 - hpPercent) * 10);
+  return Math.min(missingPercent * 0.04, 0.4);
+}
+
+/**
+ * 计算仙族法力护盾抵扣
+ * @param damage 原始伤害
+ * @param currentMp 当前MP
+ * @param maxHp 最大HP
+ * @returns { actualDamage, mpConsumed, hpDamage }
+ */
+export function calculateCelestialMpShield(
+  damage: number,
+  currentMp: number,
+  maxHp: number
+): { actualDamage: number; mpConsumed: number; hpDamage: number } {
+  // 每回合上限15%最大HP
+  const maxShield = Math.floor(maxHp * 0.15);
+  // MP:HP = 1:2，即1MP抵扣2HP伤害
+  const maxMpConsumption = Math.min(currentMp, Math.floor(maxShield / 2));
+
+  const canAbsorb = maxMpConsumption * 2;
+  const absorbed = Math.min(damage, canAbsorb);
+  const mpConsumed = Math.floor(absorbed / 2);
+  const remainingDamage = damage - absorbed;
+
+  return {
+    actualDamage: remainingDamage,
+    mpConsumed,
+    hpDamage: remainingDamage,
+  };
 }

@@ -3,6 +3,7 @@
 import { useSignals } from '@preact/signals-react/runtime';
 import { getQualityColor, getQualityName } from '@/utils/helpers';
 import type { Pet } from '@/types';
+import { useConfirmModal } from '@/components/common/ConfirmModal';
 
 interface PetDetailProps {
   pet: Pet;
@@ -13,6 +14,8 @@ interface PetDetailProps {
 
 export function PetDetail({ pet, onClose, onSetActive, onRelease }: PetDetailProps) {
   useSignals();
+
+  const { showConfirm, ConfirmModalComponent } = useConfirmModal();
 
   const getTypeName = (type: string): string => {
     const names: Record<string, string> = {
@@ -40,15 +43,33 @@ export function PetDetail({ pet, onClose, onSetActive, onRelease }: PetDetailPro
   const aptitudeNames: Record<string, string> = {
     attack: '攻击资质',
     defense: '防御资质',
-    magic: '法术资质',
-    speed: '速度资质',
-    hp: '生命资质',
+    hp: '体力资质',
     mp: '法力资质',
+    speed: '速度资质',
+    dodge: '躲闪资质',
+  };
+
+  const handleRelease = () => {
+    showConfirm('确定要放生这只宠物吗？放生后无法恢复。', {
+      title: '放生宠物',
+      type: 'danger',
+      onConfirm: () => {
+        onRelease(pet.id);
+      },
+    });
+  };
+
+  const handleSetActive = () => {
+    onSetActive(pet.id);
+    onClose();
   };
 
   return (
-    <div className="fixed inset-0 bg-black/50 z-50 flex items-end justify-center">
-      <div className="bg-[#252540] w-full max-w-md rounded-t-2xl p-4 animate-fade-in max-h-[80vh] overflow-y-auto">
+    <div className="fixed inset-0 bg-black/50 z-50 flex items-end justify-center" onClick={onClose}>
+      <div
+        className="bg-[#252540] w-full max-w-md rounded-t-2xl p-4 animate-fade-in max-h-[80vh] overflow-y-auto"
+        onClick={(e) => e.stopPropagation()}
+      >
         {/* 标题 */}
         <div className="flex justify-between items-start mb-4">
           <div className="flex items-center gap-3">
@@ -67,7 +88,7 @@ export function PetDetail({ pet, onClose, onSetActive, onRelease }: PetDetailPro
           </div>
           <button
             onClick={onClose}
-            className="text-gray-400 hover:text-white touch-btn"
+            className="text-gray-400 hover:text-white min-h-[44px] min-w-[44px] flex items-center justify-center touch-btn"
           >
             ✕
           </button>
@@ -123,7 +144,7 @@ export function PetDetail({ pet, onClose, onSetActive, onRelease }: PetDetailPro
               .filter(([key]) => statNames[key])
               .slice(0, 8)
               .map(([key, value]) => (
-                <div key={key} className="flex justify-between">
+                <div key={key} className="flex justify-between py-1 min-h-[32px] items-center">
                   <span className="text-gray-400">{statNames[key]}</span>
                   <span className="text-white">{Math.floor(value as number)}</span>
                 </div>
@@ -136,7 +157,7 @@ export function PetDetail({ pet, onClose, onSetActive, onRelease }: PetDetailPro
           <h4 className="text-sm font-medium text-gray-400 mb-2">资质</h4>
           <div className="grid grid-cols-2 gap-2 text-sm">
             {Object.entries(pet.aptitude).map(([key, value]) => (
-              <div key={key} className="flex justify-between">
+              <div key={key} className="flex justify-between py-1 min-h-[32px] items-center">
                 <span className="text-gray-400">{aptitudeNames[key]}</span>
                 <span
                   className={
@@ -194,9 +215,9 @@ export function PetDetail({ pet, onClose, onSetActive, onRelease }: PetDetailPro
           ) : (
             <div className="space-y-1">
               {pet.skills.map((skill) => (
-                <div key={skill.id} className="text-sm bg-gray-700/50 rounded px-2 py-1">
+                <div key={skill.id} className="text-sm bg-gray-700/50 rounded px-3 py-2 min-h-[44px] flex items-center">
                   <span className="text-white">{skill.name}</span>
-                  <span className="text-gray-400 ml-2">{skill.description}</span>
+                  <span className="text-gray-400 ml-2 text-xs">{skill.description}</span>
                 </div>
               ))}
             </div>
@@ -207,29 +228,29 @@ export function PetDetail({ pet, onClose, onSetActive, onRelease }: PetDetailPro
         <div className="space-y-2">
           {!pet.isActive && (
             <button
-              onClick={() => {
-                onSetActive(pet.id);
-                onClose();
-              }}
-              className="w-full py-3 bg-primary-600 hover:bg-primary-700 rounded-lg font-medium touch-btn"
+              onClick={handleSetActive}
+              className="w-full py-3 bg-primary-600 hover:bg-primary-700 rounded-lg font-medium touch-btn min-h-[48px] active:scale-95 transition-transform"
             >
-              设为出战
+              ⚔️ 设为出战
             </button>
           )}
           <button
-            onClick={() => onRelease(pet.id)}
-            className="w-full py-2 bg-red-900/50 hover:bg-red-800/50 text-red-400 rounded-lg touch-btn"
+            onClick={handleRelease}
+            className="w-full py-3 bg-red-900/50 hover:bg-red-800/50 text-red-400 rounded-lg touch-btn min-h-[48px] active:scale-95 transition-transform"
           >
-            放生
+            🚪 放生
           </button>
           <button
             onClick={onClose}
-            className="w-full py-2 text-gray-400 hover:text-white touch-btn"
+            className="w-full py-3 text-gray-400 hover:text-white touch-btn min-h-[48px] active:scale-95 transition-transform"
           >
             关闭
           </button>
         </div>
       </div>
+
+      {/* 确认弹窗 */}
+      {ConfirmModalComponent}
     </div>
   );
 }

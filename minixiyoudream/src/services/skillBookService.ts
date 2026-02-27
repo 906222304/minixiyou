@@ -72,6 +72,7 @@ export function checkRestrictions(pet: Pet, skillBook: SkillBook): RestrictionCh
       defense: '防御型',
       support: '辅助型',
       control: '控制型',
+      balance: '平衡型',
     };
     const allowedTypes = restrictions.petType.map(t => typeNames[t]).join('、');
     return {
@@ -568,6 +569,7 @@ export function formatSkillBookRequirements(skillBook: SkillBook): string[] {
       defense: '防御型',
       support: '辅助型',
       control: '控制型',
+      balance: '平衡型',
     };
     const types = restrictions.petType.map(t => typeNames[t]).join('/');
     requirements.push(`宠物类型: ${types}`);
@@ -609,7 +611,7 @@ export function calculateSkillStats(skill: PetSkill): Record<string, number> {
 /** 获取技能描述（带等级信息） */
 export function getSkillDescriptionWithLevel(skill: PetSkill): string {
   const level = skill.level || 1;
-  let desc = skill.description;
+  let desc = skill.description || '';
 
   if (level > 1) {
     const levelConfig = SKILL_LEVEL_CONFIG[level - 1];

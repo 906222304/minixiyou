@@ -88,22 +88,21 @@ const Icons = {
 
 type NavItem = { page: Page; icon: React.ReactNode; label: string; emoji: string };
 
-// 底部导航项 (4个固定)
+// 底部导航项 (5个高频功能)
 const BOTTOM_NAV_ITEMS: NavItem[] = [
   { page: 'character', icon: Icons.home, label: '人物', emoji: '👤' },
   { page: 'inventory', icon: Icons.inventory, label: '背包', emoji: '🎒' },
-  { page: 'pet', icon: Icons.pet, label: '宠物', emoji: '🐉' },
-  { page: 'map', icon: Icons.map, label: '地图', emoji: '🗺️' },
+  { page: 'map', icon: Icons.map, label: '探索', emoji: '🗺️' },
+  { page: 'quest', icon: Icons.settings, label: '任务', emoji: '📜' },
+  { page: 'dungeon', icon: Icons.dungeon, label: '副本', emoji: '🏰' },
 ];
 
-// 侧边栏导航项 (移除 home, 保留其他)
+// 侧边栏导航项 (低频功能)
 const SIDEBAR_NAV_ITEMS: NavItem[] = [
-  ...BOTTOM_NAV_ITEMS,
+  { page: 'pet', icon: Icons.pet, label: '宠物', emoji: '🐉' },
   { page: 'companion', icon: Icons.companion, label: '伙伴', emoji: '👥' },
-  { page: 'dungeon', icon: Icons.dungeon, label: '副本', emoji: '🏰' },
   { page: 'cultivation', icon: Icons.settings, label: '修炼', emoji: '🧘' },
   { page: 'achievement', icon: Icons.settings, label: '成就', emoji: '🏆' },
-  { page: 'quest', icon: Icons.settings, label: '任务', emoji: '📜' },
 ];
 
 export function GameLayout() {
@@ -276,13 +275,13 @@ export function GameLayout() {
 
       {/* 底部导航 */}
       <nav className="fixed left-4 right-4 z-20" style={{ bottom: 'max(24px, calc(1rem + env(safe-area-inset-bottom)))' }}>
-        <div className="game-panel px-3 py-2">
+        <div className="game-panel px-2 py-2">
           <div className="flex justify-around items-center">
             {BOTTOM_NAV_ITEMS.map((item) => (
               <button
                 key={item.page}
                 onClick={() => navigateTo(item.page)}
-                className={`flex flex-col items-center p-2 rounded-lg min-w-[56px] min-h-[56px] justify-center transition-all duration-200 touch-manipulation ${
+                className={`flex flex-col items-center p-1.5 sm:p-2 rounded-lg min-w-[48px] sm:min-w-[56px] min-h-[48px] sm:min-h-[56px] justify-center transition-all duration-200 touch-manipulation ${
                   page === item.page
                     ? 'text-[var(--game-gold-dark)]'
                     : 'text-[var(--game-text-muted)] hover:text-[var(--game-text)] active:bg-white/10'
@@ -290,17 +289,21 @@ export function GameLayout() {
                 aria-label={item.label}
                 aria-current={page === item.page ? 'page' : undefined}
               >
-                <span className="text-2xl">{item.emoji}</span>
-                <span className="text-xs mt-1 font-medium">{item.label}</span>
+                <span className="text-xl sm:text-2xl">{item.emoji}</span>
+                <span className="text-[10px] sm:text-xs mt-0.5 sm:mt-1 font-medium">{item.label}</span>
               </button>
             ))}
             <button
               onClick={toggleSidebar}
-              className="flex flex-col items-center p-2 rounded-lg min-w-[56px] min-h-[56px] justify-center text-[var(--game-text-muted)] hover:text-[var(--game-text)] active:bg-white/10 transition-colors touch-manipulation"
+              className={`flex flex-col items-center p-1.5 sm:p-2 rounded-lg min-w-[48px] sm:min-w-[56px] min-h-[48px] sm:min-h-[56px] justify-center transition-all duration-200 touch-manipulation ${
+                sidebarOpen
+                  ? 'text-[var(--game-gold-dark)]'
+                  : 'text-[var(--game-text-muted)] hover:text-[var(--game-text)] active:bg-white/10'
+              }`}
               aria-label="更多菜单"
             >
-              <span className="text-2xl">📋</span>
-              <span className="text-xs mt-1 font-medium">更多</span>
+              <span className="text-xl sm:text-2xl">📋</span>
+              <span className="text-[10px] sm:text-xs mt-0.5 sm:mt-1 font-medium">更多</span>
             </button>
           </div>
         </div>

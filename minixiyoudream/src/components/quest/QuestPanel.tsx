@@ -293,7 +293,7 @@ function QuestCard({
             {canClaim && (
               <button
                 onClick={(e) => { e.stopPropagation(); onClaim(); }}
-                className="px-2.5 py-1 bg-green-600 text-white rounded text-xs font-medium hover:bg-green-500"
+                className="px-3 py-2 bg-green-600 text-white rounded text-xs font-medium hover:bg-green-500 active:scale-95 min-h-[44px] transition-transform"
               >
                 领取
               </button>
@@ -301,7 +301,7 @@ function QuestCard({
             {canAccept && (
               <button
                 onClick={(e) => { e.stopPropagation(); onAccept(); }}
-                className="px-2.5 py-1 bg-[var(--game-gold)] text-white rounded text-xs font-medium hover:brightness-110"
+                className="px-3 py-2 bg-[var(--game-gold)] text-white rounded text-xs font-medium hover:brightness-110 active:scale-95 min-h-[44px] transition-transform"
               >
                 接取
               </button>

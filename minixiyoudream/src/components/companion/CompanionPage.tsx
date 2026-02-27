@@ -8,7 +8,7 @@ import {
   setCompanionActive,
   unlockCompanion,
 } from '@/signals/companionSignals';
-import { returnToExplore } from '@/signals';
+import { returnToExplore, showError } from '@/signals';
 import { getAllCompanionTemplates } from '@/constants/companions';
 import type { Companion, CompanionTemplate } from '@/types';
 import { CompanionDetail } from './CompanionDetail';
@@ -29,7 +29,7 @@ export function CompanionPage() {
       setCompanionActive(companionId, false);
     } else {
       if (active.length >= 2) {
-        alert('最多只能有2个伙伴同时出战');
+        showError('最多只能有2个伙伴同时出战');
         return;
       }
       setCompanionActive(companionId, true);

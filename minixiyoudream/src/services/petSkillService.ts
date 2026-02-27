@@ -6,7 +6,7 @@ import {
   createPetSkill,
   SKILL_LEARNING_CONFIG,
 } from '@/constants/skillBooks';
-import type { Pet, SkillBook, PetSkill, LearnSkillResult, PetType, Element } from '@/types';
+import type { Pet, SkillBook, PetSkill, SkillLearnResult, PetType, Element } from '@/types';
 
 // 重新导出 skillBookService 的功能以保持兼容性
 export {
@@ -35,6 +35,7 @@ export function checkRestrictions(pet: Pet, skillBook: SkillBook): RestrictionCh
       defense: '防御型',
       support: '辅助型',
       control: '控制型',
+      balance: '平衡型',
     };
     const allowedTypes = restrictions.petType.map(t => typeNames[t]).join('、');
     return {
@@ -127,7 +128,7 @@ export function calculateOverrideSuccessRate(
 // ============================================
 
 /** 学习技能结果 */
-export interface TeachSkillResult extends LearnSkillResult {
+export interface TeachSkillResult extends SkillLearnResult {
   pet: Pet;
   successRate?: number;
 }
@@ -145,7 +146,9 @@ export function teachSkillFromBook(
     return {
       success: false,
       pet,
+      type: 'fail' as const,
       reason: '技能书不存在',
+      message: '技能书不存在',
     };
   }
 
@@ -155,7 +158,9 @@ export function teachSkillFromBook(
     return {
       success: false,
       pet,
+      type: 'fail' as const,
       reason: restrictionCheck.reason,
+      message: restrictionCheck.reason || '无法学习此技能',
     };
   }
 
@@ -164,7 +169,9 @@ export function teachSkillFromBook(
     return {
       success: false,
       pet,
+      type: 'fail' as const,
       reason: '宠物已经学习了此技能',
+      message: '宠物已经学习了此技能',
     };
   }
 
@@ -174,7 +181,9 @@ export function teachSkillFromBook(
     return {
       success: false,
       pet,
+      type: 'fail' as const,
       reason: '技能不存在',
+      message: '技能不存在',
     };
   }
 
@@ -188,7 +197,9 @@ export function teachSkillFromBook(
     return {
       success: true,
       pet: updatedPet,
+      type: 'learn' as const,
       newSkill,
+      message: `学会了 ${newSkill.name}`,
     };
   }
 
@@ -205,8 +216,10 @@ export function teachSkillFromBook(
     return {
       success: false,
       pet,
+      type: 'fail' as const,
       reason: '学习失败，技能书已消耗',
       successRate,
+      message: '学习失败，技能书已消耗',
     };
   }
 
@@ -216,7 +229,9 @@ export function teachSkillFromBook(
     return {
       success: false,
       pet,
+      type: 'fail' as const,
       reason: '没有可覆盖的技能',
+      message: '没有可覆盖的技能',
     };
   }
 
@@ -233,9 +248,11 @@ export function teachSkillFromBook(
   return {
     success: true,
     pet: updatedPet,
+    type: 'override' as const,
     newSkill,
     overriddenSkill,
     successRate,
+    message: `${overriddenSkill.name} 被 ${newSkill.name} 覆盖`,
   };
 }
 
@@ -275,6 +292,7 @@ export function formatSkillBookRequirements(skillBook: SkillBook): string[] {
       defense: '防御型',
       support: '辅助型',
       control: '控制型',
+      balance: '平衡型',
     };
     const types = restrictions.petType.map(t => typeNames[t]).join('/');
     requirements.push(`宠物类型: ${types}`);

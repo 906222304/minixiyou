@@ -1,10 +1,10 @@
 // 合宠服务逻辑
 
-import type { Pet, PetAptitude, PetSkill, FusionResult, Quality, GrowthRate } from '@/types';
+import type { Pet, PetAptitude, PetSkill, FusionResult, Quality } from '@/types';
 import type { CombatStats } from '@/types/common';
 import { generateUUID } from '@/types';
-import { getPetTemplate } from '@/constants/pets';
-import { calculatePetStats } from '@/constants/formulas';
+import { getSummonTemplateById } from '@/constants/summonTemplates';
+import { calculateAllStats, PET_QUALITY_CONFIG } from '@/constants/petGrowth';
 import {
   PET_FUSION_CONFIG,
   getNextRarity,
@@ -110,12 +110,25 @@ export const petFusionService = {
     // 7. 构建资质变化记录
     const aptitudeChanges = this.buildAptitudeChanges(mainPet.aptitude, newAptitude);
 
+    // 8. 构建消息列表
+    const messages: string[] = [
+      `${mainPet.name} 与 ${subPet.name} 合成成功！`,
+      `新宠物: ${newPet.name}`,
+    ];
+    if (rarityUp) {
+      messages.push('稀有度提升！');
+    }
+    if (bonusSlot) {
+      messages.push('获得额外技能槽！');
+    }
+
     return {
       pet: newPet,
       absorbedSkills,
       aptitudeChanges,
       rarityUp,
       bonusSkillSlot: bonusSlot,
+      messages,
     };
   },
 
@@ -137,7 +150,7 @@ export const petFusionService = {
     const aptitude: PetAptitude = {
       attack: this.randomInRange(range.attack.min, range.attack.max, overflowed, prng),
       defense: this.randomInRange(range.defense.min, range.defense.max, overflowed, prng),
-      magic: this.randomInRange(range.magic.min, range.magic.max, overflowed, prng),
+      dodge: this.randomInRange(range.dodge.min, range.dodge.max, overflowed, prng),
       speed: this.randomInRange(range.speed.min, range.speed.max, overflowed, prng),
       hp: this.randomInRange(range.hp.min, range.hp.max, overflowed, prng),
       mp: this.randomInRange(range.mp.min, range.mp.max, overflowed, prng),
@@ -162,9 +175,9 @@ export const petFusionService = {
         min: Math.min(mainAptitude.defense, subAptitude.defense),
         max: Math.max(mainAptitude.defense, subAptitude.defense),
       },
-      magic: {
-        min: Math.min(mainAptitude.magic, subAptitude.magic),
-        max: Math.max(mainAptitude.magic, subAptitude.magic),
+      dodge: {
+        min: Math.min(mainAptitude.dodge, subAptitude.dodge),
+        max: Math.max(mainAptitude.dodge, subAptitude.dodge),
       },
       speed: {
         min: Math.min(mainAptitude.speed, subAptitude.speed),
@@ -301,41 +314,45 @@ export const petFusionService = {
     rarity: Quality,
     maxSkills: number
   ): Pet {
-    const template = getPetTemplate(mainPet.baseId);
+    const template = getSummonTemplateById(mainPet.templateId || mainPet.baseId || '');
     if (!template) {
-      throw new Error(`Pet template not found: ${mainPet.baseId}`);
+      throw new Error(`Pet template not found: ${mainPet.templateId || mainPet.baseId}`);
     }
 
-    // 修复: 使用类型安全的转换替代双重类型断言
-    // 将 PetAptitude 转换为 Record<string, number> 格式
-    const aptitudeRecord: Record<string, number> = {
-      attack: newAptitude.attack,
-      defense: newAptitude.defense,
-      magic: newAptitude.magic,
-      speed: newAptitude.speed,
-      hp: newAptitude.hp,
-      mp: newAptitude.mp,
-    };
+    // 使用新系统计算属性
+    const qualityConfig = PET_QUALITY_CONFIG[mainPet.quality];
+    const calculatedStats = calculateAllStats(level, newAptitude, mainPet.growthRate, qualityConfig.baseStatMultiplier);
 
-    // 计算新属性
-    const stats = calculatePetStats(template.baseStats, aptitudeRecord, level) as CombatStats;
+    // 转换为 CombatStats 格式
+    const stats: CombatStats = {
+      physicalAttack: calculatedStats.attack,
+      physicalDefense: calculatedStats.defense,
+      magicAttack: Math.floor(calculatedStats.attack * 0.8),
+      magicDefense: calculatedStats.defense,
+      speed: calculatedStats.speed,
+      maxHp: calculatedStats.maxHp,
+      maxMp: calculatedStats.maxMp,
+      critRate: 0.05,
+      critDamage: 1.5,
+      hitRate: 0.95,
+      dodgeRate: calculatedStats.dodge / 1000,
+      antiCritRate: 0,
+      penetration: 0,
+      lifeSteal: 0,
+      reflect: 0,
+      healBonus: 0,
+      cooldownReduction: 0,
+    };
 
     // 限制技能数量不超过技能槽
     const finalSkills = skills.slice(0, maxSkills);
 
-    // 生成新的成长率 (合宠后品质提升)
-    const newQuality = mainPet.quality;
-    const newGrowthRate: GrowthRate = {
-      physical: mainPet.growthRate.physical * 1.05,
-      magic: mainPet.growthRate.magic * 1.05,
-      defense: mainPet.growthRate.defense * 1.05,
-      speed: mainPet.growthRate.speed * 1.05,
-      hp: mainPet.growthRate.hp * 1.05,
-      mp: mainPet.growthRate.mp * 1.05,
-    };
+    // 生成新的成长率 (合宠后略微提升)
+    const newGrowthRate = Math.min(1.295, mainPet.growthRate * 1.02);
 
     const newPet: Pet = {
       id: generateUUID(),
+      templateId: mainPet.templateId,
       baseId: mainPet.baseId,
       name: mainPet.name,
       nickname: mainPet.nickname, // 保留主宠物的昵称
@@ -343,7 +360,7 @@ export const petFusionService = {
       type: mainPet.type,
       rarity,
       element: mainPet.element,
-      quality: newQuality,
+      quality: mainPet.quality,
       growthRate: newGrowthRate,
       level,
       exp: 0, // 经验重置
@@ -375,12 +392,22 @@ export const petFusionService = {
     oldAptitude: PetAptitude,
     newAptitude: PetAptitude
   ): FusionResult['aptitudeChanges'] {
-    const keys: (keyof PetAptitude)[] = ['attack', 'defense', 'magic', 'speed', 'hp', 'mp'];
-    return keys.map(stat => ({
-      stat,
-      oldValue: oldAptitude[stat],
-      newValue: newAptitude[stat],
-    }));
+    const keys: (keyof PetAptitude)[] = ['attack', 'defense', 'dodge', 'speed', 'hp', 'mp'];
+    const changes: FusionResult['aptitudeChanges'] = [];
+
+    for (const stat of keys) {
+      const oldVal = oldAptitude[stat];
+      const newVal = newAptitude[stat];
+      if (oldVal !== undefined && newVal !== undefined) {
+        changes.push({
+          stat,
+          oldValue: oldVal,
+          newValue: newVal,
+        });
+      }
+    }
+
+    return changes;
   },
 
   /**
@@ -418,10 +445,11 @@ export const petFusionService = {
     const names: Record<keyof PetAptitude, string> = {
       attack: '攻击资质',
       defense: '防御资质',
-      magic: '法术资质',
+      dodge: '躲闪资质',
       speed: '速度资质',
-      hp: '生命资质',
+      hp: '体力资质',
       mp: '法力资质',
+      magic: '法术资质',
     };
     return names[stat];
   },

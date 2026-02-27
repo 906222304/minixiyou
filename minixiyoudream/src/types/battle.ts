@@ -1,6 +1,7 @@
 // 战斗类型定义
 
 import type { UUID, Element, ElementResistances, CombatStats, ItemDrop, ExpReward } from './common';
+import type { RaceType } from './race';
 import type { Player } from './player';
 import type { Companion } from './companion';
 import type { Pet } from './pet';
@@ -13,6 +14,12 @@ export interface CombatUnit {
   name: string;
   type: 'player' | 'companion' | 'pet' | 'enemy';
   isPlayerSide: boolean;
+
+  // 种族（仅玩家方单位有效）
+  race?: RaceType;
+
+  // 头像（玩家/伙伴/宠物使用图片头像，敌人使用emoji/图标）
+  avatar?: string;
 
   // 属性
   stats: CombatStats;

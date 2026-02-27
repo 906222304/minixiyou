@@ -5,6 +5,9 @@ import {
   QUEST_CHAPTERS,
   getQuest,
   getDailyQuests,
+  CHAPTER_FIRST_CLEAR_BONUS,
+  getRewardPool,
+  getRewardPoolIdByChapter,
 } from '@/constants/quests';
 import type {
   Quest,
@@ -15,6 +18,9 @@ import type {
   QuestEvent,
   QuestStatus,
   QuestCondition,
+  QuestReward,
+  RewardPoolItem,
+  FirstClearBonus,
 } from '@/types/quest';
 
 /** localStorage 存储键前缀 */
@@ -30,6 +36,8 @@ export interface QuestData {
   quests: PlayerQuest[];
   /** 任务追踪器 */
   tracker: QuestTracker;
+  /** 已领取首通奖励的章节 */
+  chapterFirstClearClaimed: number[];
   /** 更新时间戳 */
   updatedAt: number;
 }
@@ -68,6 +76,7 @@ function createDefaultQuestData(playerId: string): QuestData {
       conditionProgress: {},
     })),
     tracker: createDefaultTracker(),
+    chapterFirstClearClaimed: [],
     updatedAt: Date.now(),
   };
 }
@@ -309,6 +318,8 @@ class QuestService {
     message: string;
     quest?: Quest;
     rewards?: Quest['rewards'];
+    firstClearBonus?: FirstClearBonus;
+    poolRewards?: QuestReward;
   }> {
     const data = await this.getPlayerQuests(playerId);
     if (!data) {
@@ -333,6 +344,24 @@ class QuestService {
       return { success: false, message: '任务配置不存在' };
     }
 
+    // 生成最终奖励
+    const finalRewards = this.generateFinalRewards(quest);
+    let firstClearBonus: FirstClearBonus | undefined;
+    let poolRewards: QuestReward | undefined;
+
+    // 检查是否需要发放首通奖励（章节首次完成）
+    const isFirstClear = quest.chapter && !data.chapterFirstClearClaimed.includes(quest.chapter);
+    if (isFirstClear && quest.chapter) {
+      firstClearBonus = CHAPTER_FIRST_CLEAR_BONUS[quest.chapter];
+      data.chapterFirstClearClaimed.push(quest.chapter);
+      playerQuest.firstClearClaimed = true;
+    }
+
+    // 如果有奖励池，生成随机奖励
+    if (finalRewards.rewardPoolId) {
+      poolRewards = this.drawFromRewardPool(finalRewards.rewardPoolId);
+    }
+
     // 标记已领取
     playerQuest.status = 'claimed';
     playerQuest.claimedAt = Date.now();
@@ -343,8 +372,191 @@ class QuestService {
       success: true,
       message: '奖励领取成功',
       quest,
-      rewards: quest.rewards,
+      rewards: finalRewards,
+      firstClearBonus,
+      poolRewards,
     };
+  }
+
+  /**
+   * 生成最终奖励（包含随机金币和经验）
+   */
+  private generateFinalRewards(quest: Quest): QuestReward {
+    const baseRewards = { ...quest.rewards };
+
+    // 如果有金币范围，随机生成金币
+    if (baseRewards.goldRange) {
+      baseRewards.gold = this.randomInRange(
+        baseRewards.goldRange.min,
+        baseRewards.goldRange.max
+      );
+      delete baseRewards.goldRange;
+    }
+
+    // 如果有经验范围，随机生成经验
+    if (baseRewards.expRange) {
+      baseRewards.exp = this.randomInRange(
+        baseRewards.expRange.min,
+        baseRewards.expRange.max
+      );
+      delete baseRewards.expRange;
+    }
+
+    // 如果没有设置奖励池ID，根据章节自动分配
+    if (!baseRewards.rewardPoolId && quest.chapter) {
+      baseRewards.rewardPoolId = getRewardPoolIdByChapter(quest.chapter, quest.type);
+    }
+
+    return baseRewards;
+  }
+
+  /**
+   * 从奖励池中抽取奖励
+   */
+  private drawFromRewardPool(poolId: string): QuestReward {
+    const pool = getRewardPool(poolId);
+    if (!pool) {
+      console.warn(`[QuestService] Reward pool not found: ${poolId}`);
+      return {};
+    }
+
+    const result: QuestReward = {};
+    const drawCount = pool.drawCount || 1;
+
+    // 添加保底奖励
+    if (pool.guaranteedRewards && pool.guaranteedRewards.length > 0) {
+      for (const guaranteed of pool.guaranteedRewards) {
+        this.mergeRewards(result, guaranteed);
+      }
+    }
+
+    // 随机抽取
+    for (let i = 0; i < drawCount; i++) {
+      const drawnItem = this.drawRandomItem(pool.rewards);
+      if (drawnItem) {
+        const reward = this.convertPoolItemToReward(drawnItem);
+        this.mergeRewards(result, reward);
+      }
+    }
+
+    return result;
+  }
+
+  /**
+   * 根据权重随机抽取奖励
+   */
+  private drawRandomItem(items: RewardPoolItem[]): RewardPoolItem | null {
+    if (items.length === 0) return null;
+
+    const totalWeight = items.reduce((sum, item) => sum + item.weight, 0);
+    if (totalWeight <= 0) return null;
+
+    let random = Math.random() * totalWeight;
+
+    for (const item of items) {
+      random -= item.weight;
+      if (random <= 0) {
+        return item;
+      }
+    }
+
+    return items[items.length - 1];
+  }
+
+  /**
+   * 将奖励池物品转换为任务奖励
+   */
+  private convertPoolItemToReward(item: RewardPoolItem): QuestReward {
+    const quantity = item.quantity
+      ? this.randomInRange(item.quantity.min, item.quantity.max)
+      : 1;
+
+    switch (item.type) {
+      case 'gold':
+        return { gold: typeof item.value === 'number' ? item.value * quantity : quantity };
+      case 'exp':
+        return { exp: typeof item.value === 'number' ? item.value * quantity : quantity };
+      case 'item':
+        return {
+          items: [{
+            itemId: String(item.value),
+            count: quantity,
+          }],
+        };
+      case 'equipment':
+        return {
+          equipments: [{
+            equipmentId: String(item.value),
+            count: quantity,
+          }],
+        };
+      default:
+        return {};
+    }
+  }
+
+  /**
+   * 合并奖励
+   */
+  private mergeRewards(target: QuestReward, source: QuestReward): void {
+    // 合并金币
+    if (source.gold) {
+      target.gold = (target.gold || 0) + source.gold;
+    }
+
+    // 合并经验
+    if (source.exp) {
+      target.exp = (target.exp || 0) + source.exp;
+    }
+
+    // 合并物品
+    if (source.items && source.items.length > 0) {
+      if (!target.items) target.items = [];
+      for (const item of source.items) {
+        const existing = target.items.find(i => i.itemId === item.itemId);
+        if (existing) {
+          existing.count += item.count;
+        } else {
+          target.items.push({ ...item });
+        }
+      }
+    }
+
+    // 合并装备
+    if (source.equipments && source.equipments.length > 0) {
+      if (!target.equipments) target.equipments = [];
+      for (const equip of source.equipments) {
+        const existing = target.equipments.find(e => e.equipmentId === equip.equipmentId);
+        if (existing) {
+          existing.count += equip.count;
+        } else {
+          target.equipments.push({ ...equip });
+        }
+      }
+    }
+
+    // 合并解锁内容
+    if (source.unlocks) {
+      if (!target.unlocks) {
+        target.unlocks = { maps: [], features: [], npcs: [] };
+      }
+      if (source.unlocks.maps) {
+        target.unlocks.maps = [...(target.unlocks.maps || []), ...source.unlocks.maps];
+      }
+      if (source.unlocks.features) {
+        target.unlocks.features = [...(target.unlocks.features || []), ...source.unlocks.features];
+      }
+      if (source.unlocks.npcs) {
+        target.unlocks.npcs = [...(target.unlocks.npcs || []), ...source.unlocks.npcs];
+      }
+    }
+  }
+
+  /**
+   * 生成指定范围内的随机整数
+   */
+  private randomInRange(min: number, max: number): number {
+    return Math.floor(Math.random() * (max - min + 1)) + min;
   }
 
   /**
@@ -875,6 +1087,101 @@ class QuestService {
         }
       }
     }
+  }
+
+  /**
+   * 模拟奖励抽取（用于预览）
+   */
+  simulateRewardDraw(poolId: string): QuestReward {
+    return this.drawFromRewardPool(poolId);
+  }
+
+  /**
+   * 获取章节首通奖励
+   */
+  getChapterFirstClearBonus(chapter: number): FirstClearBonus | undefined {
+    return CHAPTER_FIRST_CLEAR_BONUS[chapter];
+  }
+
+  /**
+   * 检查章节是否已完成
+   */
+  async isChapterCompleted(playerId: string, chapter: number): Promise<boolean> {
+    const data = await this.getPlayerQuests(playerId);
+    if (!data) return false;
+
+    const chapterQuests = QUESTS.filter(q => q.chapter === chapter);
+    if (chapterQuests.length === 0) return false;
+
+    return chapterQuests.every(quest => {
+      const playerQuest = data.quests.find(pq => pq.questId === quest.id);
+      return playerQuest && (playerQuest.status === 'completed' || playerQuest.status === 'claimed');
+    });
+  }
+
+  /**
+   * 检查是否可以领取章节首通奖励
+   */
+  async canClaimChapterFirstClear(playerId: string, chapter: number): Promise<boolean> {
+    const data = await this.getPlayerQuests(playerId);
+    if (!data) return false;
+
+    // 检查是否已领取过首通奖励
+    if (data.chapterFirstClearClaimed.includes(chapter)) {
+      return false;
+    }
+
+    // 检查章节是否完成
+    return this.isChapterCompleted(playerId, chapter);
+  }
+
+  /**
+   * 计算任务预览奖励（包含随机范围）
+   */
+  calculatePreviewRewards(quest: Quest): {
+    base: QuestReward;
+    poolId?: string;
+    firstClear?: FirstClearBonus;
+    goldRange?: { min: number; max: number };
+    expRange?: { min: number; max: number };
+  } {
+    const result: {
+      base: QuestReward;
+      poolId?: string;
+      firstClear?: FirstClearBonus;
+      goldRange?: { min: number; max: number };
+      expRange?: { min: number; max: number };
+    } = {
+      base: {
+        gold: quest.rewards.gold,
+        exp: quest.rewards.exp,
+        items: quest.rewards.items,
+        equipments: quest.rewards.equipments,
+        unlocks: quest.rewards.unlocks,
+      },
+    };
+
+    // 保存范围信息用于显示
+    if (quest.rewards.goldRange) {
+      result.goldRange = quest.rewards.goldRange;
+    }
+    if (quest.rewards.expRange) {
+      result.expRange = quest.rewards.expRange;
+    }
+
+    // 获取奖励池ID
+    if (quest.rewards.rewardPoolId) {
+      result.poolId = quest.rewards.rewardPoolId;
+    } else if (quest.chapter) {
+      result.poolId = getRewardPoolIdByChapter(quest.chapter, quest.type);
+    }
+
+    // 获取首通奖励
+    if (quest.chapter) {
+      result.firstClear = CHAPTER_FIRST_CLEAR_BONUS[quest.chapter];
+    }
+
+    return result;
   }
 }
 

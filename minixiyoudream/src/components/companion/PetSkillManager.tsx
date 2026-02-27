@@ -372,7 +372,7 @@ export function PetSkillManager({
                     setSelectedSkill(selectedSkill?.id === slot.skill.id ? null : slot.skill);
                   }
                 }}
-                className={`relative h-12 rounded flex items-center justify-center text-xs cursor-pointer transition-all ${
+                className={`relative h-12 rounded flex items-center justify-center text-xs cursor-pointer transition-all active:scale-95 ${
                   !slot.isUnlocked
                     ? 'bg-gray-700/50 border border-gray-600 border-dashed'
                     : slot.skill
@@ -455,7 +455,7 @@ export function PetSkillManager({
                     ? false
                     : lockedSkillsCount >= SKILL_LOCK_CONFIG.maxLockedSkills || lockPearls <= 0
                 }
-                className={`flex-1 py-2 rounded text-sm ${
+                className={`flex-1 py-2 rounded text-sm min-h-[44px] active:scale-95 ${
                   selectedSkill.locked
                     ? 'bg-green-600 hover:bg-green-500'
                     : 'bg-blue-600 hover:bg-blue-500 disabled:opacity-50'
@@ -470,7 +470,7 @@ export function PetSkillManager({
               <button
                 onClick={() => setShowForgetConfirm(true)}
                 disabled={selectedSkill.locked}
-                className="flex-1 py-2 rounded bg-red-600/30 hover:bg-red-600/50 disabled:opacity-50 text-sm"
+                className="flex-1 py-2 rounded bg-red-600/30 hover:bg-red-600/50 disabled:opacity-50 text-sm min-h-[44px] active:scale-95"
               >
                 遗忘技能
               </button>
@@ -496,13 +496,13 @@ export function PetSkillManager({
               <button
                 onClick={handleLockSkill}
                 disabled={!selectedSkill.locked && (playerGold < SKILL_LOCK_CONFIG.lockGoldCost || lockPearls <= 0)}
-                className="flex-1 py-2 rounded bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-sm"
+                className="flex-1 py-2 rounded bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-sm min-h-[44px] active:scale-95"
               >
                 确认{selectedSkill.locked ? '解锁' : '锁定'}
               </button>
               <button
                 onClick={() => setShowLockConfirm(false)}
-                className="flex-1 py-2 rounded bg-gray-600 hover:bg-gray-500 text-sm"
+                className="flex-1 py-2 rounded bg-gray-600 hover:bg-gray-500 text-sm min-h-[44px] active:scale-95"
               >
                 取消
               </button>
@@ -523,13 +523,13 @@ export function PetSkillManager({
               <button
                 onClick={handleForgetSkill}
                 disabled={playerGold < 1000}
-                className="flex-1 py-2 rounded bg-red-600 hover:bg-red-500 disabled:opacity-50 text-sm"
+                className="flex-1 py-2 rounded bg-red-600 hover:bg-red-500 disabled:opacity-50 text-sm min-h-[44px] active:scale-95"
               >
                 确认遗忘
               </button>
               <button
                 onClick={() => setShowForgetConfirm(false)}
-                className="flex-1 py-2 rounded bg-gray-600 hover:bg-gray-500 text-sm"
+                className="flex-1 py-2 rounded bg-gray-600 hover:bg-gray-500 text-sm min-h-[44px] active:scale-95"
               >
                 取消
               </button>
@@ -561,13 +561,13 @@ export function PetSkillManager({
             <div className="flex gap-2">
               <button
                 onClick={() => handleUnlockSlot(showUnlockSlotConfirm)}
-                className="flex-1 py-2 rounded bg-yellow-600 hover:bg-yellow-500 text-sm"
+                className="flex-1 py-2 rounded bg-yellow-600 hover:bg-yellow-500 text-sm min-h-[44px] active:scale-95"
               >
                 确认解锁
               </button>
               <button
                 onClick={() => setShowUnlockSlotConfirm(null)}
-                className="flex-1 py-2 rounded bg-gray-600 hover:bg-gray-500 text-sm"
+                className="flex-1 py-2 rounded bg-gray-600 hover:bg-gray-500 text-sm min-h-[44px] active:scale-95"
               >
                 取消
               </button>
@@ -677,7 +677,7 @@ export function PetSkillManager({
             <button
               onClick={() => handleLearnScroll(selectedScroll)}
               disabled={isLearning}
-              className="w-full py-2 rounded bg-purple-600 hover:bg-purple-500 disabled:opacity-50 text-sm"
+              className="w-full py-2 rounded bg-purple-600 hover:bg-purple-500 disabled:opacity-50 text-sm min-h-[44px] active:scale-95"
             >
               {isLearning ? '学习中...' : '确认使用'}
             </button>

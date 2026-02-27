@@ -264,6 +264,9 @@ export interface Equipment {
   // 耐久度
   durability?: number;
   maxDurability?: number;
+
+  // 强化保底计数器（连续失败次数）
+  enhanceFailCount?: number;
 }
 
 // ==================== 强化系统 ====================

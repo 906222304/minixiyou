@@ -1,6 +1,7 @@
-// 任务对话组件 - 迷你西游梦风格
+// 任务对话组件
+// 特性: 立绘系统、入场动画、选项系统
 
-import { useEffect, useCallback } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useSignals } from '@preact/signals-react/runtime';
 import {
   currentDialog,
@@ -12,109 +13,104 @@ import {
 } from '@/signals/questSignals';
 import type { DialogLine } from '@/types/quest';
 
-/** 单个对话气泡 */
-function DialogBubble({ line, isPlayer }: { line: DialogLine; isPlayer: boolean }) {
-  const getPositionClass = () => {
-    if (isPlayer) return 'justify-end';
-    return 'justify-start';
-  };
+/** 立绘组件 */
+function CharacterPortrait({
+  speaker,
+  portrait,
+  position,
+  isSpeaking,
+}: {
+  speaker: string;
+  portrait?: string;
+  position: 'left' | 'right';
+  isSpeaking?: boolean;
+}) {
+  const [entered, setEntered] = useState(false);
 
-  const getBubbleClass = () => {
-    if (isPlayer) {
-      return 'bg-amber-100 border-amber-300';
-    }
-    return 'bg-slate-100 border-slate-200';
-  };
+  useEffect(() => {
+    setEntered(false);
+    const timer = setTimeout(() => setEntered(true), 50);
+    return () => clearTimeout(timer);
+  }, [speaker]);
+
+  // 判断是否使用图片头像
+  const isImagePortrait = portrait?.startsWith('avatar_') || portrait?.startsWith('/');
+  const avatarUrl = isImagePortrait && portrait?.startsWith('avatar_')
+    ? `/avatars/${portrait}_large.png`
+    : portrait;
 
   return (
-    <div className={`flex ${getPositionClass()} items-start gap-3 animate-fade-in`}>
-      {/* 左侧头像 */}
-      {!isPlayer && (
-        <div className="flex-shrink-0">
-          <div className="w-12 h-12 rounded-full bg-gradient-to-br from-gray-700 to-gray-800 flex items-center justify-center text-2xl border-2 border-gray-600">
-            {line.portrait || '👤'}
-          </div>
-        </div>
-      )}
-
-      {/* 对话内容 */}
-      <div className={`flex-1 max-w-[70%] ${isPlayer ? 'text-right' : ''}`}>
-        <div className="text-sm text-[var(--game-text-muted)] mb-1">
-          {line.speaker}
-        </div>
+    <div
+      className={`
+        absolute bottom-28 sm:bottom-32 ${position === 'left' ? 'left-2 sm:left-8' : 'right-2 sm:right-8'}
+        w-24 sm:w-40 h-32 sm:h-56
+        transition-all duration-500 ease-out
+        ${entered
+          ? 'translate-y-0 opacity-100'
+          : `${position === 'left' ? '-translate-x-full' : 'translate-x-full'} opacity-0`
+        }
+        ${isSpeaking ? 'scale-105 z-10' : 'scale-100'}
+      `}
+      style={{
+        filter: isSpeaking ? 'drop-shadow(0 0 20px rgba(251,191,36,0.5))' : 'none',
+      }}
+    >
+      {/* 角色图片 */}
+      {isImagePortrait && avatarUrl ? (
+        <img
+          src={avatarUrl}
+          alt={speaker}
+          className="w-full h-full object-contain"
+          style={{
+            filter: 'drop-shadow(0 0 30px rgba(0,0,0,0.5))',
+          }}
+        />
+      ) : (
+        /* Emoji头像 */
         <div
           className={`
-            p-4 rounded-2xl border
-            ${getBubbleClass()}
-            ${isPlayer ? 'rounded-tr-sm' : 'rounded-tl-sm'}
+            w-16 h-16 sm:w-28 sm:h-28 mx-auto
+            rounded-full flex items-center justify-center text-3xl sm:text-5xl
+            ${position === 'left'
+              ? 'bg-gradient-to-br from-gray-700 to-gray-800 border-2 border-gray-600'
+              : 'bg-gradient-to-br from-amber-400/30 to-amber-500/10 border-2 border-amber-400/50'
+            }
+            shadow-lg
           `}
         >
-          <p className={`leading-relaxed ${isPlayer ? 'text-[var(--game-text)]' : 'text-slate-700'}`}>{line.text}</p>
+          {portrait || '👤'}
         </div>
+      )}
+
+      {/* 角色名称标签 */}
+      <div
+        className={`
+          absolute -bottom-2 left-1/2 -translate-x-1/2
+          px-2 sm:px-3 py-0.5 sm:py-1 rounded-lg text-xs sm:text-sm font-medium
+          ${position === 'left'
+            ? 'bg-gray-800/90 text-white'
+            : 'bg-amber-500/90 text-white'
+          }
+          whitespace-nowrap shadow-lg
+        `}
+      >
+        {speaker}
       </div>
 
-      {/* 右侧头像 */}
-      {isPlayer && (
-        <div className="flex-shrink-0">
-          <div className="w-12 h-12 rounded-full bg-gradient-to-br from-[var(--game-gold)]/30 to-[var(--game-gold)]/10 flex items-center justify-center text-2xl border-2 border-[var(--game-gold)]/50">
-            {line.portrait || '👤'}
-          </div>
+      {/* 说话指示器 */}
+      {isSpeaking && (
+        <div className="absolute -top-2 left-1/2 -translate-x-1/2 flex gap-1">
+          <span className="w-2 h-2 bg-amber-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+          <span className="w-2 h-2 bg-amber-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+          <span className="w-2 h-2 bg-amber-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
         </div>
       )}
     </div>
   );
 }
 
-/** 对话显示区域 */
-function DialogContent() {
-  useSignals();
-
-  const dialog = currentDialog.value;
-  const index = currentDialogIndex.value;
-  const currentLine = currentDialogLine.value;
-
-  if (!dialog || !currentLine) return null;
-
-  // 判断是否是玩家说话
-  const isPlayer = currentLine.position === 'right' || currentLine.speaker === '你';
-
-  // 获取历史对话
-  const historyLines = dialog.slice(0, index);
-
-  return (
-    <div className="flex flex-col h-full">
-      {/* 历史对话区域 */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-4 scrollbar-thin">
-        {historyLines.map((line, idx) => (
-          <DialogBubble
-            key={idx}
-            line={line}
-            isPlayer={line.position === 'right' || line.speaker === '你'}
-          />
-        ))}
-
-        {/* 当前对话 */}
-        <DialogBubble line={currentLine} isPlayer={isPlayer} />
-      </div>
-
-      {/* 继续提示 */}
-      <div className="p-4 border-t border-white/10 text-center">
-        <button
-          onClick={advanceDialog}
-          className="text-[var(--game-text-muted)] hover:text-white transition-colors text-sm flex items-center justify-center gap-2 mx-auto"
-        >
-          <span>
-            {index < dialog.length - 1 ? '点击继续' : '点击结束对话'}
-          </span>
-          <span className="animate-bounce">▼</span>
-        </button>
-      </div>
-    </div>
-  );
-}
-
-/** 全屏对话模式（有背景） */
-function FullscreenDialog() {
+/** 增强版对话框 */
+function EnhancedDialog() {
   useSignals();
 
   const dialog = currentDialog.value;
@@ -123,86 +119,150 @@ function FullscreenDialog() {
   if (!dialog || !currentLine) return null;
 
   const isPlayer = currentLine.position === 'right' || currentLine.speaker === '你';
+  const isNarrator = currentLine.speaker === '旁白';
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center">
+    <div className="dialog-container">
       {/* 背景遮罩 */}
-      <div
-        className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/70 to-transparent"
-        onClick={advanceDialog}
-      />
+      <div className="dialog-overlay" onClick={advanceDialog} />
+
+      {/* 角色立绘 */}
+      {!isNarrator && (
+        <>
+          {!isPlayer && (
+            <CharacterPortrait
+              speaker={currentLine.speaker}
+              portrait={currentLine.portrait}
+              position="left"
+              isSpeaking={true}
+            />
+          )}
+          {isPlayer && (
+            <CharacterPortrait
+              speaker={currentLine.speaker}
+              portrait={currentLine.portrait}
+              position="right"
+              isSpeaking={true}
+            />
+          )}
+        </>
+      )}
 
       {/* 对话框 */}
-      <div className="relative w-full max-w-2xl mx-4 mb-8">
-        {/* 场景描述（如果有） */}
-        {currentLine.speaker === '旁白' && (
-          <div className="text-center mb-4 animate-fade-in">
-            <div className="inline-block px-4 py-2 bg-black/50 rounded-lg border border-white/10">
-              <p className="text-white/80 italic text-lg">{currentLine.text}</p>
-            </div>
-          </div>
-        )}
-
-        {/* 角色立绘区域（可以扩展为实际图片） */}
-        <div className="flex justify-between items-end mb-4 h-40">
-          {/* 左侧角色 */}
-          {!isPlayer && currentLine.speaker !== '旁白' && (
-            <div className="flex flex-col items-center animate-fade-in">
-              <div className="w-24 h-24 rounded-full bg-gradient-to-br from-gray-700 to-gray-800 flex items-center justify-center text-4xl border-2 border-gray-600 shadow-lg">
-                {currentLine.portrait || '👤'}
-              </div>
-              <div className="mt-2 px-3 py-1 bg-black/50 rounded text-sm text-white">
-                {currentLine.speaker}
-              </div>
-            </div>
-          )}
-
-          {/* 右侧角色（玩家） */}
-          {isPlayer && (
-            <div className="flex flex-col items-center ml-auto animate-fade-in">
-              <div className="w-24 h-24 rounded-full bg-gradient-to-br from-[var(--game-gold)]/30 to-[var(--game-gold)]/10 flex items-center justify-center text-4xl border-2 border-[var(--game-gold)]/50 shadow-lg">
-                {currentLine.portrait || '👤'}
-              </div>
-              <div className="mt-2 px-3 py-1 bg-black/50 rounded text-sm text-[var(--game-gold)]">
-                {currentLine.speaker}
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* 对话内容框 */}
-        {currentLine.speaker !== '旁白' && (
-          <div
-            className="bg-white/95 backdrop-blur-sm rounded-xl p-4 cursor-pointer transition-all hover:brightness-105 shadow-lg border border-[var(--game-border)]"
-            onClick={advanceDialog}
-          >
-            {/* 说话者名字 */}
-            <div className="flex items-center gap-2 mb-2 pb-2 border-b border-[var(--game-border)]">
-              <span className={`font-bold ${isPlayer ? 'text-[var(--game-gold)]' : 'text-gray-800'}`}>
-                {currentLine.speaker}
-              </span>
-            </div>
-
-            {/* 对话内容 */}
-            <p className="text-gray-700 leading-relaxed text-lg">
-              {currentLine.text}
-            </p>
-
-            {/* 继续提示 */}
-            <div className="mt-4 text-right">
-              <span className="text-gray-400 text-sm animate-pulse">
-                {currentDialogIndex.value < dialog.length - 1 ? '点击继续 ▼' : '点击结束 ▼'}
-              </span>
-            </div>
-          </div>
-        )}
-      </div>
+      <DialogBox
+        line={currentLine}
+        isPlayer={isPlayer}
+        isNarrator={isNarrator}
+        hasNext={currentDialogIndex.value < dialog.length - 1}
+      />
     </div>
   );
 }
 
-/** 紧凑对话模式（小窗口） */
-function CompactDialog() {
+/** 对话框组件 */
+function DialogBox({
+  line,
+  isPlayer,
+  isNarrator,
+  hasNext,
+}: {
+  line: DialogLine;
+  isPlayer: boolean;
+  isNarrator: boolean;
+  hasNext: boolean;
+}) {
+  // 旁白模式
+  if (isNarrator) {
+    return (
+      <div className="fixed inset-0 flex items-center justify-center z-50 p-4">
+        <div
+          className="max-w-2xl text-center animate-fade-in cursor-pointer"
+          onClick={advanceDialog}
+        >
+          <div className="px-8 py-6 bg-black/60 backdrop-blur-sm rounded-2xl border border-white/10">
+            <p className="text-xl text-white/90 italic leading-relaxed">
+              {line.text}
+            </p>
+          </div>
+          <div className="mt-4 text-white/60 text-sm animate-pulse">
+            点击继续 ▼
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div
+      className="dialog-box dialog-appear cursor-pointer"
+      onClick={advanceDialog}
+    >
+      {/* 头部装饰 */}
+      <div className="dialog-header-decoration" />
+
+      {/* 说话者信息 */}
+      <div className="dialog-speaker">
+        <span
+          className={`
+            w-10 h-10 rounded-full flex items-center justify-center text-xl
+            ${isPlayer
+              ? 'bg-gradient-to-br from-amber-400 to-amber-500'
+              : 'bg-gradient-to-br from-gray-600 to-gray-700'
+            }
+          `}
+        >
+          {line.portrait || (isPlayer ? '👤' : ' npc')}
+        </span>
+        <div>
+          <div className={`dialog-speaker-name ${isPlayer ? 'text-amber-600' : 'text-gray-800'}`}>
+            {line.speaker}
+          </div>
+          {line.title && (
+            <div className="dialog-speaker-title">{line.title}</div>
+          )}
+        </div>
+      </div>
+
+      {/* 对话内容 */}
+      <div className="dialog-content">
+        {line.text}
+      </div>
+
+      {/* 选项区域（如果有） */}
+      {line.options && line.options.length > 0 && (
+        <div className="dialog-options">
+          {line.options.map((option, index) => (
+            <button
+              key={index}
+              className="dialog-option"
+              onClick={(e) => {
+                e.stopPropagation();
+                option.action?.();
+                advanceDialog();
+              }}
+            >
+              <span className="dialog-option-icon">
+                {option.icon || '💬'}
+              </span>
+              <span className="dialog-option-text">{option.text}</span>
+              <span className="text-gray-400">→</span>
+            </button>
+          ))}
+        </div>
+      )}
+
+      {/* 继续提示 */}
+      {!line.options && (
+        <div className="dialog-continue">
+          {hasNext ? '点击继续 ▼' : '点击结束 ▼'}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/** 紧凑模式对话（用于小屏幕或嵌入式场景） */
+function CompactDialogEnhanced() {
   useSignals();
 
   const dialog = currentDialog.value;
@@ -210,16 +270,44 @@ function CompactDialog() {
 
   if (!dialog || !currentLine) return null;
 
+  const isPlayer = currentLine.position === 'right' || currentLine.speaker === '你';
+
   return (
-    <div className="fixed bottom-24 left-4 right-4 z-40 max-w-lg mx-auto">
-      <div className="game-panel p-4 animate-slide-up">
-        <DialogContent />
+    <div className="fixed left-4 right-4 z-40 max-w-lg mx-auto" style={{ bottom: 'calc(7rem + env(safe-area-inset-bottom) + 0.5rem)' }}>
+      <div
+        className="game-panel p-3 sm:p-4 animate-slide-up cursor-pointer"
+        onClick={advanceDialog}
+      >
+        {/* 说话者 */}
+        <div className="flex items-center gap-2 mb-2 pb-2 border-b border-[var(--game-border)]">
+          <span
+            className={`
+              w-8 h-8 rounded-full flex items-center justify-center text-lg
+              ${isPlayer ? 'bg-amber-100 text-amber-600' : 'bg-gray-100 text-gray-600'}
+            `}
+          >
+            {currentLine.portrait || '👤'}
+          </span>
+          <span className={`font-medium ${isPlayer ? 'text-amber-600' : 'text-gray-700'}`}>
+            {currentLine.speaker}
+          </span>
+        </div>
+
+        {/* 内容 */}
+        <p className="text-[var(--game-text)] leading-relaxed text-sm sm:text-base">
+          {currentLine.text}
+        </p>
+
+        {/* 继续提示 */}
+        <div className="text-right mt-2 text-xs text-[var(--game-text-muted)]">
+          {currentDialogIndex.value < dialog.length - 1 ? '点击继续 ▼' : '点击结束 ▼'}
+        </div>
       </div>
     </div>
   );
 }
 
-/** 任务对话组件 */
+/** 主组件 */
 export function QuestDialog({ fullscreen = true }: { fullscreen?: boolean }) {
   useSignals();
 
@@ -250,13 +338,13 @@ export function QuestDialog({ fullscreen = true }: { fullscreen?: boolean }) {
   if (!isActive) return null;
 
   if (fullscreen) {
-    return <FullscreenDialog />;
+    return <EnhancedDialog />;
   }
 
-  return <CompactDialog />;
+  return <CompactDialogEnhanced />;
 }
 
-/** 简单对话弹窗（用于快速确认） */
+/** 简单对话弹窗 */
 export function SimpleDialog({
   lines,
   onComplete,
@@ -268,7 +356,6 @@ export function SimpleDialog({
 }) {
   useSignals();
 
-  // 临时设置对话
   useEffect(() => {
     currentDialog.value = lines;
     currentDialogIndex.value = 0;
@@ -279,7 +366,6 @@ export function SimpleDialog({
     };
   }, [lines]);
 
-  // 监听对话结束
   useEffect(() => {
     if (!isDialogActive.value) {
       onComplete();
@@ -289,10 +375,10 @@ export function SimpleDialog({
   if (!isDialogActive.value) return null;
 
   if (fullscreen) {
-    return <FullscreenDialog />;
+    return <EnhancedDialog />;
   }
 
-  return <CompactDialog />;
+  return <CompactDialogEnhanced />;
 }
 
 export default QuestDialog;

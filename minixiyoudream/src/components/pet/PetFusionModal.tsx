@@ -116,12 +116,13 @@ export function PetFusionModal({
   const renderAptitudePreview = () => {
     if (!preview) return null;
 
-    const statKeys: (keyof PetAptitude)[] = ['attack', 'defense', 'magic', 'speed', 'hp', 'mp'];
+    const statKeys: (keyof PetAptitude)[] = ['attack', 'defense', 'hp', 'mp', 'speed', 'dodge'];
 
     return (
       <div className="space-y-2">
         {statKeys.map(key => {
           const range = preview.aptitudeRange[key];
+          if (!range) return null;
           const diff = range.max - range.min;
           const isSameRange = diff < 0.01;
 

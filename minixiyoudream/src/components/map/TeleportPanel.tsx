@@ -13,6 +13,8 @@ import {
 } from '@/services/teleportService';
 import { getAllTeleportPoints } from '@/constants/teleports';
 import { getMap, getRegionName } from '@/constants/maps';
+import { isMapSuitableForLevel, getMapDangerStyle, getMapDangerText } from '@/services/mapService';
+import { useConfirmModal, ConfirmModal } from '@/components/common/ConfirmModal';
 import type { TeleportPoint } from '@/constants/teleports';
 import type { GameMap } from '@/types';
 
@@ -23,6 +25,7 @@ export function TeleportPanel() {
 
   const [filter, setFilter] = useState<TeleportFilter>('available');
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const { showConfirm, modalProps } = useConfirmModal();
 
   const currentPlayer = player.value;
   const currentGold = playerGold.value;
@@ -63,16 +66,39 @@ export function TeleportPanel() {
   };
 
   const handleTeleport = (teleportId: string) => {
-    const result = teleport(teleportId);
-    setMessage({ type: result.success ? 'success' : 'error', text: result.message });
+    const tp = getAllTeleportPoints().find(t => t.id === teleportId);
+    if (!tp) return;
 
-    setTimeout(() => setMessage(null), 3000);
+    showConfirm(
+      `确定要传送到「${tp.name}」吗？\n${tp.cost.gold > 0 ? `需要消耗 ${tp.cost.gold} 金币` : '本次传送免费'}`,
+      {
+        title: '确认传送',
+        type: 'info',
+        onConfirm: () => {
+          const result = teleport(teleportId);
+          setMessage({ type: result.success ? 'success' : 'error', text: result.message });
+          setTimeout(() => setMessage(null), 3000);
+        },
+      }
+    );
   };
 
   const handleUnlock = (teleportId: string) => {
-    const result = unlockTeleport(teleportId);
-    setMessage({ type: result.success ? 'success' : 'error', text: result.message });
-    setTimeout(() => setMessage(null), 3000);
+    const tp = getAllTeleportPoints().find(t => t.id === teleportId);
+    if (!tp) return;
+
+    showConfirm(
+      `确定要解锁传送点「${tp.name}」吗？`,
+      {
+        title: '确认解锁',
+        type: 'warning',
+        onConfirm: () => {
+          const result = unlockTeleport(teleportId);
+          setMessage({ type: result.success ? 'success' : 'error', text: result.message });
+          setTimeout(() => setMessage(null), 3000);
+        },
+      }
+    );
   };
 
   const getTeleportStatus = (tp: TeleportPoint): 'locked' | 'unavailable' | 'available' | 'current' => {
@@ -130,10 +156,10 @@ export function TeleportPanel() {
           <button
             key={f}
             onClick={() => setFilter(f)}
-            className={`px-3 py-1.5 text-sm rounded-lg transition-all ${
+            className={`flex-1 px-3 py-3 text-sm rounded-lg transition-all min-h-[44px] touch-manipulation ${
               filter === f
                 ? 'bg-[var(--game-gold)]/20 text-[var(--game-gold-dark)] border border-[var(--game-gold)]/40'
-                : 'bg-white/50 text-[var(--game-text-muted)] hover:bg-white/70 border border-transparent'
+                : 'bg-white/50 text-[var(--game-text-muted)] hover:bg-white/70 border border-transparent active:bg-slate-200'
             }`}
           >
             {f === 'available' ? '可用' : f === 'unlocked' ? '已解锁' : '全部'}
@@ -141,21 +167,42 @@ export function TeleportPanel() {
         ))}
       </div>
 
-      {/* 当前位置 */}
-      {currentPlayer && (
-        <div className="game-panel p-3 bg-[var(--game-gold)]/10 border-[var(--game-gold)]/40">
-          <div className="text-xs text-[var(--game-text-muted)] mb-1">当前位置</div>
-          <div className="font-medium text-[var(--game-gold-dark)]">
-            {getMap(currentPlayer.currentMapId)?.name ?? currentPlayer.currentMapId}
+      {/* 当前位置 - 增强显示 */}
+      {currentPlayer && (() => {
+        const currentMapData = getMap(currentPlayer.currentMapId);
+        return (
+          <div className="game-panel p-3 bg-gradient-to-r from-[var(--game-gold)]/15 to-[var(--game-gold)]/5 border-2 border-[var(--game-gold)]/40">
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 rounded-xl bg-[var(--game-gold)]/20 flex items-center justify-center text-2xl border-2 border-[var(--game-gold)]/30">
+                {currentMapData?.icon || '📍'}
+              </div>
+              <div className="flex-1">
+                <div className="flex items-center gap-2 mb-1">
+                  <span className="text-xs px-2 py-0.5 rounded-full bg-[var(--game-gold)]/30 text-[var(--game-gold-dark)] font-medium">
+                    当前位置
+                  </span>
+                  <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
+                </div>
+                <div className="font-bold text-[var(--game-gold-dark)] text-base">
+                  {currentMapData?.name ?? currentPlayer.currentMapId}
+                </div>
+                {currentMapData && (
+                  <div className="text-xs text-[var(--game-text-muted)] mt-0.5">
+                    Lv.{currentMapData.levelRange.min}-{currentMapData.levelRange.max} · {currentMapData.description}
+                  </div>
+                )}
+              </div>
+            </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
 
       {/* 传送点列表 */}
       <div className="space-y-4">
         {Object.entries(groups).map(([region, teleports]) => (
           <div key={region} className="space-y-2">
-            <h4 className="text-xs font-medium text-[var(--game-text-muted)] border-b border-gray-200 pb-1">
+            <h4 className="text-xs font-medium text-[var(--game-text-muted)] border-b border-gray-200 pb-1 flex items-center gap-2">
+              <span>{region === '新手村' ? '🏡' : region === '东土大唐' ? '🏯' : '📍'}</span>
               {region}
             </h4>
             <div className="grid gap-2">
@@ -163,64 +210,105 @@ export function TeleportPanel() {
                 const status = getTeleportStatus(tp);
                 const canAfford = canAffordTeleport(tp.id);
                 const meetsLevelReq = !tp.requirements?.minLevel || currentLevel >= tp.requirements.minLevel;
+                // 计算目标地图的危险等级
+                const mapData = tp.mapData;
+                const suitability = mapData ? isMapSuitableForLevel(mapData, currentLevel) : 'suitable';
+                const dangerStyle = getMapDangerStyle(suitability);
+                const dangerText = getMapDangerText(suitability);
+
+                // 危险等级背景色
+                const getDangerBgStyle = () => {
+                  switch (suitability) {
+                    case 'easy':
+                      return 'border-l-4 border-l-green-400';
+                    case 'suitable':
+                      return 'border-l-4 border-l-blue-400';
+                    case 'hard':
+                      return 'border-l-4 border-l-amber-400';
+                    case 'dangerous':
+                      return 'border-l-4 border-l-red-500';
+                    default:
+                      return '';
+                  }
+                };
 
                 return (
                   <div
                     key={tp.id}
-                    className={`game-panel p-3 transition-all ${getStatusStyle(status)}`}
+                    className={`game-panel p-3 transition-all ${getStatusStyle(status)} ${getDangerBgStyle()}`}
                   >
                     <div className="flex items-center gap-3">
-                      {/* 传送点图标 */}
-                      <div className="w-10 h-10 rounded-lg bg-white/70 flex items-center justify-center text-xl">
+                      {/* 传送点图标 - 增大触控区域 */}
+                      <div className={`w-12 h-12 rounded-xl flex items-center justify-center text-2xl ${
+                        status === 'current'
+                          ? 'bg-[var(--game-gold)]/20 border-2 border-[var(--game-gold)]/40'
+                          : status === 'locked'
+                          ? 'bg-gray-200/70'
+                          : 'bg-white/70'
+                      }`}>
                         {tp.icon || '📍'}
                       </div>
 
                       {/* 传送点信息 */}
                       <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2 flex-wrap">
                           <span className="font-medium text-[var(--game-text)] truncate">{tp.name}</span>
                           {status === 'current' && (
-                            <span className="text-xs px-1.5 py-0.5 rounded bg-[var(--game-gold)]/20 text-[var(--game-gold-dark)]">
+                            <span className="text-xs px-2 py-0.5 rounded-full bg-[var(--game-gold)]/30 text-[var(--game-gold-dark)] font-medium">
                               当前
                             </span>
                           )}
                           {status === 'locked' && (
-                            <span className="text-xs px-1.5 py-0.5 rounded bg-gray-200 text-gray-500">
+                            <span className="text-xs px-2 py-0.5 rounded-full bg-gray-200 text-gray-500">
                               未解锁
+                            </span>
+                          )}
+                          {/* 危险等级标签 */}
+                          {status !== 'locked' && status !== 'current' && (
+                            <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${dangerStyle} ${
+                              suitability === 'easy' ? 'bg-green-50' :
+                              suitability === 'suitable' ? 'bg-blue-50' :
+                              suitability === 'hard' ? 'bg-amber-50' :
+                              'bg-red-50'
+                            }`}>
+                              {dangerText}
                             </span>
                           )}
                         </div>
                         <div className="flex items-center gap-3 mt-1 text-xs text-[var(--game-text-muted)]">
                           <span>Lv.{tp.requirements?.minLevel || 1}+</span>
                           {tp.cost.gold > 0 && (
-                            <span className={canAfford ? 'text-yellow-600' : 'text-red-500'}>
-                              {tp.cost.gold} 金币
+                            <span className={`flex items-center gap-0.5 ${canAfford ? 'text-yellow-600' : 'text-red-500'}`}>
+                              <span>💰</span>
+                              {tp.cost.gold}
                             </span>
                           )}
                           {tp.cost.gold === 0 && (
-                            <span className="text-green-600">免费</span>
+                            <span className="text-green-600 flex items-center gap-0.5">
+                              <span>✓</span> 免费
+                            </span>
                           )}
                         </div>
                       </div>
 
-                      {/* 操作按钮 */}
+                      {/* 操作按钮 - 增大触控区域 */}
                       <div className="flex-shrink-0">
                         {status === 'locked' && meetsLevelReq && (
                           <button
                             onClick={() => handleUnlock(tp.id)}
-                            className="px-3 py-1.5 text-xs bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition-colors"
+                            className="px-4 py-2.5 text-sm bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition-colors min-h-[44px] min-w-[60px] touch-manipulation active:scale-95"
                           >
                             解锁
                           </button>
                         )}
                         {status === 'locked' && !meetsLevelReq && (
-                          <span className="text-xs text-gray-400">等级不足</span>
+                          <span className="text-xs text-gray-400 px-2">等级不足</span>
                         )}
                         {status === 'available' && (
                           <button
                             onClick={() => handleTeleport(tp.id)}
                             disabled={!canAfford}
-                            className={`px-3 py-1.5 text-xs rounded-lg transition-colors ${
+                            className={`px-4 py-2.5 text-sm rounded-lg transition-colors min-h-[44px] min-w-[60px] touch-manipulation active:scale-95 ${
                               canAfford
                                 ? 'bg-[var(--game-primary)] hover:bg-[var(--game-primary)]/80 text-white'
                                 : 'bg-gray-300 text-gray-500 cursor-not-allowed'
@@ -230,7 +318,7 @@ export function TeleportPanel() {
                           </button>
                         )}
                         {status === 'unavailable' && (
-                          <span className="text-xs text-gray-400">条件不足</span>
+                          <span className="text-xs text-gray-400 px-2">条件不足</span>
                         )}
                       </div>
                     </div>
@@ -255,9 +343,18 @@ export function TeleportPanel() {
           <div>
             <p className="font-medium text-[var(--game-text)] mb-1">传送提示</p>
             <p>传送需要消耗金币。首次到达新地图时，会自动解锁该地图的传送点。</p>
+            <p className="mt-2 flex items-center gap-3">
+              <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-green-400"></span>轻松</span>
+              <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-blue-400"></span>适合</span>
+              <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-amber-400"></span>困难</span>
+              <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-red-500"></span>危险</span>
+            </p>
           </div>
         </div>
       </div>
+
+      {/* 确认弹窗 */}
+      <ConfirmModal {...modalProps} />
     </div>
   );
 }

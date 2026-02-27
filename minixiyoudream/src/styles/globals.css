@@ -1259,3 +1259,461 @@ html {
     font-size: 10px;
   }
 }
+
+/* ============================================
+   战斗特效动画系统
+   ============================================ */
+
+/* 轻度震动 */
+@keyframes shake-light {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-2px); }
+  75% { transform: translateX(2px); }
+}
+
+/* 中度震动 */
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  20% { transform: translateX(-4px) rotate(-1deg); }
+  40% { transform: translateX(4px) rotate(1deg); }
+  60% { transform: translateX(-3px); }
+  80% { transform: translateX(3px); }
+}
+
+/* 重度震动 */
+@keyframes shake-heavy {
+  0%, 100% { transform: translateX(0); }
+  10% { transform: translateX(-6px) rotate(-2deg); }
+  20% { transform: translateX(6px) rotate(2deg); }
+  30% { transform: translateX(-5px); }
+  40% { transform: translateX(5px); }
+  50% { transform: translateX(-4px) rotate(-1deg); }
+  60% { transform: translateX(4px) rotate(1deg); }
+  70% { transform: translateX(-3px); }
+  80% { transform: translateX(3px); }
+  90% { transform: translateX(-2px); }
+}
+
+/* 攻击闪光 */
+@keyframes flash {
+  0% { opacity: 0.8; }
+  100% { opacity: 0; }
+}
+
+/* 背景闪光 */
+@keyframes flash-bg {
+  0% { opacity: 0.4; }
+  100% { opacity: 0; }
+}
+
+/* 扩散圆环 */
+@keyframes expand-ring {
+  0% {
+    transform: scale(0.5);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(2);
+    opacity: 0;
+  }
+}
+
+/* 弹出效果 */
+@keyframes pop-in {
+  0% {
+    transform: scale(0);
+    opacity: 0;
+  }
+  50% {
+    transform: scale(1.2);
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+/* 伤害数字上升 */
+@keyframes damage-rise {
+  0% {
+    transform: translateY(0) scale(0.8);
+    opacity: 0;
+  }
+  20% {
+    transform: translateY(-10px) scale(1.1);
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(-60px) scale(1);
+    opacity: 0;
+  }
+}
+
+/* 暴击闪光 */
+@keyframes critical-flash {
+  0%, 100% {
+    filter: brightness(1);
+  }
+  50% {
+    filter: brightness(1.5);
+  }
+}
+
+/* 技能释放光环 */
+@keyframes skill-aura {
+  0% {
+    transform: scale(0.8);
+    opacity: 0.8;
+  }
+  50% {
+    transform: scale(1.2);
+    opacity: 0.4;
+  }
+  100% {
+    transform: scale(1.5);
+    opacity: 0;
+  }
+}
+
+/* 治疗光效 */
+@keyframes heal-glow {
+  0% {
+    box-shadow: 0 0 0 0 rgba(74, 222, 128, 0.4);
+  }
+  50% {
+    box-shadow: 0 0 20px 10px rgba(74, 222, 128, 0.2);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(74, 222, 128, 0);
+  }
+}
+
+/* 死亡消散 */
+@keyframes death-fade {
+  0% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.5;
+    transform: scale(0.9);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(0.8);
+  }
+}
+
+/* 回合高亮 */
+@keyframes turn-highlight {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(251, 191, 36, 0);
+  }
+  50% {
+    box-shadow: 0 0 15px 5px rgba(251, 191, 36, 0.5);
+  }
+}
+
+/* 战斗单位选中效果 */
+.battle-unit.selected {
+  animation: turn-highlight 1s ease-in-out infinite;
+}
+
+/* 战斗单位受击 */
+.battle-unit.hit {
+  animation: shake 0.4s ease-in-out;
+}
+
+/* 战斗单位死亡 */
+.battle-unit.dying {
+  animation: death-fade 0.5s ease-out forwards;
+}
+
+/* 战斗单位治疗 */
+.battle-unit.healing {
+  animation: heal-glow 0.6s ease-out;
+}
+
+/* 伤害飘字容器 */
+.damage-float-container {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  overflow: visible;
+  z-index: 100;
+}
+
+/* 伤害飘字 */
+.damage-number {
+  position: absolute;
+  font-weight: bold;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+  animation: damage-rise 1s ease-out forwards;
+  pointer-events: none;
+  white-space: nowrap;
+}
+
+.damage-number.damage {
+  color: #f87171;
+  font-size: 1.5rem;
+}
+
+.damage-number.critical {
+  color: #fbbf24;
+  font-size: 2rem;
+}
+
+.damage-number.heal {
+  color: #4ade80;
+  font-size: 1.5rem;
+}
+
+.damage-number.mp {
+  color: #60a5fa;
+  font-size: 1.25rem;
+}
+
+.damage-number.miss {
+  color: #9ca3af;
+  font-size: 1.25rem;
+  font-style: italic;
+}
+
+/* ============================================
+   NPC对话系统增强样式
+   ============================================ */
+
+/* 对话容器 */
+.dialog-container {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+}
+
+/* 对话背景遮罩 */
+.dialog-overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to top, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.7) 50%, rgba(0,0,0,0.3) 100%);
+  backdrop-filter: blur(4px);
+}
+
+/* NPC立绘区域 */
+.npc-portrait {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 40%;
+  max-width: 300px;
+  height: 70%;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+}
+
+.npc-portrait img {
+  max-height: 100%;
+  max-width: 100%;
+  object-fit: contain;
+  filter: drop-shadow(0 0 20px rgba(0,0,0,0.5));
+}
+
+/* 玩家立绘区域 */
+.player-portrait {
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  width: 30%;
+  max-width: 200px;
+  height: 50%;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+}
+
+.player-portrait img {
+  max-height: 100%;
+  max-width: 100%;
+  object-fit: contain;
+  filter: drop-shadow(0 0 20px rgba(0,0,0,0.5));
+}
+
+/* 对话框主体 */
+.dialog-box {
+  position: relative;
+  width: 100%;
+  max-width: 800px;
+  margin: 0 16px 16px;
+  background: linear-gradient(180deg, rgba(255,255,255,0.98) 0%, rgba(248,250,252,0.98) 100%);
+  border-radius: 16px;
+  box-shadow: 0 -4px 30px rgba(0,0,0,0.3);
+  overflow: hidden;
+}
+
+/* 对话框装饰边框 */
+.dialog-box::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border: 3px solid transparent;
+  border-image: linear-gradient(135deg, #f59e0b 0%, #fbbf24 50%, #f59e0b 100%) 1;
+  border-radius: 16px;
+  pointer-events: none;
+}
+
+/* 对话框头部装饰 */
+.dialog-header-decoration {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: linear-gradient(90deg, #f59e0b, #fbbf24, #f59e0b);
+}
+
+/* 说话者名称 */
+.dialog-speaker {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 16px;
+  border-bottom: 1px solid rgba(0,0,0,0.1);
+  background: linear-gradient(180deg, rgba(251,191,36,0.1) 0%, transparent 100%);
+}
+
+.dialog-speaker-name {
+  font-weight: 700;
+  font-size: 1.1rem;
+  color: #1a202c;
+}
+
+.dialog-speaker-title {
+  font-size: 0.8rem;
+  color: #64748b;
+}
+
+/* 对话内容 */
+.dialog-content {
+  padding: 16px 20px;
+  min-height: 80px;
+  font-size: 1.1rem;
+  line-height: 1.8;
+  color: #334155;
+}
+
+/* 打字机效果光标 */
+.typing-cursor {
+  display: inline-block;
+  width: 2px;
+  height: 1.2em;
+  background: #f59e0b;
+  margin-left: 2px;
+  animation: cursor-blink 0.8s infinite;
+}
+
+@keyframes cursor-blink {
+  0%, 50% { opacity: 1; }
+  51%, 100% { opacity: 0; }
+}
+
+/* 对话选项 */
+.dialog-options {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px 16px;
+  border-top: 1px solid rgba(0,0,0,0.1);
+}
+
+.dialog-option {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+  border: 2px solid #e2e8f0;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.dialog-option:hover {
+  border-color: #f59e0b;
+  background: linear-gradient(180deg, #fffbeb 0%, #fef3c7 100%);
+  transform: translateX(4px);
+}
+
+.dialog-option-icon {
+  font-size: 1.5rem;
+}
+
+.dialog-option-text {
+  flex: 1;
+  font-size: 1rem;
+  color: #334155;
+}
+
+/* 继续提示 */
+.dialog-continue {
+  display: flex;
+  justify-content: flex-end;
+  padding: 8px 16px 12px;
+  color: #94a3b8;
+  font-size: 0.875rem;
+  animation: pulse-soft 1.5s ease-in-out infinite;
+}
+
+@keyframes pulse-soft {
+  0%, 100% { opacity: 0.6; }
+  50% { opacity: 1; }
+}
+
+/* 角色入场动画 */
+.character-enter-left {
+  animation: slide-in-left 0.4s ease-out;
+}
+
+.character-enter-right {
+  animation: slide-in-right 0.4s ease-out;
+}
+
+@keyframes slide-in-left {
+  0% {
+    transform: translateX(-100%);
+    opacity: 0;
+  }
+  100% {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+@keyframes slide-in-right {
+  0% {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  100% {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+/* 对话框出现动画 */
+.dialog-appear {
+  animation: dialog-enter 0.3s ease-out;
+}
+
+@keyframes dialog-enter {
+  0% {
+    transform: translateY(100%);
+    opacity: 0;
+  }
+  100% {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}

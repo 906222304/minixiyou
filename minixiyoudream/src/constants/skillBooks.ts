@@ -1,6 +1,6 @@
 // 技能书配置数据 - 宠物打书系统
 
-import type { SkillBook, PetSkill, PetType } from '@/types';
+import type { SkillBook, PetSkill, PetType, Element } from '@/types';
 import type { Quality } from '@/types/common';
 
 // ============================================
@@ -105,7 +105,15 @@ export const SKILL_BOOK_TIER_CONFIG: Record<string, SkillBookTierConfig> = {
 // ============================================
 
 /** 宠物技能模板（带等级信息） */
-export interface PetSkillTemplate extends Omit<PetSkill, 'id'> {
+export interface PetSkillTemplate {
+  name: string;
+  type: 'passive' | 'active' | 'trigger';
+  description?: string;
+  mpCost?: number;
+  cooldown?: number;
+  multiplier?: number;
+  element?: Element | string;  // 支持字符串和Element类型
+  effect?: string;
   maxLevel?: number;           // 最大可升级等级
   tier?: 'low' | 'medium' | 'high' | 'super';  // 技能书等级
 }
@@ -387,9 +395,10 @@ export const PET_SKILL_TEMPLATES: Record<string, PetSkillTemplate> = {
 };
 
 /** 扩展技能书类型（带等级信息） */
-export interface SkillBookWithTier extends SkillBook {
+export interface SkillBookWithTier extends Omit<SkillBook, 'tier'> {
   tier: 'low' | 'medium' | 'high' | 'super';
   upgradeSuccessBonus?: number;  // 升级成功率加成
+  overrideBonus?: number;        // 覆盖成功率加成
 }
 
 /** 技能书列表 */
@@ -825,17 +834,27 @@ export function createPetSkill(skillId: string, level: number = 1): PetSkill | u
   const baseMultiplier = template.multiplier || 1;
   const baseMpCost = template.mpCost || 0;
 
+  // 根据技能书等级映射到技能等级
+  const tierMap: Record<string, import('@/types/pet').SkillTier> = {
+    low: 'basic',
+    medium: 'advanced',
+    high: 'special',
+    super: 'super',
+  };
+
   return {
     id: `pet_skill_${skillId}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+    templateId: skillId,
     name: template.name,
+    tier: tierMap[template.tier || 'low'] || 'basic',
     type: template.type,
-    description: template.description,
+    level,
+    locked: false,
+    description: template.description || template.effect,
     mpCost: baseMpCost > 0 ? baseMpCost + levelConfig.mpCostBonus * (level - 1) : undefined,
     cooldown: template.cooldown,
     multiplier: baseMultiplier + levelConfig.multiplierBonus * (level - 1),
-    element: template.element,
-    effect: template.effect,
-    level,
+    element: template.element as Element | undefined,
   };
 }
 

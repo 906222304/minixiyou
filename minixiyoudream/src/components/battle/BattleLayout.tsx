@@ -1,6 +1,6 @@
 // 战斗界面主布局
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useSignals } from '@preact/signals-react/runtime';
 import {
   battleState,
@@ -11,6 +11,8 @@ import {
   startBattle,
   clearBattle,
   isSkillUsable,
+  inventoryItems,
+  removeItem,
 } from '@/signals';
 import { autoBattleConfig, getCompanionAIConfig } from '@/signals/battleSignals';
 import { gamePhase } from '@/signals/gameSignals';
@@ -18,20 +20,165 @@ import { player } from '@/signals/playerSignals';
 import { BattleUnit } from './BattleUnit';
 import { BattleLog } from './BattleLog';
 import { BattleActions } from './BattleActions';
+import { ConfirmModal, useConfirmModal } from '@/components/common/ConfirmModal';
 import { random, randomChoice } from '@/utils/prng';
 import { logger } from '@/utils/logger';
-import type { CombatUnit, BattleAction, TargetStrategy, CompanionAIConfig } from '@/types';
+import { getItemTemplate } from '@/constants/items';
+import type { CombatUnit, BattleAction, TargetStrategy, CompanionAIConfig, Item } from '@/types';
 import { generateUUID } from '@/types';
+
+/** 伤害飘字数据接口 */
+interface DamageNumberData {
+  id: string;
+  value: number;
+  type: 'damage' | 'heal' | 'critical' | 'miss' | 'mp';
+  /** 随机水平偏移（防止重叠） */
+  offsetX?: number;
+}
+
+/** 单位特效状态 */
+interface UnitEffects {
+  isHit: boolean;
+  isHealing: boolean;
+  damageNumbers: DamageNumberData[];
+}
 
 export function BattleLayout() {
   useSignals();
 
+  const { showConfirm, modalProps } = useConfirmModal();
   const [selectedTargetId, setSelectedTargetId] = useState<string | null>(null);
   const state = battleState.value;
   const speed = battleSpeed.value;
   const auto = isAutoBattle.value;
   const ended = isBattleEnded.value;
   const currentPlayer = player.value;
+
+  // 特效状态管理
+  const [unitEffects, setUnitEffects] = useState<Record<string, UnitEffects>>({});
+  const prevLogsLengthRef = useRef(0);
+
+  // 监控战斗日志，触发视觉特效
+  useEffect(() => {
+    if (!state) return;
+
+    const currentLogsLength = state.logs.length;
+    if (currentLogsLength <= prevLogsLengthRef.current) {
+      prevLogsLengthRef.current = currentLogsLength;
+      return;
+    }
+
+    // 处理新的日志条目
+    const newLogs = state.logs.slice(prevLogsLengthRef.current);
+    prevLogsLengthRef.current = currentLogsLength;
+
+    newLogs.forEach(log => {
+      const result = log.result;
+      if (!result) return;
+
+      const targetId = log.target?.id;
+
+      // 生成随机水平偏移（-20到20像素）
+      const randomOffsetX = Math.floor(Math.random() * 40) - 20;
+
+      // 处理伤害
+      if (result.damage && result.damage > 0 && targetId) {
+        const isCritical = result.isCritical || false;
+        const isMiss = result.isMiss || false;
+
+        addDamageNumber(targetId, {
+          id: `${targetId}-${Date.now()}-${Math.random()}`,
+          value: result.damage,
+          type: isMiss ? 'miss' : (isCritical ? 'critical' : 'damage'),
+          offsetX: randomOffsetX,
+        });
+
+        if (!isMiss) {
+          triggerHitEffect(targetId);
+        }
+      }
+
+      // 处理治疗
+      if (result.heal && result.heal > 0 && targetId) {
+        addDamageNumber(targetId, {
+          id: `${targetId}-${Date.now()}-${Math.random()}`,
+          value: result.heal,
+          type: 'heal',
+          offsetX: randomOffsetX,
+        });
+        triggerHealEffect(targetId);
+      }
+    });
+  }, [state?.logs]);
+
+  // 添加伤害飘字
+  const addDamageNumber = useCallback((unitId: string, damage: DamageNumberData) => {
+    setUnitEffects(prev => ({
+      ...prev,
+      [unitId]: {
+        ...prev[unitId],
+        damageNumbers: [...(prev[unitId]?.damageNumbers || []), damage],
+      },
+    }));
+
+    // 自动移除飘字
+    setTimeout(() => {
+      setUnitEffects(prev => ({
+        ...prev,
+        [unitId]: {
+          ...prev[unitId],
+          damageNumbers: (prev[unitId]?.damageNumbers || []).filter(d => d.id !== damage.id),
+        },
+      }));
+    }, 800);
+  }, []);
+
+  // 触发受击动画
+  const triggerHitEffect = useCallback((unitId: string) => {
+    setUnitEffects(prev => ({
+      ...prev,
+      [unitId]: {
+        ...prev[unitId],
+        isHit: true,
+      },
+    }));
+
+    setTimeout(() => {
+      setUnitEffects(prev => ({
+        ...prev,
+        [unitId]: {
+          ...prev[unitId],
+          isHit: false,
+        },
+      }));
+    }, 400);
+  }, []);
+
+  // 触发治疗动画
+  const triggerHealEffect = useCallback((unitId: string) => {
+    setUnitEffects(prev => ({
+      ...prev,
+      [unitId]: {
+        ...prev[unitId],
+        isHealing: true,
+      },
+    }));
+
+    setTimeout(() => {
+      setUnitEffects(prev => ({
+        ...prev,
+        [unitId]: {
+          ...prev[unitId],
+          isHealing: false,
+        },
+      }));
+    }, 600);
+  }, []);
+
+  // 获取单位特效状态
+  const getUnitEffects = useCallback((unitId: string): UnitEffects => {
+    return unitEffects[unitId] || { isHit: false, isHealing: false, damageNumbers: [] };
+  }, [unitEffects]);
 
   // 如果没有战斗状态且有玩家，创建测试战斗
   useEffect(() => {
@@ -581,19 +728,102 @@ export function BattleLayout() {
     executeAction(action);
   };
 
-  // 处理目标选择
+  // 处理目标选择（支持快速攻击：点击已选中目标直接攻击）
   const handleSelectTarget = (targetId: string) => {
+    // 获取当前行动者
+    const actor = state ? getCurrentActorFromState(state) : null;
+    const isPlayerTurnNow = actor?.isPlayerSide && !auto;
+
+    // 如果是玩家回合且点击已选中的目标，直接执行攻击
+    if (selectedTargetId === targetId && actor && isPlayerTurnNow) {
+      const action: BattleAction = {
+        actorId: actor.id,
+        type: 'attack',
+        targetId: targetId,
+      };
+      executeAction(action);
+      setSelectedTargetId(null);
+      return;
+    }
+
+    // 否则切换选中状态
     setSelectedTargetId(targetId === selectedTargetId ? null : targetId);
   };
+
+  // 快速使用药水（不消耗回合）
+  const quickUsePotions = useMemo(() => {
+    const items = inventoryItems.value;
+    // 过滤出MP和HP药水
+    return items.filter(item => {
+      if (item.type !== 'consumable') return false;
+      const template = getItemTemplate(item.id);
+      if (!template?.effects) return false;
+      // 只显示恢复HP或MP的药水
+      return template.effects.some(e =>
+        e.type === 'heal_hp' ||
+        e.type === 'heal_mp' ||
+        e.type === 'heal_hp_percent' ||
+        e.type === 'heal_mp_percent'
+      );
+    });
+  }, [inventoryItems.value]);
+
+  // 快速使用药水处理（不消耗回合）
+  const handleQuickUsePotion = useCallback((item: Item) => {
+    if (!state || state.result) return;
+
+    const template = getItemTemplate(item.id);
+    if (!template?.effects) return;
+
+    // 获取玩家单位
+    const playerUnit = state.playerFormation.characters.find(c => c?.type === 'player');
+    if (!playerUnit) return;
+
+    // 应用药水效果
+    for (const effect of template.effects) {
+      if (effect.type === 'heal_hp' && effect.value) {
+        playerUnit.hp = Math.min(playerUnit.maxHp, playerUnit.hp + effect.value);
+      } else if (effect.type === 'heal_mp' && effect.value) {
+        playerUnit.mp = Math.min(playerUnit.maxMp, playerUnit.mp + effect.value);
+      } else if (effect.type === 'heal_hp_percent' && effect.value) {
+        const healAmount = Math.floor(playerUnit.maxHp * (effect.value / 100));
+        playerUnit.hp = Math.min(playerUnit.maxHp, playerUnit.hp + healAmount);
+      } else if (effect.type === 'heal_mp_percent' && effect.value) {
+        const healAmount = Math.floor(playerUnit.maxMp * (effect.value / 100));
+        playerUnit.mp = Math.min(playerUnit.maxMp, playerUnit.mp + healAmount);
+      }
+    }
+
+    // 移除道具
+    removeItem(item.id, 1);
+
+    // 添加战斗日志
+    state.logs.push({
+      round: state.round,
+      timestamp: Date.now(),
+      actor: { id: 'system', name: '系统', isPlayer: false },
+      action: 'item',
+      itemId: item.id,
+      result: {},
+      text: `快速使用了 ${template.name}！`,
+    });
+
+    // 更新战斗状态
+    battleState.value = { ...state };
+  }, [state]);
 
   // 返回主界面
   const handleReturn = () => {
     // 如果战斗未结束，弹出确认
     if (state && !state.result) {
-      if (window.confirm('战斗尚未结束，确定要退出吗？')) {
-        clearBattle();
-        gamePhase.value = 'playing';
-      }
+      showConfirm('战斗尚未结束，确定要退出吗？', {
+        title: '退出战斗',
+        type: 'warning',
+        onConfirm: () => {
+          clearBattle();
+          gamePhase.value = 'playing';
+        },
+      });
     } else {
       clearBattle();
       gamePhase.value = 'playing';
@@ -629,7 +859,7 @@ export function BattleLayout() {
         </div>
         <button
           onClick={handleReturn}
-          className="game-btn game-btn-danger px-2 sm:px-3 py-1 sm:py-2 text-xs sm:text-sm"
+          className="game-btn game-btn-danger px-2 sm:px-3 py-1 sm:py-2 text-xs sm:text-sm min-h-[44px] active:scale-95"
         >
           退出战斗
         </button>
@@ -638,17 +868,23 @@ export function BattleLayout() {
       {/* 敌方区域 */}
       <div className="bg-gradient-to-b from-transparent to-[var(--game-bg-panel)]/30 p-2 sm:p-4">
         <div className="flex justify-center gap-2 sm:gap-4 flex-wrap">
-          {state.enemies.map((enemy) => (
-            <BattleUnit
-              key={enemy.id}
-              unit={enemy}
-              isEnemy
-              isActive={currentActor?.id === enemy.id}
-              selectable={isPlayerTurn && enemy.hp > 0}
-              isSelected={selectedTargetId === enemy.id}
-              onClick={() => isPlayerTurn && enemy.hp > 0 && handleSelectTarget(enemy.id)}
-            />
-          ))}
+          {state.enemies.map((enemy) => {
+            const effects = getUnitEffects(enemy.id);
+            return (
+              <BattleUnit
+                key={enemy.id}
+                unit={enemy}
+                isEnemy
+                isActive={currentActor?.id === enemy.id}
+                selectable={isPlayerTurn && enemy.hp > 0}
+                isSelected={selectedTargetId === enemy.id}
+                onClick={() => isPlayerTurn && enemy.hp > 0 && handleSelectTarget(enemy.id)}
+                isHit={effects.isHit}
+                isHealing={effects.isHealing}
+                damageNumbers={effects.damageNumbers}
+              />
+            );
+          })}
         </div>
       </div>
 
@@ -666,6 +902,9 @@ export function BattleLayout() {
                 key={char.id}
                 unit={char}
                 isActive={currentActor?.id === char.id}
+                isHit={getUnitEffects(char.id).isHit}
+                isHealing={getUnitEffects(char.id).isHealing}
+                damageNumbers={getUnitEffects(char.id).damageNumbers}
               />
             ) : (
               <div
@@ -687,6 +926,9 @@ export function BattleLayout() {
                 unit={pet}
                 isPet
                 isActive={currentActor?.id === pet.id}
+                isHit={getUnitEffects(pet.id).isHit}
+                isHealing={getUnitEffects(pet.id).isHealing}
+                damageNumbers={getUnitEffects(pet.id).damageNumbers}
               />
             ) : (
               <div
@@ -700,6 +942,40 @@ export function BattleLayout() {
         </div>
       </div>
 
+      {/* 快速药水栏 */}
+      {quickUsePotions.length > 0 && !state.result && (
+        <div className="mx-2 sm:mx-4 mb-1 sm:mb-2">
+          <div className="game-panel p-1.5 sm:p-2">
+            <div className="flex items-center gap-1 sm:gap-2 overflow-x-auto pb-1">
+              <span className="text-[10px] sm:text-xs text-[var(--game-text-muted)] whitespace-nowrap">快速药水:</span>
+              {quickUsePotions.slice(0, 6).map((item) => {
+                const template = getItemTemplate(item.id);
+                const isMpPotion = template?.effects?.some(e => e.type === 'heal_mp' || e.type === 'heal_mp_percent');
+                const isHpPotion = template?.effects?.some(e => e.type === 'heal_hp' || e.type === 'heal_hp_percent');
+                return (
+                  <button
+                    key={item.id}
+                    onClick={() => handleQuickUsePotion(item)}
+                    className={`flex items-center gap-1 px-1.5 sm:px-2 py-0.5 sm:py-1 rounded text-[10px] sm:text-xs whitespace-nowrap transition-colors min-h-[44px] active:scale-95 ${
+                      isMpPotion
+                        ? 'bg-blue-500/20 hover:bg-blue-500/40 text-blue-300'
+                        : isHpPotion
+                        ? 'bg-red-500/20 hover:bg-red-500/40 text-red-300'
+                        : 'bg-gray-500/20 hover:bg-gray-500/40 text-gray-300'
+                    }`}
+                    title={template?.description}
+                  >
+                    <span>{template?.icon || '?'}</span>
+                    <span className="hidden sm:inline">{template?.name || item.name}</span>
+                    <span className="text-[8px] sm:text-[10px] opacity-75">x{item.count}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* 操作区域 */}
       <div className="game-panel mx-2 sm:mx-4 mb-2 sm:mb-4 p-2 sm:p-4">
         <BattleActions
@@ -707,6 +983,9 @@ export function BattleLayout() {
           onSelectTarget={handleSelectTarget}
         />
       </div>
+
+      {/* 确认弹窗 */}
+      <ConfirmModal {...modalProps} />
     </div>
   );
 }
@@ -726,4 +1005,10 @@ function getAllUnits(state: { playerFormation: { characters: (CombatUnit | null)
   }
 
   return units.sort((a, b) => b.stats.speed - a.stats.speed);
+}
+
+// 从状态获取当前行动单位
+function getCurrentActorFromState(state: { playerFormation: { characters: (CombatUnit | null)[]; pets: (CombatUnit | null)[] }; enemies: CombatUnit[]; currentActorIndex: number }): CombatUnit | null {
+  const allUnits = getAllUnits(state);
+  return allUnits[state.currentActorIndex] ?? null;
 }

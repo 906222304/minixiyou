@@ -1,6 +1,6 @@
 // 任务配置 - 迷你西游梦风格剧情系统（复刻自xiyou项目）
 
-import type { Quest, QuestChapter, DialogLine } from '@/types/quest';
+import type { Quest, QuestChapter, DialogLine, RewardPool } from '@/types/quest';
 
 /** 章节配置 */
 export const QUEST_CHAPTERS: QuestChapter[] = [
@@ -101,6 +101,334 @@ export const QUEST_CHAPTERS: QuestChapter[] = [
     levelRequired: 28,
   },
 ];
+
+// ==================== 奖励池配置 ====================
+
+/** 奖励池定义 */
+export const REWARD_POOLS: Record<string, RewardPool> = {
+  // 第一章奖励池 - 初入江湖
+  pool_chapter1: {
+    poolId: 'pool_chapter1',
+    name: '初入江湖奖励池',
+    rewards: [
+      { type: 'item', value: 'item_hp_potion_small', weight: 40, quantity: { min: 1, max: 3 } },
+      { type: 'item', value: 'item_mp_potion_small', weight: 30, quantity: { min: 1, max: 2 } },
+      { type: 'item', value: 'item_enhance_stone', weight: 15, quantity: { min: 1, max: 2 } },
+      { type: 'item', value: 'item_exp_pill_small', weight: 10, quantity: { min: 1, max: 2 } },
+      { type: 'item', value: 'item_treasure_box_bronze', weight: 5, quantity: { min: 1, max: 1 } },
+    ],
+    guaranteedRewards: [],
+    drawCount: 1,
+  },
+
+  // 第二章奖励池 - 长安风云
+  pool_chapter2: {
+    poolId: 'pool_chapter2',
+    name: '长安风云奖励池',
+    rewards: [
+      { type: 'item', value: 'item_hp_potion_medium', weight: 35, quantity: { min: 1, max: 2 } },
+      { type: 'item', value: 'item_mp_potion_medium', weight: 25, quantity: { min: 1, max: 2 } },
+      { type: 'item', value: 'item_enhance_stone', weight: 20, quantity: { min: 1, max: 3 } },
+      { type: 'item', value: 'item_skill_book_common', weight: 10, quantity: { min: 1, max: 1 } },
+      { type: 'item', value: 'item_treasure_box_bronze', weight: 8, quantity: { min: 1, max: 1 } },
+      { type: 'item', value: 'item_treasure_box_silver', weight: 2, quantity: { min: 1, max: 1 } },
+    ],
+    guaranteedRewards: [],
+    drawCount: 1,
+  },
+
+  // 第三章奖励池 - 仙法奇缘
+  pool_chapter3: {
+    poolId: 'pool_chapter3',
+    name: '仙法奇缘奖励池',
+    rewards: [
+      { type: 'item', value: 'item_hp_potion_medium', weight: 30, quantity: { min: 2, max: 3 } },
+      { type: 'item', value: 'item_mp_potion_medium', weight: 25, quantity: { min: 2, max: 3 } },
+      { type: 'item', value: 'item_enhance_stone', weight: 20, quantity: { min: 2, max: 4 } },
+      { type: 'item', value: 'item_exp_pill_medium', weight: 15, quantity: { min: 1, max: 2 } },
+      { type: 'item', value: 'item_skill_book_common', weight: 6, quantity: { min: 1, max: 1 } },
+      { type: 'item', value: 'item_treasure_box_silver', weight: 4, quantity: { min: 1, max: 1 } },
+    ],
+    guaranteedRewards: [],
+    drawCount: 1,
+  },
+
+  // 第四章奖励池 - 红颜知己
+  pool_chapter4: {
+    poolId: 'pool_chapter4',
+    name: '红颜知己奖励池',
+    rewards: [
+      { type: 'item', value: 'item_hp_potion_medium', weight: 25, quantity: { min: 2, max: 4 } },
+      { type: 'item', value: 'item_mp_potion_medium', weight: 25, quantity: { min: 2, max: 4 } },
+      { type: 'item', value: 'item_enhance_stone', weight: 20, quantity: { min: 2, max: 5 } },
+      { type: 'item', value: 'item_reforge_stone', weight: 15, quantity: { min: 1, max: 2 } },
+      { type: 'item', value: 'item_skill_book_rare', weight: 8, quantity: { min: 1, max: 1 } },
+      { type: 'item', value: 'item_treasure_box_silver', weight: 5, quantity: { min: 1, max: 1 } },
+      { type: 'item', value: 'item_companion_gift', weight: 2, quantity: { min: 1, max: 1 } },
+    ],
+    guaranteedRewards: [],
+    drawCount: 1,
+  },
+
+  // 第五章奖励池 - 比武招亲
+  pool_chapter5: {
+    poolId: 'pool_chapter5',
+    name: '比武招亲奖励池',
+    rewards: [
+      { type: 'item', value: 'item_hp_potion_large', weight: 25, quantity: { min: 1, max: 3 } },
+      { type: 'item', value: 'item_mp_potion_large', weight: 25, quantity: { min: 1, max: 3 } },
+      { type: 'item', value: 'item_enhance_stone', weight: 20, quantity: { min: 3, max: 5 } },
+      { type: 'item', value: 'item_reforge_stone', weight: 12, quantity: { min: 1, max: 3 } },
+      { type: 'item', value: 'item_skill_book_rare', weight: 10, quantity: { min: 1, max: 1 } },
+      { type: 'item', value: 'item_treasure_box_silver', weight: 5, quantity: { min: 1, max: 1 } },
+      { type: 'item', value: 'item_treasure_box_gold', weight: 3, quantity: { min: 1, max: 1 } },
+    ],
+    guaranteedRewards: [],
+    drawCount: 1,
+  },
+
+  // 第六章奖励池 - 妖塔迷踪
+  pool_chapter6: {
+    poolId: 'pool_chapter6',
+    name: '妖塔迷踪奖励池',
+    rewards: [
+      { type: 'item', value: 'item_hp_potion_large', weight: 25, quantity: { min: 2, max: 4 } },
+      { type: 'item', value: 'item_mp_potion_large', weight: 25, quantity: { min: 2, max: 4 } },
+      { type: 'item', value: 'item_enhance_stone_advanced', weight: 18, quantity: { min: 1, max: 3 } },
+      { type: 'item', value: 'item_reforge_stone', weight: 12, quantity: { min: 2, max: 4 } },
+      { type: 'item', value: 'item_skill_book_rare', weight: 10, quantity: { min: 1, max: 1 } },
+      { type: 'item', value: 'item_treasure_box_gold', weight: 6, quantity: { min: 1, max: 1 } },
+      { type: 'item', value: 'item_pet_egg_common', weight: 4, quantity: { min: 1, max: 1 } },
+    ],
+    guaranteedRewards: [],
+    drawCount: 1,
+  },
+
+  // 第七章奖励池 - 方寸问道
+  pool_chapter7: {
+    poolId: 'pool_chapter7',
+    name: '方寸问道奖励池',
+    rewards: [
+      { type: 'item', value: 'item_hp_potion_large', weight: 20, quantity: { min: 2, max: 5 } },
+      { type: 'item', value: 'item_mp_potion_large', weight: 20, quantity: { min: 2, max: 5 } },
+      { type: 'item', value: 'item_enhance_stone_advanced', weight: 18, quantity: { min: 2, max: 4 } },
+      { type: 'item', value: 'item_reforge_stone', weight: 15, quantity: { min: 2, max: 5 } },
+      { type: 'item', value: 'item_skill_book_epic', weight: 10, quantity: { min: 1, max: 1 } },
+      { type: 'item', value: 'item_treasure_box_gold', weight: 10, quantity: { min: 1, max: 1 } },
+      { type: 'item', value: 'item_pet_egg_rare', weight: 5, quantity: { min: 1, max: 1 } },
+      { type: 'item', value: 'item_spirit_bead_fragment', weight: 2, quantity: { min: 1, max: 1 } },
+    ],
+    guaranteedRewards: [],
+    drawCount: 1,
+  },
+
+  // 第八章奖励池 - 西域风云
+  pool_chapter8: {
+    poolId: 'pool_chapter8',
+    name: '西域风云奖励池',
+    rewards: [
+      { type: 'item', value: 'item_hp_potion_large', weight: 18, quantity: { min: 3, max: 5 } },
+      { type: 'item', value: 'item_mp_potion_large', weight: 18, quantity: { min: 3, max: 5 } },
+      { type: 'item', value: 'item_enhance_stone_advanced', weight: 18, quantity: { min: 3, max: 5 } },
+      { type: 'item', value: 'item_reforge_stone', weight: 15, quantity: { min: 3, max: 6 } },
+      { type: 'item', value: 'item_skill_book_epic', weight: 12, quantity: { min: 1, max: 1 } },
+      { type: 'item', value: 'item_treasure_box_gold', weight: 10, quantity: { min: 1, max: 2 } },
+      { type: 'item', value: 'item_pet_egg_rare', weight: 6, quantity: { min: 1, max: 1 } },
+      { type: 'item', value: 'item_spirit_bead_fragment', weight: 3, quantity: { min: 1, max: 2 } },
+    ],
+    guaranteedRewards: [],
+    drawCount: 2,
+  },
+
+  // 第九章奖励池 - 西凉公主
+  pool_chapter9: {
+    poolId: 'pool_chapter9',
+    name: '西凉公主奖励池',
+    rewards: [
+      { type: 'item', value: 'item_hp_potion_super', weight: 20, quantity: { min: 2, max: 4 } },
+      { type: 'item', value: 'item_mp_potion_super', weight: 20, quantity: { min: 2, max: 4 } },
+      { type: 'item', value: 'item_enhance_stone_advanced', weight: 18, quantity: { min: 3, max: 6 } },
+      { type: 'item', value: 'item_reforge_stone_advanced', weight: 15, quantity: { min: 2, max: 4 } },
+      { type: 'item', value: 'item_skill_book_epic', weight: 10, quantity: { min: 1, max: 1 } },
+      { type: 'item', value: 'item_treasure_box_platinum', weight: 8, quantity: { min: 1, max: 1 } },
+      { type: 'item', value: 'item_pet_egg_epic', weight: 5, quantity: { min: 1, max: 1 } },
+      { type: 'item', value: 'item_spirit_bead_fragment', weight: 4, quantity: { min: 1, max: 2 } },
+    ],
+    guaranteedRewards: [],
+    drawCount: 2,
+  },
+
+  // 第十章奖励池 - 魔王降临
+  pool_chapter10: {
+    poolId: 'pool_chapter10',
+    name: '魔王降临奖励池',
+    rewards: [
+      { type: 'item', value: 'item_hp_potion_super', weight: 18, quantity: { min: 3, max: 5 } },
+      { type: 'item', value: 'item_mp_potion_super', weight: 18, quantity: { min: 3, max: 5 } },
+      { type: 'item', value: 'item_enhance_stone_supreme', weight: 15, quantity: { min: 2, max: 4 } },
+      { type: 'item', value: 'item_reforge_stone_advanced', weight: 15, quantity: { min: 3, max: 5 } },
+      { type: 'item', value: 'item_skill_book_legendary', weight: 10, quantity: { min: 1, max: 1 } },
+      { type: 'item', value: 'item_treasure_box_platinum', weight: 10, quantity: { min: 1, max: 2 } },
+      { type: 'item', value: 'item_pet_egg_epic', weight: 8, quantity: { min: 1, max: 1 } },
+      { type: 'item', value: 'item_spirit_bead_fragment', weight: 6, quantity: { min: 2, max: 3 } },
+    ],
+    guaranteedRewards: [],
+    drawCount: 2,
+  },
+
+  // 第十一章奖励池 - 天命之战
+  pool_chapter11: {
+    poolId: 'pool_chapter11',
+    name: '天命之战奖励池',
+    rewards: [
+      { type: 'item', value: 'item_hp_potion_super', weight: 15, quantity: { min: 4, max: 6 } },
+      { type: 'item', value: 'item_mp_potion_super', weight: 15, quantity: { min: 4, max: 6 } },
+      { type: 'item', value: 'item_enhance_stone_supreme', weight: 15, quantity: { min: 3, max: 5 } },
+      { type: 'item', value: 'item_reforge_stone_supreme', weight: 12, quantity: { min: 2, max: 4 } },
+      { type: 'item', value: 'item_skill_book_legendary', weight: 12, quantity: { min: 1, max: 1 } },
+      { type: 'item', value: 'item_treasure_box_legendary', weight: 10, quantity: { min: 1, max: 1 } },
+      { type: 'item', value: 'item_pet_egg_legendary', weight: 8, quantity: { min: 1, max: 1 } },
+      { type: 'item', value: 'item_spirit_bead_fragment', weight: 8, quantity: { min: 2, max: 4 } },
+      { type: 'item', value: 'item_legendary_title', weight: 5, quantity: { min: 1, max: 1 } },
+    ],
+    guaranteedRewards: [],
+    drawCount: 3,
+  },
+
+  // 第十二章奖励池 - 西游新生
+  pool_chapter12: {
+    poolId: 'pool_chapter12',
+    name: '西游新生奖励池',
+    rewards: [
+      { type: 'item', value: 'item_hp_potion_super', weight: 12, quantity: { min: 5, max: 8 } },
+      { type: 'item', value: 'item_mp_potion_super', weight: 12, quantity: { min: 5, max: 8 } },
+      { type: 'item', value: 'item_enhance_stone_supreme', weight: 15, quantity: { min: 4, max: 6 } },
+      { type: 'item', value: 'item_reforge_stone_supreme', weight: 12, quantity: { min: 3, max: 5 } },
+      { type: 'item', value: 'item_skill_book_legendary', weight: 12, quantity: { min: 1, max: 2 } },
+      { type: 'item', value: 'item_treasure_box_legendary', weight: 12, quantity: { min: 1, max: 2 } },
+      { type: 'item', value: 'item_pet_egg_legendary', weight: 10, quantity: { min: 1, max: 1 } },
+      { type: 'item', value: 'item_spirit_bead_complete', weight: 8, quantity: { min: 1, max: 1 } },
+      { type: 'item', value: 'item_legendary_title', weight: 7, quantity: { min: 1, max: 1 } },
+    ],
+    guaranteedRewards: [],
+    drawCount: 3,
+  },
+
+  // 日常任务奖励池
+  pool_daily: {
+    poolId: 'pool_daily',
+    name: '日常任务奖励池',
+    rewards: [
+      { type: 'item', value: 'item_hp_potion_small', weight: 30, quantity: { min: 1, max: 3 } },
+      { type: 'item', value: 'item_mp_potion_small', weight: 25, quantity: { min: 1, max: 2 } },
+      { type: 'item', value: 'item_enhance_stone', weight: 20, quantity: { min: 1, max: 2 } },
+      { type: 'item', value: 'item_exp_pill_small', weight: 15, quantity: { min: 1, max: 2 } },
+      { type: 'item', value: 'item_gold_bag_small', weight: 8, quantity: { min: 1, max: 1 } },
+      { type: 'item', value: 'item_treasure_box_bronze', weight: 2, quantity: { min: 1, max: 1 } },
+    ],
+    guaranteedRewards: [],
+    drawCount: 1,
+  },
+
+  // 支线任务奖励池
+  pool_side: {
+    poolId: 'pool_side',
+    name: '支线任务奖励池',
+    rewards: [
+      { type: 'item', value: 'item_hp_potion_medium', weight: 25, quantity: { min: 1, max: 3 } },
+      { type: 'item', value: 'item_mp_potion_medium', weight: 25, quantity: { min: 1, max: 3 } },
+      { type: 'item', value: 'item_enhance_stone', weight: 20, quantity: { min: 1, max: 3 } },
+      { type: 'item', value: 'item_reforge_stone', weight: 15, quantity: { min: 1, max: 2 } },
+      { type: 'item', value: 'item_exp_pill_medium', weight: 10, quantity: { min: 1, max: 2 } },
+      { type: 'item', value: 'item_treasure_box_silver', weight: 5, quantity: { min: 1, max: 1 } },
+    ],
+    guaranteedRewards: [],
+    drawCount: 1,
+  },
+};
+
+/** 章节首通奖励配置 */
+export const CHAPTER_FIRST_CLEAR_BONUS: Record<number, import('@/types/quest').FirstClearBonus> = {
+  1: {
+    gold: 500,
+    exp: 500,
+    items: [{ itemId: 'item_treasure_box_bronze', count: 2 }],
+  },
+  2: {
+    gold: 1000,
+    exp: 1000,
+    items: [{ itemId: 'item_skill_book_common', count: 1 }, { itemId: 'item_treasure_box_silver', count: 1 }],
+  },
+  3: {
+    gold: 1500,
+    exp: 1500,
+    items: [{ itemId: 'item_skill_book_rare', count: 1 }],
+  },
+  4: {
+    gold: 2000,
+    exp: 2000,
+    items: [{ itemId: 'item_companion_gift', count: 3 }],
+  },
+  5: {
+    gold: 3000,
+    exp: 3000,
+    items: [{ itemId: 'item_skill_book_rare', count: 1 }, { itemId: 'item_treasure_box_gold', count: 1 }],
+  },
+  6: {
+    gold: 4000,
+    exp: 4000,
+    items: [{ itemId: 'item_pet_egg_rare', count: 1 }],
+  },
+  7: {
+    gold: 5000,
+    exp: 5000,
+    items: [{ itemId: 'item_spirit_bead_fragment', count: 2 }, { itemId: 'item_skill_book_epic', count: 1 }],
+  },
+  8: {
+    gold: 6000,
+    exp: 6000,
+    items: [{ itemId: 'item_pet_egg_rare', count: 1 }, { itemId: 'item_treasure_box_gold', count: 2 }],
+  },
+  9: {
+    gold: 8000,
+    exp: 8000,
+    items: [{ itemId: 'item_pet_egg_epic', count: 1 }, { itemId: 'item_treasure_box_platinum', count: 1 }],
+  },
+  10: {
+    gold: 10000,
+    exp: 10000,
+    items: [{ itemId: 'item_skill_book_legendary', count: 1 }, { itemId: 'item_spirit_bead_fragment', count: 3 }],
+  },
+  11: {
+    gold: 15000,
+    exp: 15000,
+    items: [
+      { itemId: 'item_pet_egg_legendary', count: 1 },
+      { itemId: 'item_treasure_box_legendary', count: 1 },
+      { itemId: 'item_spirit_bead_complete', count: 1 },
+    ],
+  },
+  12: {
+    gold: 20000,
+    exp: 20000,
+    items: [
+      { itemId: 'item_legendary_title', count: 1 },
+      { itemId: 'item_treasure_box_legendary', count: 2 },
+    ],
+  },
+};
+
+/** 获取奖励池 */
+export function getRewardPool(poolId: string): RewardPool | undefined {
+  return REWARD_POOLS[poolId];
+}
+
+/** 根据章节获取奖励池ID */
+export function getRewardPoolIdByChapter(chapter: number, questType: 'main' | 'side' | 'daily'): string {
+  if (questType === 'daily') return 'pool_daily';
+  if (questType === 'side') return 'pool_side';
+  return `pool_chapter${chapter}`;
+}
 
 // ==================== 第一章：初入江湖 ====================
 

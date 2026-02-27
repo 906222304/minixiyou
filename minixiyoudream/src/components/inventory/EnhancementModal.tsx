@@ -11,6 +11,10 @@ import {
   getEnhancementPreview,
   calculateProtectionStoneCost,
   getStatBonus,
+  hasPityForLevel,
+  getPityThreshold,
+  calculateActualSuccessRate,
+  ENHANCEMENT_PITY,
   PROTECTION_ITEM,
 } from '@/constants/enhancement';
 import type { Equipment } from '@/types';
@@ -370,6 +374,60 @@ export function EnhancementModal({
                   {formatSuccessRate(preview.successRate)}
                 </span>
               </div>
+
+              {/* 保底进度（仅对有保底的等级显示） */}
+              {hasPityForLevel(preview.targetLevel) && (() => {
+                const failCount = currentEquipment.enhanceFailCount ?? 0;
+                const threshold = getPityThreshold(preview.targetLevel);
+                const bonusRate = failCount * ENHANCEMENT_PITY.pityBonusPerFail;
+                const actualRate = calculateActualSuccessRate(preview.targetLevel, failCount);
+                const isGuaranteed = failCount >= threshold;
+                const progressPercent = Math.min((failCount / threshold) * 100, 100);
+
+                return (
+                  <div className="pt-2 pb-1">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-[var(--game-text-muted)] text-sm flex items-center gap-2">
+                        <span>🎲</span>
+                        <span>保底进度</span>
+                      </span>
+                      <span className={`text-sm font-semibold ${isGuaranteed ? 'text-[#4ade80]' : 'text-[var(--game-gold)]'}`}>
+                        {failCount}/{threshold}
+                        {isGuaranteed && ' (必成)'}
+                      </span>
+                    </div>
+                    {/* 进度条 */}
+                    <div className="h-2 bg-black/30 rounded-full overflow-hidden border border-[var(--game-border)]">
+                      <div
+                        className={`h-full transition-all duration-300 ${
+                          isGuaranteed
+                            ? 'bg-gradient-to-r from-[#4ade80] to-[#22c55e]'
+                            : 'bg-gradient-to-r from-[var(--game-gold)] to-[#f59e0b]'
+                        }`}
+                        style={{ width: `${progressPercent}%` }}
+                      />
+                    </div>
+                    {/* 累计加成提示 */}
+                    {bonusRate > 0 && !isGuaranteed && (
+                      <div className="flex items-center justify-between mt-1">
+                        <span className="text-xs text-slate-500">累计概率加成</span>
+                        <span className="text-xs text-[#4ade80]">+{(bonusRate * 100).toFixed(0)}%</span>
+                      </div>
+                    )}
+                    {/* 实际成功率（考虑保底加成后） */}
+                    {bonusRate > 0 && (
+                      <div className="flex items-center justify-between mt-1">
+                        <span className="text-xs text-slate-500">实际成功率</span>
+                        <span className={`text-xs font-semibold ${
+                          actualRate >= 0.8 ? 'text-[#4ade80]' : actualRate >= 0.5 ? 'text-[var(--game-gold)]' : 'text-[#f87171]'
+                        }`}>
+                          {formatSuccessRate(actualRate)}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                );
+              })()}
 
               {/* 金币消耗 */}
               <div className="flex items-center justify-between">

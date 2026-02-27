@@ -14,6 +14,7 @@ import { AffixList } from './AffixDisplay';
 import { AffixReforgeModal } from './AffixReforgeModal';
 import { EnhancementModal } from './EnhancementModal';
 import { GemSocketModal } from './GemSocketModal';
+import { ConfirmModal, useConfirmModal } from '@/components/common/ConfirmModal';
 import type { Item, Equipment } from '@/types';
 import type { BaseStats } from '@/types/common';
 
@@ -62,6 +63,9 @@ export function EquipmentDetail({ item, onClose, onUpdate }: EquipmentDetailProp
   const [currentEquipment, setCurrentEquipment] = useState<Equipment | null>(
     'baseStats' in item ? item as Equipment : null
   );
+
+  // 确认弹窗
+  const { showConfirm, modalProps } = useConfirmModal();
 
   const isEquipment = 'baseStats' in item;
   const isEquipped = isEquipment && 'slot' in item;
@@ -114,13 +118,17 @@ export function EquipmentDetail({ item, onClose, onUpdate }: EquipmentDetailProp
   const handleDecompose = () => {
     if (!equipment) return;
 
-    // 简单的分解确认
-    if (window.confirm(`确定要分解 ${equipment.name} 吗？此操作不可撤销。`)) {
-      // 实际分解逻辑应该调用服务并显示结果
-      showSuccess(`成功分解 ${equipment.name}`);
-      removeEquipment(equipment.id);
-      onClose();
-    }
+    // 使用ConfirmModal确认
+    showConfirm(`确定要分解 ${equipment.name} 吗？此操作不可撤销。`, {
+      title: '分解装备',
+      type: 'danger',
+      onConfirm: () => {
+        // 实际分解逻辑应该调用服务并显示结果
+        showSuccess(`成功分解 ${equipment.name}`);
+        removeEquipment(equipment.id);
+        onClose();
+      },
+    });
   };
 
   // 使用消耗品
@@ -578,6 +586,9 @@ export function EquipmentDetail({ item, onClose, onUpdate }: EquipmentDetailProp
           onRemoveSuccess={(newEquipment) => handleGemSuccess(newEquipment)}
         />
       )}
+
+      {/* 确认弹窗 */}
+      <ConfirmModal {...modalProps} />
     </>
   );
 }

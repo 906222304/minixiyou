@@ -1,13 +1,24 @@
-// 种族配置数据
+// 种族配置数据 - 三族设计
 
 import type { Race, RaceType } from '@/types';
 
-/** 人族配置 */
+/**
+ * 种族设计说明：
+ *
+ * 三族特性对比：
+ * | 种族 | 特性1（核心） | 特性2（生存） | 特性3（续航/成长） |
+ * |------|--------------|--------------|-------------------|
+ * | 人族 | 全能（全属性+5%，伤害+8%） | 坚韧（20%存活致命伤） | 适应力（经验+15%，冷却-1） |
+ * | 仙族 | 法神（法伤+18%） | 法力护盾（MP抵扣伤害） | 灵力充沛（MP+15%，每回合+4%） |
+ * | 魔族 | 狂战士（物伤+18%，HP+18%） | 狂暴（残血最高+40%物攻） | 顽韧（15%存活并回血15%） |
+ */
+
+/** 人族配置 - 全能均衡型 */
 export const HUMAN_RACE: Race = {
   id: 'race_human',
   type: 'human',
   name: '人族',
-  description: '均衡发展的种族，适应性强，所有属性获得5%加成。',
+  description: '全能均衡的种族，各项属性均衡发展，技能释放更快，适合新手玩家。',
   icon: '👨',
 
   // 初始基础属性 - 均衡型
@@ -19,7 +30,7 @@ export const HUMAN_RACE: Race = {
     willpower: 10,
   },
 
-  // 属性成长 - 均衡成长
+  // 属性成长 - 人族：均衡成长（基准值1.0）
   statGrowth: {
     strength: 1.0,
     intelligence: 1.0,
@@ -28,241 +39,180 @@ export const HUMAN_RACE: Race = {
     willpower: 1.0,
   },
 
-  // 战斗属性加成 - 人族特性：所有属性+5%
+  // 战斗属性加成 - 人族特性：全属性+5%
   statBonus: {
-    strength: 1.05,     // +5%
+    strength: 1.05,
     intelligence: 1.05,
     vitality: 1.05,
     agility: 1.05,
     willpower: 1.05,
   },
 
-  // 种族特性 - 强化版
+  // 种族特性（3个）
   traits: [
     {
-      id: 'trait_human_adaptability',
-      name: '万金油',
-      description: '所有基础属性+5%',
+      id: 'trait_human_versatile',
+      name: '全能',
+      description: '全属性+5%，全技能伤害+8%',
       effect: { type: 'all_stats', value: 0.05 },
     },
     {
-      id: 'trait_human_versatility',
-      name: '多才多艺',
-      description: '可以加入更多门派',
-      effect: { type: 'balanced', value: 0 },
+      id: 'trait_human_tenacity',
+      name: '坚韧',
+      description: '受到致命伤害时，20%概率保留1HP存活',
+      effect: { type: 'survive_fatal', value: 0.2 },
+    },
+    {
+      id: 'trait_human_adaptability',
+      name: '适应力',
+      description: '战斗经验+15%，技能冷却时间-1回合',
+      effect: { type: 'exp_bonus', value: 0.15 },
     },
   ],
-
-  passiveSkill: {
-    id: 'passive_human_will',
-    name: '坚韧意志',
-    description: '致命伤害时有概率保留1点生命值',
-    effect: '当受到致命伤害时，有10%概率保留1HP存活',
-  },
 
   availableFactions: [
     'faction_datang',
     'faction_huasheng',
     'faction_fangcun',
     'faction_nver',
+    'faction_shenmulin',
+    'faction_tianjicheng',
+    'faction_donghaiyuan',
+    'faction_jiulicheng',
   ],
 };
 
-/** 仙族配置 */
+/** 仙族配置 - 法术专精型 */
 export const CELESTIAL_RACE: Race = {
   id: 'race_celestial',
   type: 'celestial',
   name: '仙族',
-  description: '灵力深厚的种族，法术专精，法攻+15%，法防+10%。',
+  description: '灵力深厚的种族，擅长法术，MP续航能力强，适合法系门派。',
   icon: '🧚',
 
   // 初始基础属性 - 法术型
   baseStats: {
     strength: 8,
-    intelligence: 14,
-    vitality: 8,
+    intelligence: 12,
+    vitality: 10,
     agility: 10,
-    willpower: 10,
+    willpower: 12,
   },
 
-  // 属性成长 - 法术成长
+  // 属性成长 - 仙族：法术成长高，物理成长低
   statGrowth: {
     strength: 0.9,
-    intelligence: 1.2,
-    vitality: 0.9,
-    agility: 1.0,
-    willpower: 1.1,
-  },
-
-  // 战斗属性加成 - 仙族特性：法攻+15%，法防+10%
-  statBonus: {
-    strength: 1.0,
-    intelligence: 1.15,  // +15% 法攻
+    intelligence: 1.15,
     vitality: 1.0,
     agility: 1.0,
-    willpower: 1.1,      // +10% 法防
+    willpower: 1.2,
   },
 
-  // 种族特性 - 强化版
+  // 战斗属性加成 - 仙族特性
+  statBonus: {
+    strength: 0.95,
+    intelligence: 1.1,
+    vitality: 1.0,
+    agility: 1.0,
+    willpower: 1.15,
+  },
+
+  // 种族特性（3个）
   traits: [
     {
       id: 'trait_celestial_magic',
-      name: '仙风道骨',
-      description: '法术攻击+15%',
-      effect: { type: 'magic_attack', value: 0.15 },
+      name: '法神',
+      description: '法术伤害+18%',
+      effect: { type: 'magic_attack', value: 0.18 },
+    },
+    {
+      id: 'trait_celestial_shield',
+      name: '法力护盾',
+      description: '受到伤害时，可消耗MP抵扣（MP:HP=1:2，每回合上限15%最大HP）',
+      effect: { type: 'mp_shield', value: 0.5 },
     },
     {
       id: 'trait_celestial_mana',
       name: '灵力充沛',
-      description: '法术防御+10%',
-      effect: { type: 'magic_defense', value: 0.1 },
+      description: 'MP上限+15%，每回合恢复4%最大MP',
+      effect: { type: 'mp_regen', value: 0.04 },
     },
   ],
-
-  passiveSkill: {
-    id: 'passive_celestial_protection',
-    name: '仙体护佑',
-    description: '每回合自动恢复少量MP',
-    effect: '每回合结束时恢复2%最大MP',
-  },
 
   availableFactions: [
     'faction_longgong',
     'faction_tiangong',
     'faction_putuo',
     'faction_wuzhuang',
+    'faction_lingbocheng',
+    'faction_huaguoshan',
   ],
 };
 
-/** 魔族配置 */
+/** 魔族配置 - 物理爆发型 */
 export const DEMON_RACE: Race = {
   id: 'race_demon',
   type: 'demon',
   name: '魔族',
-  description: '体魄强健的种族，物理专精，物攻+15%，物防+10%。',
+  description: '体魄强健的种族，擅长物理攻击，残血时爆发力更强，适合物理门派。',
   icon: '👹',
 
   // 初始基础属性 - 物理型
   baseStats: {
-    strength: 14,
+    strength: 12,
     intelligence: 8,
-    vitality: 10,
+    vitality: 12,
     agility: 10,
     willpower: 8,
   },
 
-  // 属性成长 - 物理成长
+  // 属性成长 - 魔族：物理成长高，法术成长低
   statGrowth: {
-    strength: 1.2,
+    strength: 1.15,
     intelligence: 0.9,
-    vitality: 1.1,
+    vitality: 1.2,
     agility: 1.0,
-    willpower: 0.8,
+    willpower: 0.9,
   },
 
-  // 战斗属性加成 - 魔族特性：物攻+15%，物防+10%
+  // 战斗属性加成 - 魔族特性
   statBonus: {
-    strength: 1.15,      // +15% 物攻
-    intelligence: 1.0,
-    vitality: 1.1,       // +10% 物防
+    strength: 1.1,
+    intelligence: 0.95,
+    vitality: 1.18,
     agility: 1.0,
-    willpower: 1.0,
+    willpower: 0.9,
   },
 
-  // 种族特性 - 强化版
+  // 种族特性（3个）
   traits: [
     {
-      id: 'trait_demon_strength',
-      name: '魔血沸腾',
-      description: '物理攻击+15%',
-      effect: { type: 'physical_attack', value: 0.15 },
+      id: 'trait_demon_berserker',
+      name: '狂战士',
+      description: '物理伤害+18%，HP上限+18%',
+      effect: { type: 'physical_attack', value: 0.18 },
     },
     {
-      id: 'trait_demon_vitality',
-      name: '魔躯',
-      description: '物理防御+10%',
-      effect: { type: 'physical_defense', value: 0.1 },
+      id: 'trait_demon_rage',
+      name: '狂暴',
+      description: 'HP每降低10%，物理攻击+4%（最高+40%）',
+      effect: { type: 'low_hp_attack', value: 0.04 },
+    },
+    {
+      id: 'trait_demon_resilient',
+      name: '顽韧',
+      description: '受到致命伤害时，15%概率存活并恢复15%HP',
+      effect: { type: 'survive_heal', value: 0.15 },
     },
   ],
-
-  passiveSkill: {
-    id: 'passive_demon_blood',
-    name: '狂战血脉',
-    description: '生命值低时攻击力提升',
-    effect: '当HP低于30%时，物理攻击+20%',
-  },
 
   availableFactions: [
     'faction_shituo',
     'faction_mowang',
     'faction_difu',
     'faction_pansi',
-  ],
-};
-
-/** 妖族配置 - 敏捷专精 */
-export const SPIRIT_RACE: Race = {
-  id: 'race_spirit',
-  type: 'spirit',
-  name: '妖族',
-  description: '天生的灵兽化身，敏捷专精，速度+20%，闪避+10%。',
-  icon: '🦊',
-
-  // 初始基础属性 - 敏捷型
-  baseStats: {
-    strength: 9,
-    intelligence: 9,
-    vitality: 8,
-    agility: 14,
-    willpower: 10,
-  },
-
-  // 属性成长 - 敏捷成长
-  statGrowth: {
-    strength: 1.0,
-    intelligence: 1.0,
-    vitality: 0.9,
-    agility: 1.3,
-    willpower: 1.0,
-  },
-
-  // 战斗属性加成 - 妖族特性：速度+20%，闪避+10%
-  statBonus: {
-    strength: 1.0,
-    intelligence: 1.0,
-    vitality: 1.0,
-    agility: 1.2,        // +20% 速度
-    willpower: 1.0,
-  },
-
-  // 种族特性 - 敏捷专精
-  traits: [
-    {
-      id: 'trait_spirit_speed',
-      name: '疾风步',
-      description: '速度+20%',
-      effect: { type: 'speed', value: 0.2 },
-    },
-    {
-      id: 'trait_spirit_dodge',
-      name: '灵闪',
-      description: '闪避率+10%',
-      effect: { type: 'dodge', value: 0.1 },
-    },
-  ],
-
-  passiveSkill: {
-    id: 'passive_spirit_reflex',
-    name: '自然反射',
-    description: '有概率闪避致命伤害',
-    effect: '受到致命伤害时，有15%概率闪避此次伤害',
-  },
-
-  availableFactions: [
-    'faction_shituo',
-    'faction_pansi',
-    'faction_fangcun',
-    'faction_longgong',
+    'faction_wudidong',
+    'faction_nvbaomu',
   ],
 };
 
@@ -271,7 +221,6 @@ export const RACES: Record<RaceType, Race> = {
   human: HUMAN_RACE,
   celestial: CELESTIAL_RACE,
   demon: DEMON_RACE,
-  spirit: SPIRIT_RACE,
 };
 
 /** 获取种族配置 */
@@ -283,3 +232,18 @@ export function getRace(type: RaceType): Race {
 export function getAllRaces(): Race[] {
   return Object.values(RACES);
 }
+
+/**
+ * 种族属性成长对比表
+ *
+ * | 种族 | 物攻 | 法攻 | 血量 | 速度 | 魔法 |
+ * |------|------|------|------|------|------|
+ * | 人族 | 1.0  | 1.0  | 1.0  | 1.0  | 1.0  |
+ * | 仙族 | 0.9  | 1.15 | 1.0  | 1.0  | 1.2  |
+ * | 魔族 | 1.15 | 0.9  | 1.2  | 1.0  | 0.9  |
+ */
+export const RACE_GROWTH_COMPARISON = {
+  human: { physical: 1.0, magic: 1.0, hp: 1.0, speed: 1.0, mp: 1.0 },
+  celestial: { physical: 0.9, magic: 1.15, hp: 1.0, speed: 1.0, mp: 1.2 },
+  demon: { physical: 1.15, magic: 0.9, hp: 1.2, speed: 1.0, mp: 0.9 },
+} as const;

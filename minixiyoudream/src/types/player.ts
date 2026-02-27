@@ -4,7 +4,7 @@ import type { UUID, FullStats, ElementResistances, BaseStats } from './common';
 import type { RaceType } from './race';
 import type { EquipmentSlots } from './equipment';
 import type { CharacterTrait } from './trait';
-import type { LearnedSkill } from './skill';
+import type { LearnedSkill, LearnedBaseSkill } from './skill';
 import type { Pet } from './pet';
 
 /** 已分配的属性点明细 */
@@ -99,6 +99,9 @@ export interface Player {
   skills: LearnedSkill[];
   skillPoints: number;
 
+  // 基础技能（门派基础技能，提供被动属性加成）
+  learnedBaseSkills: LearnedBaseSkill[];
+
   // 特性
   traits: CharacterTrait[];
 
@@ -132,6 +135,8 @@ export interface CreatePlayerOptions {
   race: RaceType;
   factionId: string;
   traitIds: string[];
+  /** 头像ID，如 'avatar_01' */
+  avatarId?: string;
 }
 
 /** 玩家状态 */

@@ -177,7 +177,7 @@ export function PetSkillLearningModal({
           </h2>
           <button
             onClick={onClose}
-            className="w-10 h-10 flex items-center justify-center text-[var(--game-text-muted)] hover:text-white hover:bg-white/10 transition-all duration-200 rounded-lg"
+            className="w-11 h-11 flex items-center justify-center text-[var(--game-text-muted)] hover:text-white hover:bg-white/10 transition-all duration-200 rounded-lg"
           >
             ✕
           </button>

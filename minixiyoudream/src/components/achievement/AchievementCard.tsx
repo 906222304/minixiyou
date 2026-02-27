@@ -236,7 +236,7 @@ export function AchievementCard({ progressInfo, onClaim }: AchievementCardProps)
                 e.stopPropagation();
                 onClaim?.(achievement.id);
               }}
-              className="game-btn game-btn-primary w-full mt-3 py-2 text-sm"
+              className="game-btn game-btn-primary w-full mt-3 py-2 text-sm min-h-[44px] active:scale-95 transition-transform"
             >
               领取奖励
             </button>

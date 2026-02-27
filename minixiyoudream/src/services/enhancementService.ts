@@ -10,6 +10,10 @@ import {
   getStatBonus,
   calculateEnhancedStats,
   canEnhance as checkCanEnhance,
+  calculateActualSuccessRate,
+  hasPityForLevel,
+  getPityThreshold,
+  ENHANCEMENT_PITY,
   type EnhancementResult,
   type EnhancementPreview,
 } from '@/constants/enhancement';
@@ -34,9 +38,10 @@ class EnhancementService {
     prng: PRNG,
     goldAvailable: number,
     protectionStonesAvailable: number = 0
-  ): EnhancementResult & { equipment?: Equipment } {
+  ): EnhancementResult & { equipment?: Equipment; pityTriggered?: boolean } {
     const currentLevel = equipment.enhanceLevel;
     const targetLevel = currentLevel + 1;
+    const currentFailCount = equipment.enhanceFailCount ?? 0;
 
     // 检查是否可以强化
     const checkResult = checkCanEnhance(
@@ -82,30 +87,45 @@ class EnhancementService {
       }
     }
 
+    // 计算考虑保底后的实际成功率
+    const actualSuccessRate = calculateActualSuccessRate(targetLevel, currentFailCount);
+
     // 进行强化判定
     const roll = prng.next();
-    const success = roll < config.successRate;
+    const success = roll < actualSuccessRate;
+
+    // 检查是否触发保底
+    const pityTriggered = hasPityForLevel(targetLevel) && currentFailCount >= getPityThreshold(targetLevel);
 
     if (success) {
-      // 强化成功
-      const newEquipment = this.updateEquipmentEnhanceLevel(equipment, targetLevel);
+      // 强化成功 - 重置保底计数器
+      const newEquipment = this.updateEquipmentEnhanceLevel(equipment, targetLevel, true);
       return {
         success: true,
         newLevel: targetLevel,
         downgraded: false,
         cost: goldCost,
         equipment: newEquipment,
+        pityTriggered,
       };
     } else {
       // 强化失败
       let newLevel = currentLevel;
+      let newFailCount = currentFailCount;
 
       // 检查是否需要降级
       if (config.failPenalty === 'downgrade' && !useProtection && currentLevel > 0) {
         newLevel = Math.max(0, currentLevel - 1);
+        // 降级时重置保底计数器
+        newFailCount = 0;
+      } else {
+        // 未降级时增加保底计数器（仅对有保底的等级）
+        if (hasPityForLevel(targetLevel)) {
+          newFailCount = currentFailCount + 1;
+        }
       }
 
-      const newEquipment = this.updateEquipmentEnhanceLevel(equipment, newLevel);
+      const newEquipment = this.updateEquipmentEnhanceLevel(equipment, newLevel, false, newFailCount);
       return {
         success: false,
         newLevel: newLevel,
@@ -118,11 +138,21 @@ class EnhancementService {
 
   /**
    * 更新装备的强化等级
+   * @param equipment 装备
+   * @param newLevel 新的强化等级
+   * @param resetFailCount 是否重置保底计数器
+   * @param failCount 新的失败次数（可选）
    */
-  private updateEquipmentEnhanceLevel(equipment: Equipment, newLevel: number): Equipment {
+  private updateEquipmentEnhanceLevel(
+    equipment: Equipment,
+    newLevel: number,
+    resetFailCount: boolean = true,
+    failCount?: number
+  ): Equipment {
     return {
       ...equipment,
       enhanceLevel: newLevel,
+      enhanceFailCount: resetFailCount ? 0 : (failCount ?? equipment.enhanceFailCount ?? 0),
     };
   }
 
@@ -251,6 +281,39 @@ class EnhancementService {
 
     const roll = prng.next();
     return roll < config.successRate;
+  }
+
+  /**
+   * 获取装备的保底进度信息
+   * @param equipment 装备
+   * @returns 保底进度信息
+   */
+  getPityProgress(equipment: Equipment): {
+    hasPity: boolean;
+    currentFails: number;
+    threshold: number;
+    bonusRate: number;
+    actualSuccessRate: number;
+    isGuaranteed: boolean;
+    targetLevel: number;
+  } {
+    const targetLevel = equipment.enhanceLevel + 1;
+    const currentFails = equipment.enhanceFailCount ?? 0;
+    const hasPity = hasPityForLevel(targetLevel);
+    const threshold = getPityThreshold(targetLevel);
+    const bonusRate = currentFails * ENHANCEMENT_PITY.pityBonusPerFail;
+    const actualSuccessRate = calculateActualSuccessRate(targetLevel, currentFails);
+    const isGuaranteed = hasPity && currentFails >= threshold;
+
+    return {
+      hasPity,
+      currentFails,
+      threshold,
+      bonusRate,
+      actualSuccessRate,
+      isGuaranteed,
+      targetLevel,
+    };
   }
 }
 

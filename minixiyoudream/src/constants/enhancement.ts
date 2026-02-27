@@ -53,10 +53,39 @@ export const ENHANCEMENT_TABLE: EnhancementLevel[] = [
   { level: 10, successRate: 0.35, statBonus: 0.08, goldCost: 4500, failPenalty: 'downgrade' },
   { level: 11, successRate: 0.25, statBonus: 0.10, goldCost: 7000, failPenalty: 'downgrade' },
   { level: 12, successRate: 0.20, statBonus: 0.10, goldCost: 10000, failPenalty: 'downgrade' },
-  { level: 13, successRate: 0.15, statBonus: 0.12, goldCost: 15000, failPenalty: 'downgrade' },
-  { level: 14, successRate: 0.10, statBonus: 0.12, goldCost: 22000, failPenalty: 'downgrade' },
-  { level: 15, successRate: 0.05, statBonus: 0.15, goldCost: 35000, failPenalty: 'downgrade' },
+  { level: 13, successRate: 0.20, statBonus: 0.12, goldCost: 15000, failPenalty: 'downgrade' },
+  { level: 14, successRate: 0.15, statBonus: 0.12, goldCost: 22000, failPenalty: 'downgrade' },
+  { level: 15, successRate: 0.10, statBonus: 0.15, goldCost: 35000, failPenalty: 'downgrade' },
 ];
+
+// ============================================
+// 强化保底系统配置
+// ============================================
+
+/** 强化保底配置 */
+export const ENHANCEMENT_PITY = {
+  /** 每个等级的保底次数阈值（连续失败多少次后必成） */
+  pityThreshold: {
+    11: 12, // +11失败12次必成
+    12: 15, // +12失败15次必成
+    13: 15, // +13失败15次必成
+    14: 18, // +14失败18次必成
+    15: 20, // +15失败20次必成
+  } as Record<number, number>,
+
+  /** 每次失败增加的概率（累计加成） */
+  pityBonusPerFail: 0.02, // 每次失败增加2%
+
+  /** 获取指定等级的保底阈值 */
+  getPityThreshold(level: number): number {
+    return this.pityThreshold[level] ?? 0;
+  },
+
+  /** 检查指定等级是否有保底机制 */
+  hasPity(level: number): boolean {
+    return level in this.pityThreshold;
+  },
+};
 
 /** 品质对应的最大强化等级 */
 export const QUALITY_MAX_ENHANCE: Record<Quality, number> = {
@@ -235,4 +264,70 @@ export function formatSuccessRate(rate: number): string {
 /** 格式化属性加成显示 */
 export function formatStatBonus(bonus: number): string {
   return `+${(bonus * 100).toFixed(0)}%`;
+}
+
+// ============================================
+// 保底系统计算函数
+// ============================================
+
+/** 获取指定等级的保底阈值 */
+export function getPityThreshold(targetLevel: number): number {
+  return ENHANCEMENT_PITY.getPityThreshold(targetLevel);
+}
+
+/** 检查指定等级是否有保底机制 */
+export function hasPityForLevel(targetLevel: number): boolean {
+  return ENHANCEMENT_PITY.hasPity(targetLevel);
+}
+
+/** 计算考虑保底后的实际成功率
+ * @param targetLevel 目标等级
+ * @param consecutiveFails 连续失败次数
+ * @returns 实际成功率（0-1）
+ */
+export function calculateActualSuccessRate(targetLevel: number, consecutiveFails: number): number {
+  const baseRate = getSuccessRate(targetLevel);
+
+  // 如果没有保底机制，返回基础成功率
+  if (!hasPityForLevel(targetLevel)) {
+    return baseRate;
+  }
+
+  // 检查是否触发保底
+  const pityThreshold = getPityThreshold(targetLevel);
+  if (consecutiveFails >= pityThreshold) {
+    return 1.0; // 保底触发，100%成功
+  }
+
+  // 计算累计概率加成
+  const pityBonus = consecutiveFails * ENHANCEMENT_PITY.pityBonusPerFail;
+  return Math.min(baseRate + pityBonus, 1.0);
+}
+
+/** 获取保底进度信息
+ * @param targetLevel 目标等级
+ * @param consecutiveFails 连续失败次数
+ */
+export function getPityProgress(targetLevel: number, consecutiveFails: number): {
+  hasPity: boolean;
+  currentFails: number;
+  threshold: number;
+  bonusRate: number;
+  actualSuccessRate: number;
+  isGuaranteed: boolean;
+} {
+  const hasPity = hasPityForLevel(targetLevel);
+  const threshold = getPityThreshold(targetLevel);
+  const bonusRate = consecutiveFails * ENHANCEMENT_PITY.pityBonusPerFail;
+  const actualSuccessRate = calculateActualSuccessRate(targetLevel, consecutiveFails);
+  const isGuaranteed = hasPity && consecutiveFails >= threshold;
+
+  return {
+    hasPity,
+    currentFails: consecutiveFails,
+    threshold,
+    bonusRate,
+    actualSuccessRate,
+    isGuaranteed,
+  };
 }

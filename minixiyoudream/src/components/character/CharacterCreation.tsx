@@ -6,10 +6,11 @@ import { gamePhase, createPlayer } from '@/signals';
 import { getAllRaces } from '@/constants/races';
 import { getFactionsByRace } from '@/constants/factions';
 import { rollRandomTraits } from '@/constants/traits';
+import { AVATARS_BY_RACE, getAvatarUrl } from '@/constants/avatars';
 import { PRNG } from '@/utils/prng';
 import type { Trait, RaceType } from '@/types';
 
-type CreationStep = 'name' | 'race' | 'faction' | 'traits' | 'confirm';
+type CreationStep = 'name' | 'race' | 'avatar' | 'faction' | 'traits' | 'confirm';
 
 // SVG Icons
 const Icons = {
@@ -55,10 +56,11 @@ const RARITY_BG: Record<string, string> = {
   common: 'border-slate-300/50',
 };
 
-const STEPS: CreationStep[] = ['name', 'race', 'faction', 'traits', 'confirm'];
+const STEPS: CreationStep[] = ['name', 'race', 'avatar', 'faction', 'traits', 'confirm'];
 const STEP_LABELS: Record<CreationStep, string> = {
   name: '名称',
   race: '种族',
+  avatar: '头像',
   faction: '门派',
   traits: '特性',
   confirm: '确认',
@@ -70,6 +72,7 @@ export function CharacterCreation() {
   const [step, setStep] = useState<CreationStep>('name');
   const [name, setName] = useState('');
   const [selectedRace, setSelectedRace] = useState<RaceType | null>(null);
+  const [selectedAvatar, setSelectedAvatar] = useState<string | null>(null);
   const [selectedFaction, setSelectedFaction] = useState<string | null>(null);
   const [rolledTraits, setRolledTraits] = useState<Trait[]>([]);
 
@@ -85,6 +88,11 @@ export function CharacterCreation() {
 
   const handleRaceSelect = (raceType: RaceType) => {
     setSelectedRace(raceType);
+    setStep('avatar');
+  };
+
+  const handleAvatarSelect = (avatarId: string) => {
+    setSelectedAvatar(avatarId);
     setStep('faction');
   };
 
@@ -111,6 +119,7 @@ export function CharacterCreation() {
       race: selectedRace,
       factionId: selectedFaction,
       traitIds: rolledTraits.map(t => t.id),
+      avatarId: selectedAvatar || undefined,
     });
 
     gamePhase.value = 'playing';
@@ -172,7 +181,7 @@ export function CharacterCreation() {
 
           {/* 当前步骤标签 */}
           <p className="text-slate-600 text-sm mt-4">
-            步骤 {currentStepIndex + 1}/5: {STEP_LABELS[step]}
+            步骤 {currentStepIndex + 1}/6: {STEP_LABELS[step]}
           </p>
         </div>
 
@@ -286,11 +295,15 @@ export function CharacterCreation() {
                             ))}
                           </div>
 
-                          {/* 被动技能 */}
-                          <div className="mt-2 px-2 py-1 bg-blue-50 rounded-lg inline-block">
-                            <p className="text-xs text-blue-600">
-                              <span className="font-medium">{race.passiveSkill.name}</span>: {race.passiveSkill.description}
-                            </p>
+                          {/* 特性描述 */}
+                          <div className="mt-2 space-y-1">
+                            {race.traits.map((trait) => (
+                              <div key={trait.id} className="px-2 py-1 bg-blue-50 rounded-lg">
+                                <p className="text-xs text-blue-600">
+                                  <span className="font-medium">{trait.name}</span>: {trait.description}
+                                </p>
+                              </div>
+                            ))}
                           </div>
                         </div>
                       </div>
@@ -309,7 +322,61 @@ export function CharacterCreation() {
             </div>
           )}
 
-          {/* 步骤3：选择门派 */}
+          {/* 步骤3：选择头像 */}
+          {step === 'avatar' && selectedRace && (
+            <div className="space-y-4">
+              <div className="text-center mb-4">
+                <h2 className="text-lg font-semibold text-[var(--game-text)]">选择头像</h2>
+                <p className="text-sm text-[var(--game-text-muted)]">选择你的角色外观</p>
+              </div>
+
+              <div className="grid grid-cols-4 gap-3">
+                {AVATARS_BY_RACE[selectedRace === 'human' ? 'human' : selectedRace === 'demon' ? 'demon' : 'immortal'].map((avatar) => (
+                  <button
+                    key={avatar.id}
+                    onClick={() => handleAvatarSelect(avatar.id)}
+                    className={`relative p-1 rounded-xl transition-all duration-200 ${
+                      selectedAvatar === avatar.id
+                        ? 'ring-2 ring-[var(--game-gold)] bg-[var(--game-gold)]/10'
+                        : 'bg-[var(--game-bg-subtle)] hover:bg-[var(--game-gold)]/5'
+                    }`}
+                  >
+                    <img
+                      src={getAvatarUrl(avatar.id, 'medium')}
+                      alt={avatar.name}
+                      className="w-full aspect-square rounded-lg object-cover"
+                    />
+                    {selectedAvatar === avatar.id && (
+                      <div className="absolute -top-1 -right-1 w-5 h-5 bg-[var(--game-gold)] rounded-full flex items-center justify-center">
+                        <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                        </svg>
+                      </div>
+                    )}
+                    <p className="text-xs text-center mt-1 text-[var(--game-text-muted)] truncate">{avatar.name}</p>
+                  </button>
+                ))}
+              </div>
+
+              <button
+                onClick={() => selectedAvatar && setStep('faction')}
+                disabled={!selectedAvatar}
+                className="game-btn game-btn-primary w-full py-4 font-medium disabled:opacity-50"
+              >
+                下一步
+              </button>
+
+              <button
+                onClick={handleBack}
+                className="w-full py-3 text-[var(--game-text-muted)] hover:text-[var(--game-text)] flex items-center justify-center gap-2 transition-colors duration-200 cursor-pointer touch-manipulation"
+              >
+                {Icons.back}
+                <span>返回上一步</span>
+              </button>
+            </div>
+          )}
+
+          {/* 步骤4：选择门派 */}
           {step === 'faction' && (
             <div className="space-y-4">
               <div className="text-center mb-4">
@@ -350,7 +417,7 @@ export function CharacterCreation() {
             </div>
           )}
 
-          {/* 步骤4：随机特性 */}
+          {/* 步骤5：随机特性 */}
           {step === 'traits' && (
             <div className="space-y-4">
               <div className="text-center mb-4">
@@ -404,7 +471,7 @@ export function CharacterCreation() {
             </div>
           )}
 
-          {/* 步骤5：确认创建 */}
+          {/* 步骤6：确认创建 */}
           {step === 'confirm' && (() => {
             const selectedRaceData = races.find(r => r.type === selectedRace);
             return (
@@ -416,9 +483,17 @@ export function CharacterCreation() {
 
               <div className="game-panel p-6">
                 <div className="flex items-center gap-3 mb-6 pb-4 border-b border-[var(--game-border)]">
-                  <div className="p-3 bg-[var(--game-gold)]/20 rounded-xl text-2xl">
-                    {selectedRaceData?.icon}
-                  </div>
+                  {selectedAvatar ? (
+                    <img
+                      src={getAvatarUrl(selectedAvatar, 'large')}
+                      alt="角色头像"
+                      className="w-16 h-16 rounded-xl object-cover"
+                    />
+                  ) : (
+                    <div className="p-3 bg-[var(--game-gold)]/20 rounded-xl text-2xl">
+                      {selectedRaceData?.icon}
+                    </div>
+                  )}
                   <div>
                     <h3 className="font-semibold text-[var(--game-text)] text-lg">{name}</h3>
                     <p className="text-sm text-[var(--game-text-muted)]">

@@ -1,6 +1,6 @@
 // 兽诀配置 - 梦幻西游风格打书系统
 
-import type { PetSkill, PetType, Element } from '@/types';
+import type { PetType, Element } from '@/types';
 import type { Quality } from '@/types/common';
 
 // ============================================
@@ -12,6 +12,24 @@ export type BeastScrollTier = 'low' | 'high';
 
 /** 兽诀技能分类 */
 export type BeastScrollCategory = 'attack' | 'defense' | 'support' | 'magic';
+
+/** 兽诀技能定义 - 用于兽诀配置 */
+export interface BeastScrollSkill {
+  id: string;
+  name: string;
+  type: 'passive' | 'active' | 'trigger';
+  description?: string;
+  multiplier?: number;
+  skillId: string;
+  mpCost?: number;
+  cooldown?: number;
+  element?: Element;
+  effect?: {
+    type: string;
+    statusEffect?: string;
+    duration?: number;
+  };
+}
 
 /** 兽诀配置 */
 export interface BeastScrollConfig {
@@ -26,7 +44,7 @@ export interface BeastScrollConfig {
   sellPrice: number;
 
   // 技能效果
-  skill: PetSkill;
+  skill: BeastScrollSkill;
 
   // 学习限制
   restrictions?: {

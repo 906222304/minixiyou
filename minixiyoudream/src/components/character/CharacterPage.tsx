@@ -24,6 +24,7 @@ import { activeCompanions } from '@/signals/companionSignals';
 import { getRace } from '@/constants/races';
 import { getFaction } from '@/constants/factions';
 import { getTrait } from '@/constants/traits';
+import { getAvatarUrl } from '@/constants/avatars';
 import { getSkill } from '@/constants/skills';
 import type { EquipmentSlot, Player, LearnedSkill, Faction, Race, EquipmentSlots, Item, BaseStats } from '@/types';
 import { ATTRIBUTE_EFFECTS } from '@/types';
@@ -132,9 +133,17 @@ export function CharacterPage() {
       <div className="game-panel p-4">
         <div className="flex items-start gap-4">
           {/* 头像 */}
-          <div className="game-icon game-icon-lg flex-shrink-0 text-4xl">
-            {race?.icon || '👤'}
-          </div>
+          {currentPlayer.avatar.startsWith('avatar_') ? (
+            <img
+              src={getAvatarUrl(currentPlayer.avatar, 'medium')}
+              alt={currentPlayer.name}
+              className="w-16 h-16 rounded-xl object-cover flex-shrink-0"
+            />
+          ) : (
+            <div className="game-icon game-icon-lg flex-shrink-0 text-4xl">
+              {currentPlayer.avatar || race?.icon || '👤'}
+            </div>
+          )}
 
           {/* 基本信息 */}
           <div className="flex-1 min-w-0">
@@ -426,22 +435,26 @@ function AttributesPanel({
         </div>
       </div>
 
-      {/* 种族被动 */}
-      {race?.passiveSkill && (
+      {/* 种族特性 */}
+      {race?.traits && (
         <>
           <div className="game-divider" />
           <div>
-            <h4 className="text-sm font-semibold text-[var(--game-text-muted)] mb-3">种族天赋</h4>
-            <div className="game-card p-3">
-              <div className="flex items-center gap-2 mb-1">
-                <span className="text-[var(--game-gold)]">⭐</span>
-                <span className="font-medium text-[var(--game-gold-dark)]">
-                  {race.passiveSkill.name}
-                </span>
-              </div>
-              <p className="text-sm text-[var(--game-text-muted)]">
-                {race.passiveSkill.description}
-              </p>
+            <h4 className="text-sm font-semibold text-[var(--game-text-muted)] mb-3">种族特性</h4>
+            <div className="space-y-2">
+              {race.traits.map((trait) => (
+                <div key={trait.id} className="game-card p-3">
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="text-[var(--game-gold)]">⭐</span>
+                    <span className="font-medium text-[var(--game-gold-dark)]">
+                      {trait.name}
+                    </span>
+                  </div>
+                  <p className="text-sm text-[var(--game-text-muted)]">
+                    {trait.description}
+                  </p>
+                </div>
+              ))}
             </div>
           </div>
         </>

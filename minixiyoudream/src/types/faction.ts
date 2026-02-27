@@ -44,7 +44,7 @@ export interface Faction {
   skills: string[];
 
   // 元素倾向
-  elementAffinity?: 'fire' | 'ice' | 'thunder' | 'none';
+  elementAffinity?: 'fire' | 'ice' | 'thunder' | 'wood' | 'water' | 'metal' | 'earth' | 'none';
 }
 
 /** 门派技能树节点 */

@@ -26,7 +26,18 @@
       "Bash(set:*)",
       "Bash(export:*)",
       "Bash(rm:*)",
-      "Bash(wc:*)"
+      "Bash(wc:*)",
+      "Bash(findstr:*)",
+      "Bash(for:*)",
+      "Bash(do echo -n \"$faction: \")",
+      "Bash(done)",
+      "Bash(pip install:*)",
+      "Bash(tee:*)",
+      "Bash(cut:*)",
+      "Bash(./gradlew assembleDebug:*)",
+      "Bash(grep:*)",
+      "Bash(\"D:/wokEnvironment/java/jdk-21.0.10/bin/java\" -version)",
+      "Bash(JAVA_HOME=\"D:/wokEnvironment/java/jdk-21.0.10\" ./gradlew:*)"
     ]
   },
   "project": {

@@ -38,6 +38,50 @@ export interface QuestCondition {
   description: string;
 }
 
+/** 奖励池物品 */
+export interface RewardPoolItem {
+  /** 奖励类型 */
+  type: 'gold' | 'exp' | 'item' | 'equipment';
+  /** 奖励值（物品ID或数量） */
+  value: string | number;
+  /** 权重（概率） */
+  weight: number;
+  /** 数量范围 */
+  quantity?: { min: number; max: number };
+}
+
+/** 奖励池配置 */
+export interface RewardPool {
+  /** 奖励池ID */
+  poolId: string;
+  /** 奖励池名称 */
+  name: string;
+  /** 奖励池物品列表 */
+  rewards: RewardPoolItem[];
+  /** 必定获得的奖励 */
+  guaranteedRewards?: QuestReward[];
+  /** 随机抽取次数 */
+  drawCount?: number;
+}
+
+/** 首通奖励配置 */
+export interface FirstClearBonus {
+  /** 金币奖励 */
+  gold: number;
+  /** 经验奖励 */
+  exp: number;
+  /** 物品奖励 */
+  items?: Array<{
+    itemId: string;
+    count: number;
+  }>;
+  /** 装备奖励 */
+  equipments?: Array<{
+    equipmentId: string;
+    count: number;
+  }>;
+}
+
 /** 任务奖励 */
 export interface QuestReward {
   /** 金币奖励 */
@@ -60,6 +104,24 @@ export interface QuestReward {
     features?: string[];
     npcs?: string[];
   };
+  /** 奖励池ID（随机奖励） */
+  rewardPoolId?: string;
+  /** 金币范围 */
+  goldRange?: { min: number; max: number };
+  /** 经验范围 */
+  expRange?: { min: number; max: number };
+  /** 首通奖励 */
+  firstClearBonus?: FirstClearBonus;
+}
+
+/** 对话选项 */
+export interface DialogOption {
+  /** 选项文本 */
+  text: string;
+  /** 选项图标 */
+  icon?: string;
+  /** 选项动作 */
+  action?: () => void;
 }
 
 /** 对话行 */
@@ -74,6 +136,10 @@ export interface DialogLine {
   position?: 'left' | 'right';
   /** 是否有特效 */
   effect?: 'shake' | 'flash' | 'none';
+  /** 说话者头衔/称号 */
+  title?: string;
+  /** 对话选项 */
+  options?: DialogOption[];
 }
 
 /** 任务章节信息 */
@@ -155,6 +221,8 @@ export interface PlayerQuest {
   claimedAt?: number;
   /** 条件进度 */
   conditionProgress: Record<string, number>;
+  /** 是否已领取首通奖励 */
+  firstClearClaimed?: boolean;
 }
 
 /** 任务进度信息 */

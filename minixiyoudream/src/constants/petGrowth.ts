@@ -1,16 +1,27 @@
-// 宠物成长率和品质配置 - 参考梦幻西游
+// 宠物成长率和品质配置 - 基于梦幻西游召唤兽系统重新设计
 
-import type { PetQuality, PetQualityConfig, GrowthRate, PetAptitude } from '@/types';
+import type {
+  PetQuality,
+  PetQualityConfig,
+  GrowthRateValue,
+  PetAptitude,
+  PetAptitudeConfig,
+  AptitudeRange,
+  PetType,
+  PetElement,
+} from '@/types/pet';
 
-/** 品质配置表 */
+// ==================== 品质配置 ====================
+
+/** 品质配置表 - 参考梦幻西游 */
 export const PET_QUALITY_CONFIG: Record<PetQuality, PetQualityConfig> = {
   wild: {
     type: 'wild',
     name: '野生',
     nameEn: 'Wild',
     baseStatMultiplier: 0.8,       // 基础属性80%
-    aptitudeMin: 0.7,              // 资质范围0.7-1.0
-    aptitudeMax: 1.0,
+    aptitudeBonus: 0,              // 无资质加成
+    growthBonus: 0,                // 无成长加成
     initialSkillMin: 0,            // 无初始技能
     initialSkillMax: 0,
     hasAppearanceChange: false,
@@ -21,8 +32,8 @@ export const PET_QUALITY_CONFIG: Record<PetQuality, PetQualityConfig> = {
     name: '宝宝',
     nameEn: 'Baby',
     baseStatMultiplier: 1.0,       // 基础属性100%
-    aptitudeMin: 0.9,              // 资质范围0.9-1.2
-    aptitudeMax: 1.2,
+    aptitudeBonus: 0.1,            // 资质+10%
+    growthBonus: 0,                // 无成长加成
     initialSkillMin: 1,            // 1-2个初始技能
     initialSkillMax: 2,
     hasAppearanceChange: false,
@@ -32,11 +43,11 @@ export const PET_QUALITY_CONFIG: Record<PetQuality, PetQualityConfig> = {
     type: 'variant',
     name: '变异',
     nameEn: 'Variant',
-    baseStatMultiplier: 1.15,      // 基础属性115%
-    aptitudeMin: 1.0,              // 资质范围1.0-1.3
-    aptitudeMax: 1.3,
-    initialSkillMin: 2,            // 2-3个初始技能
-    initialSkillMax: 3,
+    baseStatMultiplier: 1.1,       // 基础属性110%
+    aptitudeBonus: 0.15,           // 资质+15%
+    growthBonus: 0.02,             // 成长+0.02
+    initialSkillMin: 5,            // 固定5个初始技能（3高级+2低级）
+    initialSkillMax: 5,
     hasAppearanceChange: true,     // 外观变化
     captureWeight: 4.5,            // 4.5%捕捉权重
   },
@@ -44,13 +55,13 @@ export const PET_QUALITY_CONFIG: Record<PetQuality, PetQualityConfig> = {
     type: 'divine',
     name: '神兽',
     nameEn: 'Divine',
-    baseStatMultiplier: 1.3,       // 基础属性130%
-    aptitudeMin: 1.2,              // 资质范围1.2-1.5
-    aptitudeMax: 1.5,
-    initialSkillMin: 3,            // 3-4个初始技能
-    initialSkillMax: 4,
+    baseStatMultiplier: 1.2,       // 基础属性120%
+    aptitudeBonus: 0.2,            // 资质+20%
+    growthBonus: 0.05,             // 成长+0.05
+    initialSkillMin: 5,            // 固定5个初始技能（3高级+2低级）
+    initialSkillMax: 5,
     hasAppearanceChange: true,     // 特殊外观
-    captureWeight: 0.5,            // 0.5%捕捉权重
+    captureWeight: 0.5,            // 0.5%捕捉权重（神兽通常不通过捕捉获得）
   },
 };
 
@@ -62,85 +73,146 @@ export const PET_QUALITY_WEIGHTS: Array<{ quality: PetQuality; weight: number }>
   { quality: 'divine', weight: 0.5 },
 ];
 
-/** 成长率范围配置 */
+// ==================== 成长率系统 ====================
+
+/** 成长率全局范围 - 参考梦幻西游 */
 export const GROWTH_RATE_RANGES = {
-  min: 0.8,
-  max: 1.5,
+  min: 0.882,
+  max: 1.295,
   default: 1.0,
-};
-
-/** 品质对应的成长率加成 */
-export const QUALITY_GROWTH_BONUS: Record<PetQuality, { min: number; max: number }> = {
-  wild: { min: 0.8, max: 1.0 },
-  baby: { min: 0.95, max: 1.2 },
-  variant: { min: 1.1, max: 1.35 },
-  divine: { min: 1.25, max: 1.5 },
-};
-
-/** 根据宠物类型获取成长率倾向 */
-export const PET_TYPE_GROWTH_BIAS: Record<string, Partial<Record<keyof GrowthRate, number>>> = {
-  attack: { physical: 1.2, hp: 1.0, defense: 0.9, speed: 1.1 },
-  magic: { magic: 1.2, mp: 1.2, defense: 0.9, speed: 1.0 },
-  defense: { defense: 1.2, hp: 1.2, physical: 0.9, speed: 0.8 },
-  support: { magic: 1.1, mp: 1.1, defense: 1.0, speed: 1.1 },
-  control: { speed: 1.3, magic: 1.0, defense: 0.9, hp: 0.9 },
+  divineNormal: 1.2,     // 神兽飞升前
+  divineAscended: 1.25,  // 神兽飞升后
 };
 
 /**
- * 生成随机成长率
- * @param quality 宠物品质
- * @param petType 宠物类型
+ * 根据宠物类型获取成长率倾向
+ * 影响最终成长率的概率分布
+ */
+export const PET_TYPE_GROWTH_BIAS: Record<PetType, number> = {
+  attack: 1.05,    // 攻宠略高成长
+  magic: 1.05,     // 法宠略高成长
+  defense: 1.0,    // 防宠标准成长
+  support: 1.02,   // 辅助宠略高
+  control: 1.08,   // 控制宠较高成长
+  balance: 1.0,    // 平衡宠标准成长
+};
+
+// ==================== 资质系统 ====================
+
+/** 资质全局范围 - 参考梦幻西游 */
+export const APTITUDE_RANGES = {
+  attack: { min: 480, max: 3000 },
+  defense: { min: 480, max: 3000 },
+  hp: { min: 960, max: 6000 },
+  mp: { min: 960, max: 3600 },
+  speed: { min: 640, max: 1800 },
+  dodge: { min: 480, max: 1800 },
+  magic: { min: 480, max: 1800 },  // 兼容旧系统
+} as const;
+
+/** 资质评价等级 */
+export type AptitudeGrade = 'S' | 'A' | 'B' | 'C' | 'D' | 'E';
+
+/** 资质评价阈值 (相对于满资质的百分比) */
+export const APTITUDE_GRADE_THRESHOLDS: Record<AptitudeGrade, { min: number; name: string; color: string }> = {
+  S: { min: 0.95, name: '完美', color: '#ff6b00' },
+  A: { min: 0.85, name: '优秀', color: '#ff00ff' },
+  B: { min: 0.75, name: '良好', color: '#0066ff' },
+  C: { min: 0.65, name: '普通', color: '#00ff00' },
+  D: { min: 0.55, name: '较差', color: '#999999' },
+  E: { min: 0, name: '极差', color: '#666666' },
+};
+
+/**
+ * 根据宠物类型获取资质倾向
+ * 影响各项资质的生成概率
+ */
+export const PET_TYPE_APTITUDE_BIAS: Record<PetType, Partial<Record<keyof PetAptitude, number>>> = {
+  attack: { attack: 1.2, hp: 1.1, speed: 1.1, defense: 0.9 },
+  magic: { mp: 1.3, speed: 1.0, defense: 0.9, hp: 0.9 },
+  defense: { defense: 1.3, hp: 1.2, speed: 0.8, dodge: 0.9 },
+  support: { mp: 1.1, hp: 1.1, speed: 1.1, defense: 1.0 },
+  control: { speed: 1.3, dodge: 1.2, mp: 1.0, defense: 0.9 },
+  balance: { attack: 1.0, defense: 1.0, hp: 1.0, mp: 1.0, speed: 1.0, dodge: 1.0 },
+};
+
+// ==================== 生成函数 ====================
+
+/**
+ * 从5档成长率中随机选择一档
+ * @param growthRates 5档成长率数组
+ * @param quality 品质（影响选择概率）
  * @param prng 随机数生成函数
  */
-export function generateGrowthRate(
-  quality: PetQuality,
-  petType: string,
+export function selectGrowthRate(
+  growthRates: [number, number, number, number, number],
+  quality: PetQuality = 'baby',
   prng: () => number = Math.random
-): GrowthRate {
-  const range = QUALITY_GROWTH_BONUS[quality];
-  const bias = PET_TYPE_GROWTH_BIAS[petType] || {};
+): GrowthRateValue {
+  const config = PET_QUALITY_CONFIG[quality];
 
-  const generateValue = (key: keyof GrowthRate): number => {
-    const baseMin = range.min;
-    const baseMax = range.max;
-    const baseValue = baseMin + prng() * (baseMax - baseMin);
-    const biasMultiplier = bias[key] || 1.0;
-    // 应用倾向后不能超过范围
-    return Math.min(baseMax, Math.max(baseMin, baseValue * biasMultiplier));
-  };
+  // 根据品质调整概率分布
+  // 宝宝倾向于中间档，变异/神兽倾向于高档
+  const weights = [10, 25, 30, 25, 10]; // 基础权重
 
-  return {
-    physical: generateValue('physical'),
-    magic: generateValue('magic'),
-    defense: generateValue('defense'),
-    speed: generateValue('speed'),
-    hp: generateValue('hp'),
-    mp: generateValue('mp'),
-  };
+  // 品质加成：越高品质越容易抽到高档
+  const qualityBonus = quality === 'divine' ? 2 : quality === 'variant' ? 1 : 0;
+  const adjustedWeights = weights.map((w, i) => w + (i * qualityBonus * 5));
+
+  // 加权随机选择
+  const totalWeight = adjustedWeights.reduce((a, b) => a + b, 0);
+  let roll = prng() * totalWeight;
+
+  for (let i = 0; i < adjustedWeights.length; i++) {
+    roll -= adjustedWeights[i];
+    if (roll <= 0) {
+      return growthRates[i] + config.growthBonus;
+    }
+  }
+
+  return growthRates[2] + config.growthBonus; // 默认返回中档
 }
 
 /**
  * 生成随机资质
- * @param quality 宠物品质
+ * @param aptitudeConfig 资质配置范围
+ * @param quality 品质
+ * @param petType 宠物类型
  * @param prng 随机数生成函数
  */
 export function generateAptitude(
-  quality: PetQuality,
+  aptitudeConfig: PetAptitudeConfig,
+  quality: PetQuality = 'baby',
+  petType: PetType = 'balance',
   prng: () => number = Math.random
 ): PetAptitude {
   const config = PET_QUALITY_CONFIG[quality];
+  const bias = PET_TYPE_APTITUDE_BIAS[petType] || {};
 
-  const generateValue = (): number => {
-    return config.aptitudeMin + prng() * (config.aptitudeMax - config.aptitudeMin);
+  const generateValue = (
+    range: AptitudeRange,
+    biasMultiplier: number = 1.0
+  ): number => {
+    // 基础值在范围内随机
+    const baseValue = range.min + prng() * (range.max - range.min);
+
+    // 应用品质加成
+    const qualityBonus = 1 + config.aptitudeBonus;
+
+    // 应用类型倾向（使其更接近上限）
+    const biasedValue = range.min + (baseValue - range.min) * biasMultiplier;
+
+    // 最终值不能超过范围上限
+    return Math.min(range.max, Math.floor(biasedValue * qualityBonus));
   };
 
   return {
-    attack: generateValue(),
-    defense: generateValue(),
-    magic: generateValue(),
-    speed: generateValue(),
-    hp: generateValue(),
-    mp: generateValue(),
+    attack: generateValue(aptitudeConfig.attack, bias.attack),
+    defense: generateValue(aptitudeConfig.defense, bias.defense),
+    hp: generateValue(aptitudeConfig.hp, bias.hp),
+    mp: generateValue(aptitudeConfig.mp, bias.mp),
+    speed: generateValue(aptitudeConfig.speed, bias.speed),
+    dodge: generateValue(aptitudeConfig.dodge, bias.dodge),
   };
 }
 
@@ -162,22 +234,103 @@ export function rollPetQuality(prng: () => number = Math.random): PetQuality {
   return 'wild'; // 默认返回野生
 }
 
+// ==================== 属性计算 ====================
+
 /**
- * 计算成长后的属性值
- * @param baseStat 基础属性
- * @param growthRate 成长率
- * @param level 等级
- * @param aptitude 资质
+ * 计算成长后的HP值
+ * 公式参考梦幻西游: HP = 体力资质 * 等级 * 成长率 * 系数
  */
-export function calculateGrowthStat(
-  baseStat: number,
-  growthRate: number,
+export function calculateHp(
   level: number,
-  aptitude: number
+  hpAptitude: number,
+  growthRate: GrowthRateValue
 ): number {
-  // 属性计算公式: stat = baseStat * (1 + growthRate * (level - 1) * 0.1) * aptitude
-  return Math.floor(baseStat * (1 + growthRate * (level - 1) * 0.1) * aptitude);
+  // 简化公式: HP = (资质 / 10) * 等级 * 成长率 * 5
+  return Math.floor((hpAptitude / 10) * level * growthRate * 5);
 }
+
+/**
+ * 计算成长后的MP值
+ */
+export function calculateMp(
+  level: number,
+  mpAptitude: number,
+  growthRate: GrowthRateValue
+): number {
+  return Math.floor((mpAptitude / 10) * level * growthRate * 3);
+}
+
+/**
+ * 计算成长后的攻击值
+ */
+export function calculateAttack(
+  level: number,
+  attackAptitude: number,
+  growthRate: GrowthRateValue
+): number {
+  return Math.floor((attackAptitude / 100) * level * growthRate * 2);
+}
+
+/**
+ * 计算成长后的防御值
+ */
+export function calculateDefense(
+  level: number,
+  defenseAptitude: number,
+  growthRate: GrowthRateValue
+): number {
+  return Math.floor((defenseAptitude / 100) * level * growthRate * 2);
+}
+
+/**
+ * 计算成长后的速度值
+ */
+export function calculateSpeed(
+  level: number,
+  speedAptitude: number,
+  growthRate: GrowthRateValue
+): number {
+  return Math.floor((speedAptitude / 100) * level * growthRate * 1.5);
+}
+
+/**
+ * 计算成长后的躲闪值
+ */
+export function calculateDodge(
+  level: number,
+  dodgeAptitude: number,
+  growthRate: GrowthRateValue
+): number {
+  return Math.floor((dodgeAptitude / 100) * level * growthRate * 1.2);
+}
+
+/**
+ * 计算所有战斗属性
+ */
+export function calculateAllStats(
+  level: number,
+  aptitude: PetAptitude,
+  growthRate: GrowthRateValue,
+  baseStatMultiplier: number = 1.0
+): {
+  maxHp: number;
+  maxMp: number;
+  attack: number;
+  defense: number;
+  speed: number;
+  dodge: number;
+} {
+  return {
+    maxHp: Math.floor(calculateHp(level, aptitude.hp, growthRate) * baseStatMultiplier),
+    maxMp: Math.floor(calculateMp(level, aptitude.mp, growthRate) * baseStatMultiplier),
+    attack: Math.floor(calculateAttack(level, aptitude.attack, growthRate) * baseStatMultiplier),
+    defense: Math.floor(calculateDefense(level, aptitude.defense, growthRate) * baseStatMultiplier),
+    speed: Math.floor(calculateSpeed(level, aptitude.speed, growthRate) * baseStatMultiplier),
+    dodge: Math.floor(calculateDodge(level, aptitude.dodge, growthRate) * baseStatMultiplier),
+  };
+}
+
+// ==================== 工具函数 ====================
 
 /**
  * 获取品质配置
@@ -194,25 +347,130 @@ export function getPetQualityName(quality: PetQuality): string {
 }
 
 /**
- * 计算资质总分
+ * 计算资质总分 (百分比形式)
  */
-export function calculateAptitudeScore(aptitude: PetAptitude): number {
-  return (
-    aptitude.attack +
-    aptitude.defense +
-    aptitude.magic +
-    aptitude.speed +
-    aptitude.hp +
-    aptitude.mp
-  ) / 6;
+export function calculateAptitudeScore(
+  aptitude: PetAptitude,
+  aptitudeConfig: PetAptitudeConfig
+): number {
+  const scores = [
+    aptitude.attack / aptitudeConfig.attack.max,
+    aptitude.defense / aptitudeConfig.defense.max,
+    aptitude.hp / aptitudeConfig.hp.max,
+    aptitude.mp / aptitudeConfig.mp.max,
+    aptitude.speed / aptitudeConfig.speed.max,
+    aptitude.dodge / aptitudeConfig.dodge.max,
+  ];
+  return scores.reduce((a, b) => a + b, 0) / scores.length;
 }
 
 /**
- * 判断资质是否优秀 (超过平均值)
+ * 获取资质评价等级
  */
-export function isAptitudeExcellent(aptitude: PetAptitude, quality: PetQuality): boolean {
-  const config = PET_QUALITY_CONFIG[quality];
-  const avgAptitude = (config.aptitudeMin + config.aptitudeMax) / 2;
-  const score = calculateAptitudeScore(aptitude);
-  return score >= avgAptitude;
+export function getAptitudeGrade(
+  aptitudeValue: number,
+  maxValue: number
+): AptitudeGrade {
+  const ratio = aptitudeValue / maxValue;
+
+  for (const [grade, config] of Object.entries(APTITUDE_GRADE_THRESHOLDS)) {
+    if (ratio >= config.min) {
+      return grade as AptitudeGrade;
+    }
+  }
+
+  return 'E';
+}
+
+/**
+ * 判断资质是否优秀 (A级以上)
+ */
+export function isAptitudeExcellent(
+  aptitude: PetAptitude,
+  aptitudeConfig: PetAptitudeConfig
+): boolean {
+  const score = calculateAptitudeScore(aptitude, aptitudeConfig);
+  return score >= APTITUDE_GRADE_THRESHOLDS.A.min;
+}
+
+/**
+ * 获取资质等级名称
+ */
+export function getAptitudeGradeName(grade: AptitudeGrade): string {
+  return APTITUDE_GRADE_THRESHOLDS[grade].name;
+}
+
+/**
+ * 获取资质等级颜色
+ */
+export function getAptitudeGradeColor(grade: AptitudeGrade): string {
+  return APTITUDE_GRADE_THRESHOLDS[grade].color;
+}
+
+/**
+ * 五行相克关系
+ */
+export const ELEMENT_COUNTERS: Record<PetElement, PetElement> = {
+  metal: 'wood',    // 金克木
+  wood: 'earth',    // 木克土
+  water: 'fire',    // 水克火
+  fire: 'metal',    // 火克金
+  earth: 'water',   // 土克水
+  physical: 'none', // 物理不参与五行克制
+  none: 'none',
+};
+
+/**
+ * 检查五行克制
+ * @returns 正数表示克制对方，负数表示被对方克制，0表示无关系
+ */
+export function checkElementCounter(
+  attacker: PetElement,
+  defender: PetElement
+): number {
+  if (attacker === 'none' || defender === 'none') return 0;
+  if (ELEMENT_COUNTERS[attacker] === defender) return 1;  // 克制
+  if (ELEMENT_COUNTERS[defender] === attacker) return -1; // 被克制
+  return 0;
+}
+
+// ==================== 兼容旧系统的函数 ====================
+
+/**
+ * 生成随机成长率 - 兼容旧系统
+ * @param quality 品质
+ * @param prng 随机数生成函数
+ */
+export function generateGrowthRate(
+  quality: PetQuality = 'baby',
+  prng: () => number = Math.random
+): GrowthRateValue {
+  // 使用标准5档成长率
+  const baseRates: [number, number, number, number, number] = [0.95, 1.05, 1.15, 1.20, 1.25];
+  return selectGrowthRate(baseRates, quality, prng);
+}
+
+/**
+ * 计算成长属性 - 兼容旧系统
+ * @param level 等级
+ * @param aptitude 资质
+ * @param growthRate 成长率
+ * @param statType 属性类型
+ */
+export function calculateGrowthStat(
+  level: number,
+  aptitude: number,
+  growthRate: GrowthRateValue,
+  statType: 'hp' | 'mp' | 'attack' | 'defense' | 'speed'
+): number {
+  const statCalculators: Record<string, (l: number, a: number, g: GrowthRateValue) => number> = {
+    hp: calculateHp,
+    mp: calculateMp,
+    attack: calculateAttack,
+    defense: calculateDefense,
+    speed: calculateSpeed,
+  };
+
+  const calculator = statCalculators[statType];
+  return calculator(level, aptitude, growthRate);
 }

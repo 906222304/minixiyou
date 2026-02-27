@@ -18,8 +18,11 @@ export * from './expTable';
 // 计算公式
 export * from './formulas';
 
-// 宠物
-export * from './pets';
+// 宠物（已废弃，使用召唤兽模板）
+// export * from './pets';
+
+// 召唤兽模板
+export * from './summonTemplates';
 
 // 伙伴
 export * from './companions';
@@ -93,9 +96,6 @@ export * from './petGrowth';
 
 // 宠物捕捉
 export * from './petCapture';
-
-// 宠物进化
-export * from './petEvolution';
 
 // 图标配置
 export * from './iconConfig';

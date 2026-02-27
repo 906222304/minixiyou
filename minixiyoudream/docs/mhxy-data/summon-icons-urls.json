@@ -1,0 +1,66 @@
+{
+  "description": "梦幻西游召唤兽图标URL列表 - 来源: 叶子猪图鉴",
+  "source": "https://xyq.yzz.cn/special/tj/",
+  "lastUpdated": "2026-02-17",
+  "note": "由于网络访问限制，图标需要手动下载。以下是已知的图标来源URL格式。",
+  "iconSources": {
+    "叶子猪图鉴": {
+      "baseUrl": "https://xyq.yzz.cn/special/tj/",
+      "iconPattern": "https://xyq.yzz.cn/special/tj/images/summon/xxx.jpg",
+      "description": "叶子猪图鉴页面包含召唤兽图标，可以从页面源码中提取"
+    },
+    "梦幻西游官网": {
+      "baseUrl": "https://xyq.163.com/",
+      "description": "官网可能包含官方图标资源"
+    }
+  },
+  "availableIcons": [
+    {
+      "name": "海星",
+      "source": "叶子猪图鉴",
+      "foundOn": "https://xyq.yzz.cn/special/tj/"
+    },
+    {
+      "name": "章鱼",
+      "source": "叶子猪图鉴",
+      "foundOn": "https://xyq.yzz.cn/special/tj/"
+    },
+    {
+      "name": "泡泡",
+      "source": "叶子猪图鉴",
+      "foundOn": "https://xyq.yzz.cn/special/tj/"
+    },
+    {
+      "name": "树怪",
+      "source": "叶子猪图鉴",
+      "foundOn": "https://xyq.yzz.cn/special/tj/"
+    },
+    {
+      "name": "护卫",
+      "source": "叶子猪图鉴",
+      "foundOn": "https://xyq.yzz.cn/special/tj/"
+    },
+    {
+      "name": "巨蛙",
+      "source": "叶子猪图鉴",
+      "foundOn": "https://xyq.yzz.cn/special/tj/"
+    },
+    {
+      "name": "大海龟",
+      "source": "叶子猪图鉴",
+      "foundOn": "https://xyq.yzz.cn/special/tj/"
+    }
+  ],
+  "skillIconSources": {
+    "叶子猪技能查询器": {
+      "baseUrl": "https://xyq.yzz.cn/special/zhsjn/",
+      "description": "叶子猪技能查询器页面包含所有技能图标"
+    }
+  },
+  "downloadInstructions": {
+    "step1": "访问叶子猪图鉴页面 https://xyq.yzz.cn/special/tj/",
+    "step2": "右键点击召唤兽图标，选择'查看图片'或'复制图片地址'",
+    "step3": "下载图片并保存到 docs/mhxy-assets/summon-icons/ 目录",
+    "step4": "建议命名格式: {召唤兽ID}.png，如 sm_haixing.png"
+  }
+}
